@@ -647,3 +647,41 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   background-image: repeating-conic-gradient(from 196deg at 50% -12%,
     transparent 0 3deg, var(--p2) 3deg 6deg);
 }
+
+/* ---------- Punktewertung ---------- */
+.seg {
+  display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px;
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 999px;
+}
+.seg-btn {
+  border: 0; background: none; color: var(--muted); cursor: pointer;
+  font: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 16px; border-radius: 999px; transition: .12s;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.is-active { background: var(--mint); color: var(--ink); }
+
+.punkte-summe {
+  display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
+  padding: 14px 16px; margin-bottom: 14px;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 14px 28px -22px rgba(0,0,0,.95);
+}
+.punkte-summe .k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
+.punkte-summe .v { font-size: 34px; font-weight: 700; letter-spacing: -.03em; color: var(--mint); font-variant-numeric: tabular-nums; }
+.punkte-summe .sub { font-size: 12.5px; color: var(--muted); margin-left: auto; }
+
+.punkte-row { align-items: flex-start; }
+.punkte-wert { display: grid; justify-items: end; gap: 1px; text-align: right; }
+.p-zahl { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mint); }
+.p-zahl.p-leer { color: var(--line); }
+.p-einheit { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+.p-bar {
+  margin-top: 7px; height: 5px; border-radius: 999px; overflow: hidden;
+  background: color-mix(in srgb, var(--mint) 12%, transparent);
+}
+.p-bar span {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--mint-dim), var(--mint));
+}

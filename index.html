@@ -103,6 +103,26 @@
 
   </section>
 
+  <!-- ============ PUNKTE ============ -->
+  <section id="view-punkte" class="view">
+    <h1 class="view-title">Punktewertung</h1>
+    <p class="view-note">Aus dem <strong>Bestwert</strong> jeder Disziplin – so, als würdest du heute alles im Wettkampf abrufen.</p>
+
+    <div class="seg" id="genderSeg" role="group" aria-label="Wertungstabelle">
+      <button type="button" class="seg-btn" data-gender="m">männlich</button>
+      <button type="button" class="seg-btn" data-gender="w">weiblich</button>
+    </div>
+
+    <div class="punkte-summe">
+      <span class="k">Summe</span>
+      <span id="punkteSumme" class="v">0</span>
+      <span id="punkteAnzahl" class="sub"></span>
+    </div>
+
+    <ul id="punkteListe" class="entry-list"></ul>
+    <p id="punkteHinweis" class="hint-text"></p>
+  </section>
+
   <!-- ============ PROFIL ============ -->
   <section id="view-profil" class="view">
     <h1 class="view-title">Profil</h1>
@@ -155,6 +175,9 @@
   </button>
   <button class="tab" data-view="uebersicht">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 01-10 0V4z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/><path d="M12 14v3M9 20h6"/></svg>Übersicht
+  </button>
+  <button class="tab" data-view="punkte">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M9.5 19V5M15 19v-6M20.5 19V8"/></svg>Punkte
   </button>
   <button class="tab" data-view="profil">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0114.4 0"/></svg>Profil

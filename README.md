@@ -34,7 +34,24 @@ Durchschnitt und alle Einzelwerte (löschbar).
 **Übersicht** – alle Bestwerte auf einen Blick mit Mini-Verlauf; ein Klick
 springt ins passende Diagramm.
 
-**Profil** – der vierte Reiter hält alles, was nicht Sport ist: Profilliste
+**Punkte** – rechnet aus dem **Bestwert** jeder Disziplin die Punkte nach der
+offiziellen Mehrkampf-Formel der World Athletics aus (Zehnkampf der Männer,
+Siebenkampf der Frauen), dazu die Summe als simulierte Endleistung:
+
+```
+Laufen:  P = a · (b − T)^c     T in Sekunden
+Technik: P = a · (L − b)^c     L in cm (Sprünge) bzw. m (Würfe)
+```
+
+Die Beiwerte stehen in `assets/app.js` unter `WA_TABELLE`. Geprüft an den
+bekannten 1000-Punkte-Marken: 100 m 10,395 s · Weitsprung 7,76 m ·
+Hochsprung 2,208 m · Kugel 18,40 m · 1500 m 3:53,79 – alle exakt 1000.
+
+Nicht jede Disziplin hat offizielle Beiwerte: Im Siebenkampf gibt es 100 m
+Hürden statt 100 m flach und 800 m statt 1500 m, und 5000 m kommt in keinem
+Mehrkampf vor. Diese Felder bleiben leer, statt geraten zu werden.
+
+**Profil** – der fünfte Reiter hält alles, was nicht Sport ist: Profilliste
 zum Anlegen, Umbenennen und Löschen, die Farbe der App, Speicherort und die
 Datei-Knöpfe. Die ersten drei Reiter bleiben so nur beim Sport.
 
@@ -104,8 +121,13 @@ Gruppe und kann sie ändern. Nehmt deshalb einen, den man nicht rät, und
 schreibt keine Daten hinein, die nicht die ganze Gruppe sehen soll.
 
 In beiden Fällen: **Sichern (JSON)** legt ein Backup an, **Laden (JSON)** holt
-es zurück und führt es mit vorhandenen Werten zusammen (nach ID, ohne
-Dubletten), **CSV** öffnet sich in Excel oder LibreOffice.
+es zurück und führt es mit vorhandenen Werten zusammen, **CSV** öffnet sich in
+Excel oder LibreOffice.
+
+**Keine Dopplungen:** Ein Wert gilt als derselbe, wenn Profil, Disziplin,
+Datum und Leistung übereinstimmen. Beim Verbinden mit einer Datenbank, beim
+Übertragen vom Gerät und beim Laden einer Datei wird danach abgeglichen –
+mehrfaches Anmelden legt also nichts zweimal an.
 
 ## Dateien
 

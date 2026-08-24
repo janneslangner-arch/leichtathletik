@@ -378,20 +378,34 @@
     switchProfile(name) { db.current = name; commit(); }
   };
 
-  // Vorhandene Werte dieses Geräts in die Datenbank schieben
+  // Vorhandene Werte dieses Geräts in die Datenbank schieben.
+  // Was dort schon steht, wird übersprungen – sonst gäbe es bei jeder
+  // erneuten Anmeldung eine weitere Kopie derselben Leistung.
   function uploadLocal(profile, entries) {
     profile.forEach(name => { if (!db.athletes.includes(name)) db.athletes.push(name); });
+    const bekannt = sigSet(db.entries);
+    let neu = 0, doppelt = 0;
     entries.forEach(e => {
+      if (bekannt.has(sig(e))) { doppelt++; return; }
+      bekannt.add(sig(e));
       const kopie = { id: newId(), athlete: e.athlete, disc: e.disc, value: e.value, date: e.date, note: e.note || '' };
       db.entries.push(kopie);
+      neu++;
       enqueue('wert_anlegen', {
         p_code: cfg.code, p_id: kopie.id, p_profil: ensureProfileId(kopie.athlete),
         p_disziplin: kopie.disc, p_wert: kopie.value, p_datum: kopie.date, p_notiz: kopie.note
       });
     });
     commit(); renderAll();
-    toast(`${entries.length} ${entries.length === 1 ? 'Wert' : 'Werte'} werden übertragen`);
+    toast(neu
+      ? `${neu} ${neu === 1 ? 'Wert wird' : 'Werte werden'} übertragen` + (doppelt ? `, ${doppelt} war${doppelt === 1 ? '' : 'en'} schon da` : '')
+      : 'Alles war schon in der Datenbank – nichts doppelt angelegt');
   }
+
+  // Fingerabdruck eines Wertes: gleiche Person, Disziplin, Datum und Leistung
+  // gelten als derselbe Eintrag – egal welche ID er hat.
+  const sig = e => [e.athlete, e.disc, e.date, Number(e.value).toFixed(3)].join('|');
+  const sigSet = liste => new Set(liste.map(sig));
 
   const entriesOf = key => db.entries
     .filter(e => e.athlete === db.current && e.disc === key)
@@ -846,6 +860,107 @@
     else list.slice().reverse().forEach(e => ul.append(rowFor(e)));
   }
 
+
+  /* ---------------- Punktewertung ----------------
+     Offizielle Mehrkampf-Formel der World Athletics (Zehnkampf der Männer,
+     Siebenkampf der Frauen), unverändert seit 1985:
+       Laufen:  P = a · (b − T)^c      T in Sekunden
+       Technik: P = a · (L − b)^c      L in cm (Sprünge) bzw. m (Würfe)
+     Disziplinen, die in diesen Mehrkämpfen nicht vorkommen, haben keine
+     offiziellen Beiwerte – sie bleiben leer statt geraten zu werden. */
+  const WA_TABELLE = {
+    m: {
+      sprint100:    ['zeit', 25.4347,  18,   1.81 ],
+      weitsprung:   ['cm',    0.14354, 220,  1.4  ],
+      hochsprung:   ['cm',    0.8465,  75,   1.42 ],
+      kugelstossen: ['m',    51.39,     1.5, 1.05 ],
+      speerwurf:    ['m',    10.14,     7,   1.08 ],
+      lauf1500:     ['zeit',  0.03768, 480,  1.85 ]
+    },
+    w: {
+      weitsprung:   ['cm',    0.188807, 210, 1.41 ],
+      hochsprung:   ['cm',    1.84523,   75, 1.348],
+      kugelstossen: ['m',    56.0211,    1.5, 1.05],
+      speerwurf:    ['m',    15.9803,    3.8, 1.04]
+    }
+  };
+  const OHNE_TABELLE = {
+    sprint100: 'im Siebenkampf läuft man 100 m Hürden statt 100 m flach',
+    lauf1500:  'im Siebenkampf steht 800 m',
+    lauf5000:  'kommt in keinem Mehrkampf vor'
+  };
+
+  function waPunkte(disc, wert, geschlecht) {
+    const t = (WA_TABELLE[geschlecht] || {})[disc];
+    if (!t) return null;
+    const [art, a, b, c] = t;
+    if (art === 'zeit') return wert >= b ? 0 : Math.floor(a * Math.pow(b - wert, c));
+    const l = art === 'cm' ? wert * 100 : wert;
+    return l <= b ? 0 : Math.floor(a * Math.pow(l - b, c));
+  }
+
+  function geschlechtVon(name) {
+    try {
+      const alle = JSON.parse(localStorage.getItem('la-gender') || '{}');
+      return alle[name] === 'w' ? 'w' : 'm';
+    } catch (e) { return 'm'; }
+  }
+  function setzeGeschlecht(name, wert) {
+    try {
+      const alle = JSON.parse(localStorage.getItem('la-gender') || '{}');
+      alle[name] = wert;
+      localStorage.setItem('la-gender', JSON.stringify(alle));
+    } catch (e) { /* egal */ }
+  }
+
+  function renderPunkte() {
+    const g = geschlechtVon(db.current);
+    document.querySelectorAll('#genderSeg .seg-btn').forEach(b =>
+      b.classList.toggle('is-active', b.dataset.gender === g));
+
+    const liste = $('#punkteListe');
+    liste.textContent = '';
+    let summe = 0, gewertet = 0, offen = 0;
+
+    KEYS.forEach(key => {
+      const d = DISC[key], b = best(key);
+      const punkte = b ? waPunkte(key, b.value, g) : null;
+      const li = el('li', 'row punkte-row');
+      li.append(el('span', 'ic', d.ic));
+
+      const main = el('div', 'main');
+      main.append(el('div', 'nm', d.name));
+      main.append(el('div', 'val', b ? fmt(key, b.value) : '– noch kein Wert'));
+      if (b && punkte === null) main.append(el('div', 'nm', 'keine offizielle Wertung: ' + (OHNE_TABELLE[key] || '')));
+      li.append(main);
+
+      const rechts = el('div', 'punkte-wert');
+      if (punkte !== null && b) {
+        summe += punkte; gewertet++;
+        rechts.append(el('span', 'p-zahl', String(punkte)), el('span', 'p-einheit', 'Punkte'));
+        const bar = el('div', 'p-bar');
+        const fuell = el('span');
+        fuell.style.width = Math.max(2, Math.min(100, punkte / 12)) + '%';   // 1200 Punkte = voll
+        bar.append(fuell);
+        main.append(bar);
+      } else {
+        if (b) offen++;
+        rechts.append(el('span', 'p-zahl p-leer', '–'));
+      }
+      li.append(rechts);
+      liste.append(li);
+    });
+
+    $('#punkteSumme').textContent = summe.toLocaleString('de-DE');
+    $('#punkteAnzahl').textContent = gewertet
+      ? `aus ${gewertet} ${gewertet === 1 ? 'Disziplin' : 'Disziplinen'}` + (offen ? `, ${offen} ohne Tabelle` : '')
+      : 'noch nichts zu werten';
+    $('#punkteHinweis').textContent =
+      'Gerechnet wird mit der offiziellen Mehrkampf-Formel der World Athletics – '
+      + (g === 'm' ? 'Zehnkampf der Männer' : 'Siebenkampf der Frauen')
+      + '. 1000 Punkte je Disziplin entsprechen etwa dem Niveau einer sehr guten Landeskader-Leistung.';
+  }
+
   /* ---------------- Übersicht ---------------- */
   function renderUebersicht() {
     $('#overviewName').textContent = db.current;
@@ -986,14 +1101,21 @@
     renderAll(); syncProfileName(); setSync('db');
     if (cloud) publishNow();                     // URL und Key in die Seite, damit andere Geräte sie haben
 
-    if (lokaleWerte.length) {
-      dbHint(`Verbunden. Auf diesem Gerät liegen ${lokaleWerte.length} ${lokaleWerte.length === 1 ? 'Wert' : 'Werte'} – in die Datenbank übertragen?`);
+    const schonDa = sigSet(db.entries);
+    const wirklichNeu = lokaleWerte.filter(e => !schonDa.has(sig(e)));
+    if (wirklichNeu.length) {
+      const schon = lokaleWerte.length - wirklichNeu.length;
+      dbHint(`Verbunden. ${wirklichNeu.length} ${wirklichNeu.length === 1 ? 'Wert von diesem Gerät fehlt' : 'Werte von diesem Gerät fehlen'} in der Datenbank`
+        + (schon ? ` (${schon} ${schon === 1 ? 'war' : 'waren'} schon da)` : '') + ' – übertragen?');
       $('#dbHint').append(document.createElement('br'), btn('btn btn-mint btn-sm', 'Übertragen', () => {
-        uploadLocal(lokaleProfile, lokaleWerte);
+        uploadLocal(lokaleProfile, wirklichNeu);
         $('#dbDialog').close();
       }));
     } else {
-      toast('Mit der Datenbank verbunden');
+      dbHint(lokaleWerte.length
+        ? 'Verbunden – alle Werte von diesem Gerät waren schon da, nichts wurde doppelt angelegt.'
+        : 'Verbunden.');
+      toast(lokaleWerte.length ? 'Verbunden – alle Werte waren schon da' : 'Mit der Datenbank verbunden');
       $('#dbDialog').close();
     }
   }
@@ -1174,6 +1296,7 @@
   // Kompatibel halten: beide Ansichten aktualisieren
   function renderProfiles() {
     if (!$('#profileScreen').hidden) renderPicker();
+    if ($('#view-punkte').classList.contains('is-active')) renderPunkte();
     if ($('#view-profil').classList.contains('is-active')) renderProfil();
   }
 
@@ -1286,8 +1409,13 @@
       try {
         const p = JSON.parse(r.result);
         if (!valid(p)) throw new Error('Format');
-        const known = new Set(db.entries.map(e => String(e.id)));
-        const neu = p.entries.filter(e => !known.has(String(e.id)));
+        const ids = new Set(db.entries.map(e => String(e.id)));
+        const bekannt = sigSet(db.entries);
+        const neu = p.entries.filter(e => {
+          if (ids.has(String(e.id)) || bekannt.has(sig(e))) return false;
+          bekannt.add(sig(e));
+          return true;
+        });
         if (usingDb()) {
           uploadLocal(p.athletes || [], neu);
         } else {
@@ -1295,7 +1423,10 @@
           (p.athletes || []).forEach(a => { if (!db.athletes.includes(a)) db.athletes.push(a); });
           db = normalize(db);
           save(); renderAll(); syncProfileName();
-          toast(`${neu.length} ${neu.length === 1 ? 'Wert' : 'Werte'} geladen`);
+          const doppelt = p.entries.length - neu.length;
+          toast(neu.length
+            ? `${neu.length} ${neu.length === 1 ? 'Wert' : 'Werte'} geladen` + (doppelt ? `, ${doppelt} schon vorhanden` : '')
+            : 'Nichts Neues – alle Werte waren schon da');
         }
       } catch (err) { toast('Datei konnte nicht gelesen werden', { warn: true }); }
     };
@@ -1309,6 +1440,7 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === view));
     if (view === 'verlauf') renderVerlauf();
     if (view === 'uebersicht') renderUebersicht();
+    if (view === 'punkte') renderPunkte();
     if (view === 'profil') renderProfil();
     window.scrollTo(0, 0);
   }
@@ -1318,6 +1450,7 @@
     renderRecent();
     if ($('#view-verlauf').classList.contains('is-active')) renderVerlauf();
     if ($('#view-uebersicht').classList.contains('is-active')) renderUebersicht();
+    if ($('#view-punkte').classList.contains('is-active')) renderPunkte();
     if ($('#view-profil').classList.contains('is-active')) renderProfil();
   }
 
@@ -1369,6 +1502,8 @@
       flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
     }));
 
+    document.querySelectorAll('#genderSeg .seg-btn').forEach(b =>
+      b.addEventListener('click', () => { setzeGeschlecht(db.current, b.dataset.gender); renderPunkte(); }));
     $('#profileBtn').addEventListener('click', openPicker);
     $('#profilSwitch').addEventListener('click', openPicker);
     $('#pscreenClose').addEventListener('click', closePicker);
