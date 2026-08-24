@@ -113,11 +113,23 @@ Klassenversion einmal **Datenbank verbinden** ausfüllen.
 Der Klassen-Code gehört **nicht** ins Repository und nicht in die Seite – er
 ist das Passwort und wird mündlich weitergegeben.
 
-**Selbst hosten.** Die App ist eine statische Seite, sie läuft auf jedem
-Webspace: `index.html`, `assets/` und – für die Einrichtung – `supabase/schema.sql`
-hochladen, oder die Einzeldatei aus `python3 build.py` nehmen. Damit Besucher
-nicht URL und Key eintippen müssen, legt der Knopf **Für Website kopieren** im
-Verbinden-Dialog die passende Zeile für `id="appConfig"` in die Zwischenablage.
+**Als Website (GitHub Pages).** Die App ist eine statische Seite und braucht
+keinen Bau-Schritt – GitHub kann sie direkt ausliefern:
+
+> **Settings → Pages → Build and deployment → Source: „Deploy from a branch“**,
+> Branch `main`, Ordner `/ (root)` → **Save**
+
+Nach ein bis zwei Minuten läuft die Seite unter
+`https://<benutzer>.github.io/<repo>/`. Jede Änderung auf `main` ist nach
+kurzer Zeit automatisch online.
+
+Damit Besucher nicht URL und Key eintippen müssen, legt der Knopf
+**Für Website kopieren** im Verbinden-Dialog die passende Zeile für
+`id="appConfig"` in die Zwischenablage; die in `index.html` einsetzen und
+pushen. Der Klassen-Code bleibt außen vor.
+
+**Auf eigenem Webspace.** Genauso: `index.html`, `assets/` und
+`supabase/schema.sql` hochladen – oder die Einzeldatei aus `python3 build.py`.
 
 Browser-Dialoge (`confirm`, `prompt`) werden bewusst nicht benutzt – in
 eingebetteten Seiten sind sie blockiert. Nachfragen laufen deshalb über
