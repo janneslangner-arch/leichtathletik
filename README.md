@@ -102,12 +102,20 @@ selbst neu aufbaut.
 
 ## Für andere veröffentlichen
 
-**Als Website (GitHub Pages).** Im Repository liegt
-`.github/workflows/pages.yml`. Nach einem Push auf `main` oder den
-Entwicklungszweig baut die Aktion die Seite und stellt sie online. Einmalig
-nötig: **Settings → Pages → Source: GitHub Actions**. Danach ist die App unter
-`https://<benutzer>.github.io/<repo>/` erreichbar – ohne Konto, für alle, die
-den Link haben.
+**Als Website (GitHub Pages).** Zuerst einmalig einschalten – das darf nur der
+Repository-Besitzer, keine Aktion:
+
+> **Settings → Pages → Build and deployment → Source: „GitHub Actions“**
+
+Danach baut `.github/workflows/pages.yml` bei jedem Push auf `main` oder den
+Entwicklungszweig die Seite und stellt sie online, erreichbar unter
+`https://<benutzer>.github.io/<repo>/` – ohne Konto, für alle mit dem Link.
+Läuft die Aktion vor dem Umlegen des Schalters, bricht sie mit
+„Get Pages site failed“ ab; danach genügt **Re-run jobs**.
+
+Ohne Aktion geht es auch: **Settings → Pages → Source: „Deploy from a branch“**,
+Branch auswählen, Ordner `/ (root)`. Dann liefert GitHub `index.html` und
+`assets/` direkt aus.
 
 Damit Mitschüler:innen nicht URL und Key eintippen müssen: in der App auf
 **Datenbank verbinden → Für Website kopieren**, die kopierte Zeile in

@@ -1,5 +1,9 @@
 # Veröffentlicht die App als Website über GitHub Pages.
-# Einmalig nötig: Repository → Settings → Pages → Source: "GitHub Actions".
+#
+# EINMALIG NÖTIG (nur der Repository-Besitzer darf das, kein Workflow):
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions"
+# Ohne diesen Schalter bricht der Lauf mit "Get Pages site failed" ab.
+# Danach: hier auf "Re-run jobs" drücken oder einmal pushen.
 name: Website veröffentlichen
 
 on:
@@ -36,8 +40,6 @@ jobs:
           python3 build.py _site/leichtathletik-tracker.html
 
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
