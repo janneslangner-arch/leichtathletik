@@ -24,6 +24,55 @@
   };
   const KEYS = Object.keys(DISC);
 
+
+  /* ---------------- Farbschemas ----------------
+     Gleicher Aufbau, andere Stimmung: dunkler Grund, eine kräftige Farbe. */
+  const THEMES = {
+    mint: { name: 'Mint', hue: 152, vars: {
+      '--bg':'#0E1F27','--bg-glow':'#123039','--surface':'#142B34','--surface-2':'#1A3641',
+      '--line':'#24505C','--line-soft':'#1D414C','--text':'#E8F6EF','--muted':'#8FAFB2',
+      '--mint':'#7BF29C','--mint-dim':'#4FBF77','--mint-glow':'rgba(123,242,156,.18)',
+      '--ink':'#0B1A21','--bad':'#FF8A73' } },
+    eis: { name: 'Eis', hue: 205, vars: {
+      '--bg':'#0D1B2A','--bg-glow':'#122A40','--surface':'#132738','--surface-2':'#1A3247',
+      '--line':'#254A63','--line-soft':'#1E3C52','--text':'#E7F1FA','--muted':'#8FA9BF',
+      '--mint':'#7CC6FF','--mint-dim':'#4E9AD6','--mint-glow':'rgba(124,198,255,.18)',
+      '--ink':'#08131F','--bad':'#FF8A73' } },
+    sonne: { name: 'Sonne', hue: 32, vars: {
+      '--bg':'#1D1710','--bg-glow':'#2C2116','--surface':'#241C14','--surface-2':'#2E241A',
+      '--line':'#4A3A25','--line-soft':'#3B2F1F','--text':'#F7EFE4','--muted':'#B4A18A',
+      '--mint':'#FFB067','--mint-dim':'#C9803E','--mint-glow':'rgba(255,176,103,.18)',
+      '--ink':'#1A1109','--bad':'#FF7A6B' } },
+    beere: { name: 'Beere', hue: 268, vars: {
+      '--bg':'#170F26','--bg-glow':'#221635','--surface':'#1D1430','--surface-2':'#261A3E',
+      '--line':'#3E2C5E','--line-soft':'#33244D','--text':'#F0EAFB','--muted':'#A697C0',
+      '--mint':'#C2A0FF','--mint-dim':'#8E6CD1','--mint-glow':'rgba(194,160,255,.20)',
+      '--ink':'#120B1E','--bad':'#FF8A9B' } },
+    koralle: { name: 'Koralle', hue: 348, vars: {
+      '--bg':'#21131A','--bg-glow':'#2F1B25','--surface':'#291823','--surface-2':'#341F2C',
+      '--line':'#553144','--line-soft':'#452838','--text':'#FBEAF1','--muted':'#C098AB',
+      '--mint':'#FF9BB8','--mint-dim':'#D06A8B','--mint-glow':'rgba(255,155,184,.20)',
+      '--ink':'#1A0E14','--bad':'#FFC17A' } }
+  };
+  let theme = 'mint';
+
+  function applyTheme(key, merken) {
+    if (!THEMES[key]) key = 'mint';
+    theme = key;
+    const wurzel = document.documentElement;
+    Object.entries(THEMES[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', THEMES[key].vars['--bg']);
+    if (merken) { try { localStorage.setItem('la-theme', key); } catch (e) { /* egal */ } }
+  }
+  function ladeTheme() {
+    let k = null;
+    try { k = localStorage.getItem('la-theme'); } catch (e) { k = null; }
+    applyTheme(THEMES[k] ? k : 'mint');
+  }
+  const akzent = () => (getComputedStyle(document.documentElement)
+    .getPropertyValue('--mint') || '#7BF29C').trim();
+
   /* ---------------- Werte lesen & schreiben ---------------- */
   function parseValue(key, raw) {
     const d = DISC[key];
@@ -597,8 +646,9 @@
 
     const defs = svgEl('defs');
     const grad = svgEl('linearGradient', { id: 'mintFade', x1: '0', y1: '0', x2: '0', y2: '1' });
-    grad.append(svgEl('stop', { offset: '0%', 'stop-color': '#7BF29C', 'stop-opacity': '.28' }),
-                svgEl('stop', { offset: '100%', 'stop-color': '#7BF29C', 'stop-opacity': '0' }));
+    const farbe = akzent();
+    grad.append(svgEl('stop', { offset: '0%', 'stop-color': farbe, 'stop-opacity': '.28' }),
+                svgEl('stop', { offset: '100%', 'stop-color': farbe, 'stop-opacity': '0' }));
     defs.append(grad); svg.append(defs);
 
     if (!list.length) {
@@ -927,52 +977,50 @@
   function switchTo(name) {
     Store.switchProfile(name);
     renderAll(); syncProfileName();
-    $('#profileDialog').close();
-    toast('Profil: ' + name);
+    closePicker();
+    toast('Hallo ' + name + '!');
   }
-
-  let profileMode = 'pick';                 // pick = auswählen, manage = verwalten
 
   // Monogramm: erste Buchstaben von bis zu zwei Namensteilen
   const monogram = name => name.split(/[\s.\-_]+/).filter(Boolean).slice(0, 2)
     .map(t => t[0].toUpperCase()).join('') || name[0].toUpperCase();
 
-  // Farbton je Name: bleibt gleich, liegt im Grün-Türkis-Bereich der App
+  // Farbton je Name: bleibt gleich, passt zum gewählten Farbschema
   function tint(name) {
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-    return 128 + (h % 56);                  // 128–183: Mint bis Türkis
+    const basis = THEMES[theme].hue;        // Farbton des Schemas, leicht gestreut
+    return (basis - 26 + (h % 52) + 360) % 360;
+  }
+  function paintAvatar(span, name) {
+    const h = tint(name);
+    span.textContent = monogram(name);
+    span.style.background = `linear-gradient(155deg, hsl(${h} 44% 27%), hsl(${h} 46% 16%))`;
+    span.style.color = `hsl(${h} 72% 74%)`;
   }
 
-  function renderProfiles() {
+  /* ---------------- Profil wechseln (Vollbild) ---------------- */
+  function openPicker() {
+    renderPicker();
+    $('#profileScreen').hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function closePicker() {
+    $('#profileScreen').hidden = true;
+    $('#pscreenAddForm').hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  function renderPicker() {
     const grid = $('#profileGrid');
     grid.textContent = '';
-    grid.className = 'profile-grid' + (profileMode === 'manage' ? ' is-list' : '');
-    $('#profileHeadline').textContent = profileMode === 'manage' ? 'Profile verwalten' : 'Wer trägt ein?';
-    $('#profileManage').textContent = profileMode === 'manage' ? 'Fertig' : 'Profile verwalten';
-    $('#profileAddForm').hidden = profileMode !== 'manage';
-    $('#profileHint').textContent = profileMode === 'manage'
-      ? 'Umbenennen ändert nichts an den Werten – sie wandern mit.'
-      : 'Jedes Profil hat eigene Werte und eigene Diagramme.';
-
-    if (profileMode === 'manage') {
-      db.athletes.forEach(name => {
-        const li = el('li', 'p-row' + (name === db.current ? ' is-current' : ''));
-        drawProfileRow(li, name);
-        grid.append(li);
-      });
-      return;
-    }
-
     db.athletes.forEach(name => {
       const li = el('li');
       const tile = btn('p-tile' + (name === db.current ? ' is-current' : ''), null,
-        () => name === db.current ? $('#profileDialog').close() : switchTo(name),
+        () => name === db.current ? closePicker() : switchTo(name),
         name === db.current ? 'Aktives Profil' : 'Zu ' + name + ' wechseln');
-      const h = tint(name);
-      const av = el('span', 'p-avatar', monogram(name));
-      av.style.background = `linear-gradient(155deg, hsl(${h} 44% 27%), hsl(${h} 46% 16%))`;
-      av.style.color = `hsl(${h} 72% 74%)`;
+      const av = el('span', 'p-avatar');
+      paintAvatar(av, name);
       const n = countOf(name);
       tile.append(av, el('span', 'p-label', name),
                   el('span', 'p-sub', n ? n + (n === 1 ? ' Wert' : ' Werte') : 'noch leer'));
@@ -982,13 +1030,56 @@
 
     const add = el('li');
     const addTile = btn('p-tile p-tile-add', null, () => {
-      $('#profileAddForm').hidden = false;
-      $('#profileNewName').focus();
-      $('#profileHint').textContent = 'Name eintippen und auf Anlegen tippen.';
+      $('#pscreenAddForm').hidden = false;
+      $('#pscreenName').focus();
     }, 'Neues Profil anlegen');
     addTile.append(el('span', 'p-avatar p-avatar-add', '+'), el('span', 'p-label', 'Neu'));
     add.append(addTile);
     grid.append(add);
+  }
+
+  /* ---------------- Reiter „Profil“ ---------------- */
+  function renderProfil() {
+    paintAvatar($('#profilAvatar'), db.current);
+    $('#profilName').textContent = db.current;
+    const n = countOf(db.current);
+    $('#profilWerte').textContent = n ? `${n} ${n === 1 ? 'Wert' : 'Werte'} erfasst` : 'noch keine Werte';
+
+    const list = $('#profileList');
+    list.textContent = '';
+    db.athletes.forEach(name => {
+      const li = el('li', 'p-row' + (name === db.current ? ' is-current' : ''));
+      drawProfileRow(li, name);
+      list.append(li);
+    });
+    $('#profileHint').textContent = 'Umbenennen ändert nichts an den Werten – sie wandern mit.';
+
+    renderThemes();
+    renderStorageInfo();
+  }
+
+  function renderThemes() {
+    const grid = $('#themeGrid');
+    if (!grid) return;
+    grid.textContent = '';
+    Object.entries(THEMES).forEach(([key, t]) => {
+      const b = btn('theme-card' + (key === theme ? ' is-active' : ''), null, () => {
+        applyTheme(key, true);
+        renderAll(); renderProfil();
+        toast('Farbe: ' + t.name);
+      }, 'Farbschema ' + t.name);
+      const probe = el('span', 'theme-swatch');
+      probe.style.background = `linear-gradient(150deg, ${t.vars['--surface-2']} 0 52%, ${t.vars['--mint']} 52% 100%)`;
+      probe.style.borderColor = t.vars['--line'];
+      b.append(probe, el('span', 'theme-name', t.name));
+      grid.append(b);
+    });
+  }
+
+  // Kompatibel halten: beide Ansichten aktualisieren
+  function renderProfiles() {
+    if (!$('#profileScreen').hidden) renderPicker();
+    if ($('#view-profil').classList.contains('is-active')) renderProfil();
   }
 
   function drawProfileRow(li, name) {
@@ -1049,14 +1140,14 @@
     li.append(q);
   }
 
-  function addProfile(ev) {
+  function addProfile(ev, feldId, hinweisId) {
     ev.preventDefault();
-    const input = $('#profileNewName'), name = input.value.trim();
-    if (!name) { $('#profileHint').textContent = 'Bitte einen Namen eingeben.'; input.focus(); return; }
-    if (db.athletes.includes(name)) { $('#profileHint').textContent = `„${name}“ gibt es schon.`; return; }
+    const input = $(feldId), hinweis = $(hinweisId), name = input.value.trim();
+    if (!name) { hinweis.textContent = 'Bitte einen Namen eingeben.'; input.focus(); return; }
+    if (db.athletes.includes(name)) { hinweis.textContent = `„${name}“ gibt es schon.`; return; }
     Store.addProfile(name);
     input.value = '';
-    profileMode = 'pick';
+    hinweis.textContent = '';
     switchTo(name);
     toast('Profil angelegt: ' + name);
   }
@@ -1123,6 +1214,7 @@
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === view));
     if (view === 'verlauf') renderVerlauf();
     if (view === 'uebersicht') renderUebersicht();
+    if (view === 'profil') renderProfil();
     window.scrollTo(0, 0);
   }
 
@@ -1131,6 +1223,7 @@
     renderRecent();
     if ($('#view-verlauf').classList.contains('is-active')) renderVerlauf();
     if ($('#view-uebersicht').classList.contains('is-active')) renderUebersicht();
+    if ($('#view-profil').classList.contains('is-active')) renderProfil();
   }
 
   /* ---------------- Start ---------------- */
@@ -1146,6 +1239,7 @@
 
   async function main() {
     const shell = document.getElementById('appShell');
+    ladeTheme();
     document.getElementById('app').append(shell.content.cloneNode(true));
 
     cloud = await initCloud();
@@ -1180,17 +1274,15 @@
       flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
     }));
 
-    $('#profileBtn').addEventListener('click', () => {
-      profileMode = 'pick';
-      renderProfiles();
-      $('#profileDialog').showModal();
+    $('#profileBtn').addEventListener('click', openPicker);
+    $('#profilSwitch').addEventListener('click', openPicker);
+    $('#pscreenClose').addEventListener('click', closePicker);
+    $('#pscreenManage').addEventListener('click', () => { closePicker(); show('profil'); });
+    $('#pscreenAddForm').addEventListener('submit', ev => addProfile(ev, '#pscreenName', '#pscreenHint'));
+    $('#profileAddForm').addEventListener('submit', ev => addProfile(ev, '#profileNewName', '#profileHint'));
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Escape' && !$('#profileScreen').hidden) closePicker();
     });
-    $('#profileManage').addEventListener('click', () => {
-      profileMode = profileMode === 'manage' ? 'pick' : 'manage';
-      renderProfiles();
-    });
-    $('#profileClose').addEventListener('click', () => $('#profileDialog').close());
-    $('#profileAddForm').addEventListener('submit', addProfile);
 
     $('#exportBtn').addEventListener('click', exportJSON);
     $('#csvBtn').addEventListener('click', exportCSV);

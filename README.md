@@ -34,8 +34,16 @@ Durchschnitt und alle Einzelwerte (löschbar).
 **Übersicht** – alle Bestwerte auf einen Blick mit Mini-Verlauf; ein Klick
 springt ins passende Diagramm.
 
-**Profile** – oben rechts auf den Namen tippen: anlegen, wechseln, umbenennen,
-löschen. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit.
+**Profil** – der vierte Reiter hält alles, was nicht Sport ist: Profilliste
+zum Anlegen, Umbenennen und Löschen, die Farbe der App, Speicherort und die
+Datei-Knöpfe. Die ersten drei Reiter bleiben so nur beim Sport.
+
+**Profil wechseln** – oben rechts auf den Namen tippen: ein Vollbild mit
+runden Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
+<Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit.
+
+**Farbe** – fünf fertige Farbschemas (Mint, Eis, Sonne, Beere, Koralle).
+Die Wahl gilt pro Gerät und färbt auch Diagramme und Monogramme.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.

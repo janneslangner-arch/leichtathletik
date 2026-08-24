@@ -333,8 +333,8 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .p-avatar {
   display: grid; place-items: center;
   width: 100%; aspect-ratio: 1; max-width: 96px;
-  border-radius: 18px; border: 2px solid transparent;
-  font-size: 27px; font-weight: 700; letter-spacing: .02em;
+  border-radius: 50%; border: 2px solid transparent;
+  font-size: 30px; font-weight: 700; letter-spacing: .02em;
   transition: border-color .14s ease, box-shadow .14s ease;
 }
 .p-tile:hover .p-avatar { border-color: var(--line); }
@@ -438,3 +438,78 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   display: inline-block; margin-bottom: 8px; color: var(--mint); font-weight: 600;
   word-break: break-all;
 }
+
+
+/* ---------- Profil wechseln: Vollbild ---------- */
+.pscreen {
+  position: fixed; inset: 0; z-index: 60;
+  display: grid; place-items: center;
+  padding: 28px 18px calc(28px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  background:
+    radial-gradient(900px 520px at 50% 0%, var(--bg-glow) 0%, transparent 60%),
+    var(--bg);
+  animation: pscreen-in .22s ease both;
+}
+.pscreen[hidden] { display: none; }
+@keyframes pscreen-in { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+
+.pscreen-close {
+  position: absolute; top: 16px; right: 16px;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+  font-size: 16px; cursor: pointer;
+}
+.pscreen-close:hover { color: var(--text); border-color: var(--mint); }
+
+.pscreen-inner { width: min(760px, 100%); text-align: center; }
+.pscreen-title {
+  font-size: clamp(26px, 7vw, 38px); letter-spacing: -.02em; margin-bottom: 26px;
+}
+.pscreen .profile-grid {
+  grid-template-columns: repeat(auto-fit, minmax(92px, 118px));
+  justify-content: center; gap: 18px 12px; margin-bottom: 20px;
+}
+.pscreen .p-avatar { max-width: 104px; font-size: clamp(26px, 7vw, 34px); }
+.pscreen .p-label { font-size: 15px; margin-top: 2px; }
+.pscreen-add { display: flex; gap: 8px; max-width: 340px; margin: 0 auto 14px; }
+.pscreen-add[hidden] { display: none; }
+.pscreen-add input {
+  flex: 1 1 auto; min-width: 0; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 11px 12px; font-size: 15px;
+}
+.pscreen-add input:focus { outline: none; border-color: var(--mint); }
+.pscreen-hint { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+.pscreen-link {
+  background: none; border: 0; color: var(--muted); cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 600;
+  border-bottom: 1px solid var(--line); padding: 2px 0;
+}
+.pscreen-link:hover { color: var(--mint); border-color: var(--mint); }
+
+/* ---------- Reiter Profil ---------- */
+.profil-head {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  border-radius: var(--r-lg); padding: 16px; margin-bottom: 6px;
+}
+.p-avatar-lg { width: 64px; height: 64px; flex: none; font-size: 24px; }
+.profil-name { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+.profil-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.profil-head .btn { margin-left: auto; }
+.profil-head .greeting { margin: 0; }
+
+/* ---------- Farbschemas ---------- */
+.theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 9px; }
+.theme-card {
+  display: grid; justify-items: center; gap: 7px;
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r);
+  padding: 12px 8px; cursor: pointer; color: inherit; font: inherit; transition: .14s;
+}
+.theme-card:hover { border-color: var(--line); }
+.theme-card.is-active { border-color: var(--mint); box-shadow: 0 0 0 1px var(--mint) inset; }
+.theme-swatch {
+  width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line);
+}
+.theme-name { font-size: 12.5px; font-weight: 600; }
+.theme-card.is-active .theme-name { color: var(--mint); }
