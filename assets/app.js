@@ -122,6 +122,7 @@
      brauchen jedes Mal den Klassen-Code. Änderungen gehen zuerst in die
      Oberfläche, dann über eine Warteschlange zum Server – so lässt sich auch
      ohne Netz weiter eintragen. */
+  const WEBSITE = 'https://janneslangner-arch.github.io/leichtathletik/';
   const CFG_KEY = 'la-db-cfg', QUEUE_KEY = 'la-db-queue';
   let cfg = null;                 // {url, key, code} – bleibt auf diesem Gerät
   let queue = [];                 // noch nicht bestätigte Aufträge
@@ -757,8 +758,15 @@
     line(cloud
       ? 'Gespeichert wird in der Seite selbst (Claude-Cloud): Die Werte sind auf jedem Gerät da, das diesen Link öffnet. Eine Kopie liegt zusätzlich in diesem Browser.'
       : 'Gespeichert wird nur in diesem Browser (localStorage) – also auf diesem Gerät.');
-    line('Für eine echte Datenbank (mehrere Geräte, ganze Klasse, gleichzeitiges Eintragen) genügt ein kostenloses Supabase-Projekt.');
-    acts.append(btn('btn btn-mint', 'Datenbank verbinden', openDbDialog));
+    if (cloud && readEmbeddedCfg()) {
+      line('Die gemeinsame Datenbank funktioniert hier nicht: Claude-Seiten dürfen keine Verbindung nach außen aufbauen. Dafür gibt es die Website – dort tragen alle mit dem Klassen-Code in denselben Bestand ein:');
+      const a = el('a', 'weblink', WEBSITE);
+      a.href = WEBSITE; a.target = '_blank'; a.rel = 'noopener';
+      box.append(a);
+    } else {
+      line('Für eine echte Datenbank (mehrere Geräte, ganze Klasse, gleichzeitiges Eintragen) genügt ein kostenloses Supabase-Projekt.');
+      acts.append(btn('btn btn-mint', 'Datenbank verbinden', openDbDialog));
+    }
 
     if (cloud && localOnly.length) {
       line(`${localOnly.length} ${localOnly.length === 1 ? 'Wert liegt' : 'Werte liegen'} nur auf diesem Gerät.`);
@@ -773,7 +781,6 @@
   }
 
   /* ---------------- Datenbank-Dialog ---------------- */
-  const WEBSITE = 'https://janneslangner-arch.github.io/leichtathletik/';
   const dbHint = t => { $('#dbHint').textContent = t; };
 
   // Antwortet der Server überhaupt? Ohne CORS-Regeln, deshalb no-cors:
@@ -913,6 +920,8 @@
   function syncProfileName() {
     const n = document.getElementById('profileName');
     if (n) n.textContent = db.current;
+    const g = document.getElementById('greetName');
+    if (g) g.textContent = db.current;
   }
 
   function switchTo(name) {
@@ -922,15 +931,64 @@
     toast('Profil: ' + name);
   }
 
+  let profileMode = 'pick';                 // pick = auswählen, manage = verwalten
+
+  // Monogramm: erste Buchstaben von bis zu zwei Namensteilen
+  const monogram = name => name.split(/[\s.\-_]+/).filter(Boolean).slice(0, 2)
+    .map(t => t[0].toUpperCase()).join('') || name[0].toUpperCase();
+
+  // Farbton je Name: bleibt gleich, liegt im Grün-Türkis-Bereich der App
+  function tint(name) {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+    return 128 + (h % 56);                  // 128–183: Mint bis Türkis
+  }
+
   function renderProfiles() {
-    const list = $('#profileList');
-    list.textContent = '';
+    const grid = $('#profileGrid');
+    grid.textContent = '';
+    grid.className = 'profile-grid' + (profileMode === 'manage' ? ' is-list' : '');
+    $('#profileHeadline').textContent = profileMode === 'manage' ? 'Profile verwalten' : 'Wer trägt ein?';
+    $('#profileManage').textContent = profileMode === 'manage' ? 'Fertig' : 'Profile verwalten';
+    $('#profileAddForm').hidden = profileMode !== 'manage';
+    $('#profileHint').textContent = profileMode === 'manage'
+      ? 'Umbenennen ändert nichts an den Werten – sie wandern mit.'
+      : 'Jedes Profil hat eigene Werte und eigene Diagramme.';
+
+    if (profileMode === 'manage') {
+      db.athletes.forEach(name => {
+        const li = el('li', 'p-row' + (name === db.current ? ' is-current' : ''));
+        drawProfileRow(li, name);
+        grid.append(li);
+      });
+      return;
+    }
+
     db.athletes.forEach(name => {
-      const li = el('li', 'p-row' + (name === db.current ? ' is-current' : ''));
-      drawProfileRow(li, name);
-      list.append(li);
+      const li = el('li');
+      const tile = btn('p-tile' + (name === db.current ? ' is-current' : ''), null,
+        () => name === db.current ? $('#profileDialog').close() : switchTo(name),
+        name === db.current ? 'Aktives Profil' : 'Zu ' + name + ' wechseln');
+      const h = tint(name);
+      const av = el('span', 'p-avatar', monogram(name));
+      av.style.background = `linear-gradient(155deg, hsl(${h} 44% 27%), hsl(${h} 46% 16%))`;
+      av.style.color = `hsl(${h} 72% 74%)`;
+      const n = countOf(name);
+      tile.append(av, el('span', 'p-label', name),
+                  el('span', 'p-sub', n ? n + (n === 1 ? ' Wert' : ' Werte') : 'noch leer'));
+      li.append(tile);
+      grid.append(li);
     });
-    $('#profileHint').textContent = 'Jedes Profil hat eigene Werte. Tippe auf einen Namen, um zu wechseln.';
+
+    const add = el('li');
+    const addTile = btn('p-tile p-tile-add', null, () => {
+      $('#profileAddForm').hidden = false;
+      $('#profileNewName').focus();
+      $('#profileHint').textContent = 'Name eintippen und auf Anlegen tippen.';
+    }, 'Neues Profil anlegen');
+    addTile.append(el('span', 'p-avatar p-avatar-add', '+'), el('span', 'p-label', 'Neu'));
+    add.append(addTile);
+    grid.append(add);
   }
 
   function drawProfileRow(li, name) {
@@ -998,6 +1056,7 @@
     if (db.athletes.includes(name)) { $('#profileHint').textContent = `„${name}“ gibt es schon.`; return; }
     Store.addProfile(name);
     input.value = '';
+    profileMode = 'pick';
     switchTo(name);
     toast('Profil angelegt: ' + name);
   }
@@ -1108,7 +1167,9 @@
 
     syncEntryHead();
     syncProfileName();
-    setSync(usingDb() ? 'db' : readEmbeddedCfg() ? 'needcode' : cloud ? 'cloud' : 'local');
+    // In einer Claude-Seite sind Verbindungen nach außen gesperrt – dort bleibt
+    // die hinterlegte Datenbank außen vor, gespeichert wird in der Seite selbst.
+    setSync(usingDb() ? 'db' : (readEmbeddedCfg() && !cloud) ? 'needcode' : cloud ? 'cloud' : 'local');
     renderAll();
     $('#dateInput').value = todayISO();
     restoreUi();
@@ -1119,7 +1180,15 @@
       flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
     }));
 
-    $('#profileBtn').addEventListener('click', () => { renderProfiles(); $('#profileDialog').showModal(); });
+    $('#profileBtn').addEventListener('click', () => {
+      profileMode = 'pick';
+      renderProfiles();
+      $('#profileDialog').showModal();
+    });
+    $('#profileManage').addEventListener('click', () => {
+      profileMode = profileMode === 'manage' ? 'pick' : 'manage';
+      renderProfiles();
+    });
     $('#profileClose').addEventListener('click', () => $('#profileDialog').close());
     $('#profileAddForm').addEventListener('submit', addProfile);
 
@@ -1147,7 +1216,7 @@
     $('#valueInput').focus();
 
     if (usingDb()) { await pull(true); await flush(); }
-    else if (readEmbeddedCfg()) openDbDialog();
+    else if (readEmbeddedCfg() && !cloud) openDbDialog();
   }
 
   main();

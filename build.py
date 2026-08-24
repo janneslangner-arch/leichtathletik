@@ -5,16 +5,21 @@ Nötig für die Cloud-Speicherung: Nur wenn Stil und Skript direkt in der Seite
 stehen (<style id="appStyle">, <script id="appScript">), kann die App sich
 selbst mit den aktuellen Werten neu veröffentlichen.
 
-    python3 build.py [ziel.html] [--fragment]
+    python3 build.py [ziel.html] [--fragment] [--no-config]
 
---fragment lässt Doctype, <html>, <head> und <body> weg (für Umgebungen,
-die den Seitenrahmen selbst mitbringen, z. B. Claude-Artifacts).
+--fragment    lässt Doctype, <html>, <head> und <body> weg (für Umgebungen,
+              die den Seitenrahmen selbst mitbringen, z. B. Claude-Artifacts).
+--no-config   entfernt die hinterlegte Datenbank-Verbindung. Nötig für
+              Claude-Seiten: Die dürfen keine Verbindung nach außen aufbauen,
+              dort wäre die Verbindung nur eine Fehlerquelle.
 """
 import pathlib, re, sys
 
 root = pathlib.Path(__file__).parent
-args = [a for a in sys.argv[1:] if a != '--fragment']
+schalter = ('--fragment', '--no-config')
+args = [a for a in sys.argv[1:] if a not in schalter]
 fragment = '--fragment' in sys.argv
+ohne_config = '--no-config' in sys.argv
 out = pathlib.Path(args[0]) if args else root / 'leichtathletik-tracker.html'
 
 html = (root / 'index.html').read_text(encoding='utf-8')
@@ -30,6 +35,10 @@ html = html.replace('/* SCHEMA_SQL */', sql.replace('</', '<\\/'))
 html = html.replace(
     '<script id="appScript" src="assets/app.js"></script>',
     '<script id="appScript">\n' + js + '\n</script>')
+
+if ohne_config:
+    html = re.sub(r'(<script id="appConfig" type="application/json">).*?(</script>)',
+                  r'\1null\2', html, flags=re.S)
 
 if fragment:
     # Nur Titel und Stil aus dem Kopf übernehmen; Rahmen, meta und Favicon
