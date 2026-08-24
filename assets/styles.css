@@ -695,3 +695,19 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .punkte-summe .sub { margin-left: 0; }
 .p-note { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
 .p-wa { font-size: 11px; color: var(--mint-dim); font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+/* Punktewertung: Gruppen, Umschalter-Reihe, gewertete Zeilen */
+.seg-reihe { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.seg-reihe .seg { margin-bottom: 0; }
+.seg-btn { padding: 8px 13px; }
+.punkte-gruppe {
+  list-style: none; margin: 14px 2px 2px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--muted); font-weight: 700;
+}
+.punkte-gruppe:first-child { margin-top: 2px; }
+.row.is-gezaehlt { border-color: color-mix(in srgb, var(--mint) 55%, var(--line-soft)); }
+.p-zaehlt {
+  font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink); background: var(--mint); border-radius: 999px; padding: 2px 7px; margin-top: 3px;
+}

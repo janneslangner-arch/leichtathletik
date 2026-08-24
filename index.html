@@ -106,23 +106,34 @@
   <!-- ============ PUNKTE ============ -->
   <section id="view-punkte" class="view">
     <h1 class="view-title">Punktewertung</h1>
-    <p class="view-note">Aus dem <strong>Bestwert</strong> jeder Disziplin – so, als würdest du heute alles im Wettkampf abrufen.</p>
+    <p class="view-note">Fünfkampf nach DLV-Punkten, Note nach der SH-Tabelle. Gewertet wird der <strong>Bestwert</strong> jeder Disziplin.</p>
 
-    <div class="seg" id="genderSeg" role="group" aria-label="Wertungstabelle">
-      <button type="button" class="seg-btn" data-gender="m">männlich</button>
-      <button type="button" class="seg-btn" data-gender="w">weiblich</button>
+    <div class="seg-reihe">
+      <div class="seg" id="genderSeg" role="group" aria-label="Tabelle">
+        <button type="button" class="seg-btn" data-wert="m">Jungen</button>
+        <button type="button" class="seg-btn" data-wert="w">Mädchen</button>
+      </div>
+      <div class="seg" id="zeitSeg" role="group" aria-label="Zeitmessung">
+        <button type="button" class="seg-btn" data-wert="hand">Handzeit</button>
+        <button type="button" class="seg-btn" data-wert="elektro">elektronisch</button>
+      </div>
+      <div class="seg" id="klasseSeg" role="group" aria-label="Altersklasse">
+        <button type="button" class="seg-btn" data-wert="U18">U18</button>
+        <button type="button" class="seg-btn" data-wert="U20">U20</button>
+        <button type="button" class="seg-btn" data-wert="U23">U23</button>
+      </div>
     </div>
 
     <div class="punkte-summe">
       <div class="ps-block">
-        <span class="k">Schulpunkte</span>
-        <span><span id="punkteSumme" class="v">0</span><span id="punkteMax" class="vmax"></span></span>
-        <span id="punkteAnzahl" class="sub"></span>
+        <span class="k">Fünfkampf</span>
+        <span id="punkteSumme" class="v">–</span>
+        <span id="punkteStatus" class="sub"></span>
       </div>
       <div class="ps-block ps-wa">
-        <span class="k">World Athletics</span>
-        <span id="punkteWaSumme" class="v">–</span>
-        <span id="punkteWaSub" class="sub"></span>
+        <span class="k">Bewertung</span>
+        <span id="punkteNote" class="v">–</span>
+        <span id="punkteNoteFein" class="sub"></span>
       </div>
     </div>
 

@@ -175,7 +175,9 @@ declare v_code text;
 begin
   v_code := gruppe_pruefen(p_code);
   perform profil_pruefen(v_code, p_profil);
-  if p_disziplin not in ('hochsprung','weitsprung','sprint100','lauf1500','lauf5000','speerwurf','kugelstossen') then
+  -- Kurzer Schlüssel statt fester Liste: neue Disziplinen brauchen dann
+  -- keine Schema-Änderung mehr.
+  if p_disziplin !~ '^[a-z][a-z0-9_]{2,24}$' then
     raise exception 'Unbekannte Disziplin: %', p_disziplin;
   end if;
   if p_wert is null or p_wert <= 0 then raise exception 'Wert muss größer als 0 sein'; end if;

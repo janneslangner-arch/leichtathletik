@@ -7,20 +7,30 @@
 
   /* ---------------- Disziplinen ---------------- */
   const DISC = {
-    hochsprung:   { name: 'Hochsprung',   short: 'Hoch',   ic: 'HOCH',  kind: 'length', better: 'high', unit: 'm', maxM: 3,
-                    hint: '1.45 oder 145 (cm)', ph: '1.45' },
-    weitsprung:   { name: 'Weitsprung',   short: 'Weit',   ic: 'WEIT',  kind: 'length', better: 'high', unit: 'm', maxM: 10,
-                    hint: '4.35 oder 435 (cm)', ph: '4.35' },
-    sprint100:    { name: '100 m Sprint', short: '100 m',  ic: '100',   kind: 'sec',    better: 'low',  unit: 's',
+    sprint100:    { name: '100 m Sprint', short: '100 m',  ic: '100',    kind: 'sec',    better: 'low',  unit: 's',
                     hint: 'Sekunden, z. B. 12.85', ph: '12.85' },
-    lauf1500:     { name: '1500 m Lauf',  short: '1500 m', ic: '1500',  kind: 'mmss',   better: 'low',  unit: 'min',
+    sprint200:    { name: '200 m Sprint', short: '200 m',  ic: '200',    kind: 'sec',    better: 'low',  unit: 's',
+                    hint: 'Sekunden, z. B. 27.50', ph: '27.50' },
+    sprint400:    { name: '400 m Sprint', short: '400 m',  ic: '400',    kind: 'mmss',   better: 'low',  unit: 'min',
+                    hint: '1:02 oder 62.5', ph: '1:02' },
+    lauf800:      { name: '800 m Lauf',   short: '800 m',  ic: '800',    kind: 'mmss',   better: 'low',  unit: 'min',
+                    hint: '2:41 oder kurz 241', ph: '2:41' },
+    lauf1500:     { name: '1500 m Lauf',  short: '1500 m', ic: '1500',   kind: 'mmss',   better: 'low',  unit: 'min',
                     hint: '5:42 oder kurz 542', ph: '5:42' },
-    lauf5000:     { name: '5000 m Lauf',  short: '5000 m', ic: '5000',  kind: 'mmss',   better: 'low',  unit: 'min',
+    lauf2000:     { name: '2000 m Lauf',  short: '2000 m', ic: '2000',   kind: 'mmss',   better: 'low',  unit: 'min',
+                    hint: '7:52 oder kurz 752', ph: '7:52' },
+    lauf5000:     { name: '5000 m Lauf',  short: '5000 m', ic: '5000',   kind: 'mmss',   better: 'low',  unit: 'min',
                     hint: '21:30 oder kurz 2130', ph: '21:30' },
-    speerwurf:    { name: 'Speerwurf',    short: 'Speer',  ic: 'SPEER', kind: 'length', better: 'high', unit: 'm', maxM: 110,
+    hochsprung:   { name: 'Hochsprung',   short: 'Hoch',   ic: 'HOCH',   kind: 'length', better: 'high', unit: 'm', maxM: 3,
+                    hint: '1.45 oder 145 (cm)', ph: '1.45' },
+    weitsprung:   { name: 'Weitsprung',   short: 'Weit',   ic: 'WEIT',   kind: 'length', better: 'high', unit: 'm', maxM: 10,
+                    hint: '4.35 oder 435 (cm)', ph: '4.35' },
+    kugelstossen: { name: 'Kugelstoßen',  short: 'Kugel',  ic: 'KUGEL',  kind: 'length', better: 'high', unit: 'm', maxM: 25,
+                    hint: '8.20 oder 820 (cm)', ph: '8.20' },
+    speerwurf:    { name: 'Speerwurf',    short: 'Speer',  ic: 'SPEER',  kind: 'length', better: 'high', unit: 'm', maxM: 110,
                     hint: '27.50 oder 2750 (cm)', ph: '27.50' },
-    kugelstossen: { name: 'Kugelstoßen',  short: 'Kugel',  ic: 'KUGEL', kind: 'length', better: 'high', unit: 'm', maxM: 25,
-                    hint: '8.20 oder 820 (cm)', ph: '8.20' }
+    diskuswurf:   { name: 'Diskuswurf',   short: 'Diskus', ic: 'DISKUS', kind: 'length', better: 'high', unit: 'm', maxM: 80,
+                    hint: '25.66 oder 2566 (cm)', ph: '25.66' }
   };
   const KEYS = Object.keys(DISC);
 
@@ -861,174 +871,212 @@
   }
 
 
-  /* ---------------- Schulwertung ----------------
-     Aus „Leichtathletik Prüfung – Bewertung Einzeldisziplin ab Q1"
-     (GaM, Sportprofil). 15 bis 0 Punkte je Disziplin, daraus die Note.
-     Achtung: Bei den Läufen laufen Mädchen kürzere Strecken (800 m statt
-     1500 m, 2000 m statt 5000 m) – die Tabelle gilt entsprechend. */
-  const SCHUL_TABELLE = {
-    sprint100: { w: [[15, 14.2], [14, 14.4], [13, 14.6], [12, 14.9], [11, 15.1], [10, 15.4], [9, 15.7], [8, 15.9], [7, 16.2], [6, 16.5], [5, 16.8], [4, 17.2], [3, 17.5], [2, 17.9], [1, 18.2]],
-               m: [[15, 12.7], [14, 12.8], [13, 13.0], [12, 13.1], [11, 13.3], [10, 13.5], [9, 13.7], [8, 13.8], [7, 14.0], [6, 14.2], [5, 14.4], [4, 14.6], [3, 14.8], [2, 15.0], [1, 15.2]] },
-    weitsprung: { w: [[15, 4.13], [14, 3.99], [13, 3.85], [12, 3.71], [11, 3.58], [10, 3.44], [9, 3.31], [8, 3.2], [7, 3.07], [6, 2.95], [5, 2.83], [4, 2.71], [3, 2.6], [2, 2.49], [1, 2.38]],
-                m: [[15, 5.12], [14, 4.98], [13, 4.85], [12, 4.72], [11, 4.58], [10, 4.45], [9, 4.33], [8, 4.22], [7, 4.07], [6, 3.99], [5, 3.83], [4, 3.71], [3, 3.61], [2, 3.51], [1, 3.41]] },
-    hochsprung: { w: [[15, 1.41], [14, 1.38], [13, 1.35], [12, 1.33], [11, 1.3], [10, 1.27], [9, 1.25], [8, 1.22], [7, 1.2], [6, 1.17], [5, 1.15], [4, 1.12], [3, 1.1], [2, 1.07], [1, 1.05]],
-                m: [[15, 1.55], [14, 1.52], [13, 1.5], [12, 1.47], [11, 1.44], [10, 1.42], [9, 1.39], [8, 1.37], [7, 1.34], [6, 1.32], [5, 1.29], [4, 1.26], [3, 1.24], [2, 1.22], [1, 1.2]] },
-    kugelstossen: { w: [[15, 9.45], [14, 9.04], [13, 8.64], [12, 8.25], [11, 7.86], [10, 7.49], [9, 7.12], [8, 6.81], [7, 6.46], [6, 6.12], [5, 5.79], [4, 5.47], [3, 5.16], [2, 4.86], [1, 4.56]],
-                  m: [[15, 10.9], [14, 10.56], [13, 10.25], [12, 9.92], [11, 9.6], [10, 9.28], [9, 8.97], [8, 8.7], [7, 8.36], [6, 8.15], [5, 7.77], [4, 7.48], [3, 7.24], [2, 7.01], [1, 6.77]] },
-    speerwurf: { w: [[15, 24.87], [14, 23.18], [13, 21.55], [12, 19.99], [11, 18.48], [10, 17.03], [9, 15.64], [8, 14.46], [7, 13.18], [6, 11.96], [5, 10.8], [4, 9.7], [3, 8.66], [2, 7.68], [1, 6.75]],
-               m: [[15, 32.31], [14, 30.66], [13, 29.16], [12, 27.59], [11, 26.07], [10, 24.58], [9, 23.15], [8, 21.95], [7, 20.4], [6, 19.46], [5, 17.82], [4, 16.6], [3, 15.59], [2, 14.61], [1, 13.66]] },
-    lauf1500: { w: [[15, 161.9], [14, 165.59], [13, 169.44], [12, 173.59], [11, 177.72], [10, 182.18], [9, 186.86], [8, 191.19], [7, 196.35], [6, 201.8], [5, 207.56], [4, 213.66], [3, 220.12], [2, 226.99], [1, 234.31]],
-              m: [[15, 298.43], [14, 303.99], [13, 308.98], [12, 314.14], [11, 320.31], [10, 326.28], [9, 332.49], [8, 338.0], [7, 345.64], [6, 350.59], [5, 359.88], [4, 367.44], [3, 374.18], [2, 381.18], [1, 388.44]] },
-    lauf5000: { w: [[15, 472.21], [14, 482.67], [13, 493.6], [12, 505.05], [11, 517.03], [10, 529.6], [9, 542.79], [8, 555.0], [7, 569.5], [6, 584.79], [5, 600.92], [4, 617.97], [3, 636.01], [2, 655.13], [1, 675.44]],
-              m: [[15, 1145.68], [14, 1166.64], [13, 1186.8], [12, 1209.3], [11, 1232.68], [10, 1256.97], [9, 1282.24], [8, 1304.73], [7, 1335.96], [6, 1356.26], [5, 1394.38], [4, 1425.55], [3, 1393.4], [2, 1482.35], [1, 1512.49]] },
-  };
+  /* ---------------- Wertung nach DLV und SH-Fünfkampf ----------------
+     Übernommen aus „Leichtathletik_Fuenfkampf_SH.xlsx" (Blätter Grundlagen
+     und Eingabe). DLV-Punkte je Disziplin:
 
-  // Andere Strecke bei den Mädchen
-  const SCHUL_STRECKE = { lauf1500: { w: '800 m' }, lauf5000: { w: '2000 m' } };
+       Lauf:  P = abrunden( (Distanz / (Zeit + Handzuschlag) − a) / c )
+       Feld:  P = abrunden( (√Leistung[m] − a) / c )
 
-  const NOTEN = ['6', '5−', '5', '5+', '4−', '4', '4+', '3−', '3', '3+', '2−', '2', '2+', '1−', '1', '1+'];
-  const noteZuPunkten = p => NOTEN[p] || '–';
-
-  function schulPunkte(disc, wert, geschlecht) {
-    const t = (SCHUL_TABELLE[disc] || {})[geschlecht];
-    if (!t) return null;
-    const zeit = DISC[disc].better === 'low';
-    let beste = 0;
-    t.forEach(([punkte, grenze]) => {
-      if (zeit ? wert <= grenze : wert >= grenze) beste = Math.max(beste, punkte);
-    });
-    return beste;
-  }
-
-  // Zeilen, die aus der Reihe fallen (Tippfehler in der Vorlage), melden
-  function tabellenWarnung(geschlecht) {
-    const stellen = [];
-    Object.entries(SCHUL_TABELLE).forEach(([disc, seiten]) => {
-      const t = seiten[geschlecht];
-      if (!t) return;
-      const zeit = DISC[disc].better === 'low';
-      for (let i = 1; i < t.length; i++) {
-        const [p, v] = t[i], [pv, vv] = t[i - 1];
-        if (zeit ? v <= vv : v >= vv) stellen.push(`${DISC[disc].name}: ${p} Punkte`);
-      }
-    });
-    return stellen;
-  }
-
-  /* ---------------- Mehrkampf-Punkte ----------------
-     Offizielle Mehrkampf-Formel der World Athletics (Zehnkampf der Männer,
-     Siebenkampf der Frauen), unverändert seit 1985:
-       Laufen:  P = a · (b − T)^c      T in Sekunden
-       Technik: P = a · (L − b)^c      L in cm (Sprünge) bzw. m (Würfe)
-     Disziplinen, die in diesen Mehrkämpfen nicht vorkommen, haben keine
-     offiziellen Beiwerte – sie bleiben leer statt geraten zu werden. */
-  const WA_TABELLE = {
+     Handzeit-Zuschlag: bis 300 m +0,24 s, über 300 bis 400 m +0,14 s,
+     darüber 0. Nie unter 0 Punkte. */
+  const DLV = {
     m: {
-      sprint100:    ['zeit', 25.4347,  18,   1.81 ],
-      weitsprung:   ['cm',    0.14354, 220,  1.4  ],
-      hochsprung:   ['cm',    0.8465,  75,   1.42 ],
-      kugelstossen: ['m',    51.39,     1.5, 1.05 ],
-      speerwurf:    ['m',    10.14,     7,   1.08 ],
-      lauf1500:     ['zeit',  0.03768, 480,  1.85 ]
+      sprint100:   { typ: 'lauf', d: 100,  a: 4.3410,  c: 0.00676 },
+      sprint200:   { typ: 'lauf', d: 200,  a: 3.6040,  c: 0.00760 },
+      sprint400:   { typ: 'lauf', d: 400,  a: 2.9670,  c: 0.00716 },
+      lauf1500:    { typ: 'lauf', d: 1500, a: 1.9122,  c: 0.00613 },
+      lauf5000:    { typ: 'lauf', d: 5000, a: 1.5250,  c: 0.00560 },
+      hochsprung:  { typ: 'feld', a: 0.8410,  c: 0.00080 },
+      weitsprung:  { typ: 'feld', a: 1.15028, c: 0.00219 },
+      kugelstossen:{ typ: 'feld', a: 1.4250,  c: 0.00370 },
+      speerwurf:   { typ: 'feld', a: 0.3500,  c: 0.01052 },
+      diskuswurf:  { typ: 'feld', a: 1.4000,  c: 0.00800 }
     },
     w: {
-      weitsprung:   ['cm',    0.188807, 210, 1.41 ],
-      hochsprung:   ['cm',    1.84523,   75, 1.348],
-      kugelstossen: ['m',    56.0211,    1.5, 1.05],
-      speerwurf:    ['m',    15.9803,    3.8, 1.04]
+      sprint100:   { typ: 'lauf', d: 100,  a: 4.0062,  c: 0.00656 },
+      sprint200:   { typ: 'lauf', d: 200,  a: 3.7890,  c: 0.00734 },
+      sprint400:   { typ: 'lauf', d: 400,  a: 2.8100,  c: 0.00716 },
+      lauf800:     { typ: 'lauf', d: 800,  a: 2.0232,  c: 0.00647 },
+      lauf2000:    { typ: 'lauf', d: 2000, a: 1.8000,  c: 0.00540 },
+      hochsprung:  { typ: 'feld', a: 0.8807,  c: 0.00068 },
+      weitsprung:  { typ: 'feld', a: 1.0935,  c: 0.00208 },
+      kugelstossen:{ typ: 'feld', a: 1.2790,  c: 0.00398 },
+      speerwurf:   { typ: 'feld', a: 0.4220,  c: 0.01012 },
+      diskuswurf:  { typ: 'feld', a: 1.0515,  c: 0.00890 }
     }
   };
-  const OHNE_TABELLE = {
-    sprint100: 'im Siebenkampf läuft man 100 m Hürden statt 100 m flach',
-    lauf1500:  'im Siebenkampf steht 800 m',
-    lauf5000:  'kommt in keinem Mehrkampf vor'
+
+  // Mindestpunkte der Fünfkampf-Summe für 15 bis 0 Notenpunkte
+  const NOTENPUNKTE = {
+    w: [[2255,15],[2170,14],[2085,13],[2000,12],[1915,11],[1830,10],[1745,9],[1670,8],
+        [1585,7],[1500,6],[1415,5],[1330,4],[1245,3],[1160,2],[1075,1],[0,0]],
+    m: [[2535,15],[2465,14],[2400,13],[2330,12],[2260,11],[2190,10],[2120,9],[2060,8],
+        [1980,7],[1930,6],[1840,5],[1770,4],[1710,3],[1650,2],[1590,1],[0,0]]
+  };
+  const NOTEN = ['6','5−','5','5+','4−','4','4+','3−','3','3+','2−','2','2+','1−','1','1+'];
+  const noteZuPunkten = p => NOTEN[p] || '–';
+
+  const GERAETE = {
+    'w|U18': 'Kugel 3 kg · Speer 600 g', 'w|U20': 'Kugel 4 kg · Speer 600 g',
+    'w|U23': 'Kugel 4 kg · Speer 600 g', 'm|U18': 'Kugel 5 kg · Speer 800 g',
+    'm|U20': 'Kugel 6 kg · Speer 800 g', 'm|U23': 'Kugel 7,26 kg · Speer 800 g'
   };
 
-  function waPunkte(disc, wert, geschlecht) {
-    const t = (WA_TABELLE[geschlecht] || {})[disc];
-    if (!t) return null;
-    const [art, a, b, c] = t;
-    if (art === 'zeit') return wert >= b ? 0 : Math.floor(a * Math.pow(b - wert, c));
-    const l = art === 'cm' ? wert * 100 : wert;
-    return l <= b ? 0 : Math.floor(a * Math.pow(l - b, c));
+  // Fünfkampf: je eine Disziplin aus vier Gruppen, die fünfte frei
+  const GRUPPEN = g => ({
+    Sprint:      ['sprint100', 'sprint200', 'sprint400'],
+    Sprung:      ['hochsprung', 'weitsprung'],
+    'Wurf/Stoß': ['kugelstossen', 'speerwurf', 'diskuswurf'],
+    Langstrecke: g === 'w' ? ['lauf800', 'lauf2000'] : ['lauf1500', 'lauf5000']
+  });
+
+  const HAND_ZUSCHLAG = d => d <= 300 ? 0.24 : d <= 400 ? 0.14 : 0;
+
+  function dlvPunkte(disc, wert, geschlecht, handzeit) {
+    const t = (DLV[geschlecht] || {})[disc];
+    if (!t || !(wert > 0)) return null;
+    if (t.typ === 'lauf') {
+      const zeit = wert + (handzeit ? HAND_ZUSCHLAG(t.d) : 0);
+      return Math.max(0, Math.floor((t.d / zeit - t.a) / t.c));
+    }
+    return Math.max(0, Math.floor((Math.sqrt(wert) - t.a) / t.c));
   }
 
-  function geschlechtVon(name) {
-    try {
-      const alle = JSON.parse(localStorage.getItem('la-gender') || '{}');
-      return alle[name] === 'w' ? 'w' : 'm';
-    } catch (e) { return 'm'; }
+  function notenpunkte(summe, geschlecht) {
+    for (const [grenze, punkte] of (NOTENPUNKTE[geschlecht] || NOTENPUNKTE.m))
+      if (summe >= grenze) return punkte;
+    return 0;
   }
-  function setzeGeschlecht(name, wert) {
+  const notenpunkteEinzel = (p, geschlecht) => notenpunkte(p * 5, geschlecht);
+
+  /* Beste gültige Zusammenstellung: je eine Disziplin aus Sprint, Sprung,
+     Wurf/Stoß und Langstrecke, dazu eine zweite aus genau einer Gruppe. */
+  function fuenfkampf(punkteJeDisziplin, geschlecht) {
+    const gruppen = GRUPPEN(geschlecht);
+    const werte = {};
+    let vorhanden = 0;
+    Object.entries(gruppen).forEach(([name, keys]) => {
+      werte[name] = keys.map(k => punkteJeDisziplin[k]).filter(p => p != null).sort((a, b) => b - a);
+      vorhanden += werte[name].length;
+    });
+    const fehlend = Object.entries(werte).filter(([, v]) => !v.length).map(([n]) => n);
+    if (fehlend.length) return { status: fehlend.join(', ') + ' fehlt noch', summe: null };
+    if (vorhanden < 5) return { status: 'mindestens 5 Ergebnisse nötig', summe: null };
+
+    let beste = null;
+    Object.keys(gruppen).forEach(zusatz => {
+      if (werte[zusatz].length < 2) return;
+      let summe = 0;
+      const gezaehlt = {};
+      Object.entries(werte).forEach(([name, v]) => {
+        gezaehlt[name] = v.slice(0, name === zusatz ? 2 : 1);
+        summe += gezaehlt[name].reduce((a, b) => a + b, 0);
+      });
+      if (!beste || summe > beste.summe) beste = { summe, zusatz, gezaehlt, status: 'gültig' };
+    });
+    return beste || { status: 'mindestens 5 Ergebnisse nötig', summe: null };
+  }
+
+  /* ---------------- Einstellungen der Wertung (je Profil) ---------------- */
+  function einstellung(name, standard) {
     try {
-      const alle = JSON.parse(localStorage.getItem('la-gender') || '{}');
-      alle[name] = wert;
-      localStorage.setItem('la-gender', JSON.stringify(alle));
+      const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
+      return (alle[db.current] || {})[name] || standard;
+    } catch (e) { return standard; }
+  }
+  function setzeEinstellung(name, wert) {
+    try {
+      const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
+      alle[db.current] = Object.assign({}, alle[db.current], { [name]: wert });
+      localStorage.setItem('la-wertung', JSON.stringify(alle));
     } catch (e) { /* egal */ }
   }
+  const geschlechtVon = () => einstellung('geschlecht', 'm');
+  const zeitmessungVon = () => einstellung('zeit', geschlechtVon() === 'w' ? 'hand' : 'elektro');
+  const klasseVon = () => einstellung('klasse', 'U20');
 
   function renderPunkte() {
-    const g = geschlechtVon(db.current);
-    document.querySelectorAll('#genderSeg .seg-btn').forEach(b =>
-      b.classList.toggle('is-active', b.dataset.gender === g));
+    const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
+    const hand = zeit === 'hand';
+    const setzeAktiv = (id, wert) => document.querySelectorAll(id + ' .seg-btn').forEach(b =>
+      b.classList.toggle('is-active', b.dataset.wert === wert));
+    setzeAktiv('#genderSeg', g);
+    setzeAktiv('#zeitSeg', zeit);
+    setzeAktiv('#klasseSeg', klasse);
+
+    const punkte = {}, bestwerte = {};
+    KEYS.forEach(key => {
+      const b = best(key);
+      bestwerte[key] = b;
+      punkte[key] = b ? dlvPunkte(key, b.value, g, hand) : null;
+    });
+
+    const ergebnis = fuenfkampf(punkte, g);
+    const offen = {};
+    if (ergebnis.summe != null)
+      Object.entries(ergebnis.gezaehlt).forEach(([k, v]) => { offen[k] = v.slice(); });
+
+    $('#punkteSumme').textContent = ergebnis.summe != null ? ergebnis.summe.toLocaleString('de-DE') : '–';
+    if (ergebnis.summe != null) {
+      const np = notenpunkte(ergebnis.summe, g);
+      $('#punkteNote').textContent = np + ' NP';
+      $('#punkteNoteFein').textContent = 'Note ' + noteZuPunkten(np);
+      const naechste = (NOTENPUNKTE[g] || NOTENPUNKTE.m).find(([, p]) => p === np + 1);
+      $('#punkteStatus').textContent = naechste
+        ? `noch ${naechste[0] - ergebnis.summe} Punkte bis ${np + 1} NP · zweite Wertung aus ${ergebnis.zusatz}`
+        : `Höchstwertung · zweite Wertung aus ${ergebnis.zusatz}`;
+    } else {
+      $('#punkteNote').textContent = '–';
+      $('#punkteNoteFein').textContent = '';
+      $('#punkteStatus').textContent = ergebnis.status;
+    }
 
     const liste = $('#punkteListe');
     liste.textContent = '';
-    let schulSumme = 0, schulAnzahl = 0, waSumme = 0, waAnzahl = 0;
+    Object.entries(GRUPPEN(g)).forEach(([gruppe, keys]) => {
+      liste.append(el('li', 'punkte-gruppe', gruppe));
+      keys.forEach(key => {
+        const d = DISC[key], b = bestwerte[key], p = punkte[key];
+        const li = el('li', 'row punkte-row');
+        li.append(el('span', 'ic', d.ic));
 
-    KEYS.forEach(key => {
-      const d = DISC[key], b = best(key);
-      const schul = b ? schulPunkte(key, b.value, g) : null;
-      const wa = b ? waPunkte(key, b.value, g) : null;
-      const strecke = (SCHUL_STRECKE[key] || {})[g];
+        const main = el('div', 'main');
+        main.append(el('div', 'nm', d.name));
+        main.append(el('div', 'val', b ? fmt(key, b.value) : '– noch kein Wert'));
+        if (p != null) {
+          const bar = el('div', 'p-bar');
+          const f = el('span');
+          f.style.width = Math.max(3, Math.min(100, (p / (g === 'w' ? 451 : 507)) * 100)) + '%';
+          bar.append(f);
+          main.append(bar);
+        }
+        li.append(main);
 
-      const li = el('li', 'row punkte-row');
-      li.append(el('span', 'ic', d.ic));
-
-      const main = el('div', 'main');
-      main.append(el('div', 'nm', d.name + (strecke ? ` · bei Mädchen ${strecke}` : '')));
-      main.append(el('div', 'val', b ? fmt(key, b.value) : '– noch kein Wert'));
-      if (b && wa === null) main.append(el('div', 'nm', 'Mehrkampf: ' + (OHNE_TABELLE[key] || 'keine Tabelle')));
-
-      if (schul !== null && b) {
-        schulSumme += schul; schulAnzahl++;
-        const bar = el('div', 'p-bar');
-        const fuell = el('span');
-        fuell.style.width = Math.max(3, (schul / 15) * 100) + '%';
-        bar.append(fuell);
-        main.append(bar);
-      }
-      li.append(main);
-
-      const rechts = el('div', 'punkte-wert');
-      if (schul !== null && b) {
-        rechts.append(el('span', 'p-zahl', String(schul)));
-        rechts.append(el('span', 'p-note', 'Note ' + noteZuPunkten(schul)));
-      } else {
-        rechts.append(el('span', 'p-zahl p-leer', '–'));
-      }
-      if (wa !== null && b) {
-        waSumme += wa; waAnzahl++;
-        rechts.append(el('span', 'p-wa', wa + ' WA'));
-      }
-      li.append(rechts);
-      liste.append(li);
+        const rechts = el('div', 'punkte-wert');
+        if (p != null) {
+          const np = notenpunkteEinzel(p, g);
+          rechts.append(el('span', 'p-zahl', String(p)));
+          rechts.append(el('span', 'p-note', `einzeln ${np} NP · ${noteZuPunkten(np)}`));
+          if (offen[gruppe] && offen[gruppe].includes(p)) {
+            offen[gruppe].splice(offen[gruppe].indexOf(p), 1);
+            li.classList.add('is-gezaehlt');
+            rechts.append(el('span', 'p-zaehlt', 'zählt'));
+          }
+        } else {
+          rechts.append(el('span', 'p-zahl p-leer', '–'));
+          if (b) rechts.append(el('span', 'p-note', 'keine Tabelle für ' + (g === 'w' ? 'Mädchen' : 'Jungen')));
+        }
+        li.append(rechts);
+        liste.append(li);
+      });
     });
 
-    $('#punkteSumme').textContent = schulSumme;
-    $('#punkteMax').textContent = schulAnzahl ? '/ ' + (schulAnzahl * 15) : '';
-    $('#punkteAnzahl').textContent = schulAnzahl
-      ? `${schulAnzahl} ${schulAnzahl === 1 ? 'Disziplin' : 'Disziplinen'} · Schnitt Note ${noteZuPunkten(Math.round(schulSumme / schulAnzahl))}`
-      : 'noch nichts zu werten';
-    $('#punkteWaSumme').textContent = waAnzahl ? waSumme.toLocaleString('de-DE') : '–';
-    $('#punkteWaSub').textContent = waAnzahl ? `aus ${waAnzahl} ${waAnzahl === 1 ? 'Disziplin' : 'Disziplinen'}` : '';
-
-    const warnungen = tabellenWarnung(g);
     $('#punkteHinweis').textContent =
-      'Schulpunkte nach der Bewertungstabelle „Einzeldisziplin ab Q1" (15 = 1+, 0 = 6). '
-      + 'WA sind die Mehrkampf-Punkte der World Athletics – '
-      + (g === 'm' ? 'Zehnkampf' : 'Siebenkampf') + '. Gewertet wird immer der Bestwert.'
-      + (warnungen.length ? ' Achtung, die Vorlage ist an dieser Stelle nicht eindeutig: ' + warnungen.join(', ') + '.' : '');
+      `DLV-Punkte je Disziplin aus dem Bestwert, ${hand ? 'Handzeit (Zuschlag 0,24 s bis 300 m, 0,14 s bis 400 m)' : 'elektronische Zeitmessung'}. `
+      + 'Note aus der Summe der fünf gewerteten Disziplinen nach der SH-Tabelle (15 NP = 1+, 0 NP = 6); '
+      + 'je eine Disziplin aus Sprint, Sprung, Wurf/Stoß und Langstrecke, die fünfte frei. '
+      + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`;
   }
 
   /* ---------------- Übersicht ---------------- */
@@ -1572,8 +1620,10 @@
       flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
     }));
 
-    document.querySelectorAll('#genderSeg .seg-btn').forEach(b =>
-      b.addEventListener('click', () => { setzeGeschlecht(db.current, b.dataset.gender); renderPunkte(); }));
+    [['#genderSeg', 'geschlecht'], ['#zeitSeg', 'zeit'], ['#klasseSeg', 'klasse']].forEach(([id, name]) => {
+      document.querySelectorAll(id + ' .seg-btn').forEach(b =>
+        b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderPunkte(); }));
+    });
     $('#profileBtn').addEventListener('click', openPicker);
     $('#profilSwitch').addEventListener('click', openPicker);
     $('#pscreenClose').addEventListener('click', closePicker);

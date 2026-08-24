@@ -9,8 +9,13 @@ einfach `index.html` im Browser öffnen (Handy, Tablet oder Laptop).
 | Disziplin     | Einheit | Eingabe-Beispiele        |
 |---------------|---------|--------------------------|
 | Hochsprung    | m       | `1.45` oder `145` (cm)   |
+| Diskuswurf    | m       | `25.66` oder `2566` (cm) |
 | Weitsprung    | m       | `4.35` oder `435` (cm)   |
 | 100 m Sprint  | s       | `12.85`                  |
+| 200 m Sprint  | s       | `27.50`                  |
+| 400 m Sprint  | min     | `1:02` oder `62.5`       |
+| 800 m Lauf    | min     | `2:41` oder kurz `241`   |
+| 2000 m Lauf   | min     | `7:52` oder kurz `752`   |
 | 1500 m Lauf   | min     | `5:42` oder kurz `542`   |
 | 5000 m Lauf   | min     | `21:30` oder kurz `2130` |
 | Speerwurf     | m       | `27.50` oder `2750` (cm) |
@@ -34,30 +39,34 @@ Durchschnitt und alle Einzelwerte (löschbar).
 **Übersicht** – alle Bestwerte auf einen Blick mit Mini-Verlauf; ein Klick
 springt ins passende Diagramm.
 
-**Punkte** – rechnet aus dem **Bestwert** jeder Disziplin zwei Wertungen aus:
+**Punkte** – der Fünfkampf nach der Vorlage `Leichtathletik_Fuenfkampf_SH.xlsx`.
 
-*Schulpunkte* nach der Bewertungstabelle „Leichtathletik Prüfung – Bewertung
-Einzeldisziplin ab Q1" (GaM, Sportprofil): 15 bis 0 Punkte je Disziplin, dazu
-die Note (15 = 1+, 0 = 6), die Summe und der Notenschnitt. Die Tabelle steht
-in `assets/app.js` unter `SCHUL_TABELLE`. Bei den Läufen gelten für Mädchen
-die kürzeren Strecken – 800 m statt 1500 m und 2000 m statt 5000 m; die App
-schreibt das an die Zeile.
-
-*World-Athletics-Punkte* nach der offiziellen Mehrkampf-Formel (Zehnkampf der
-Männer, Siebenkampf der Frauen):
+DLV-Punkte je Disziplin aus dem Bestwert:
 
 ```
-Laufen:  P = a · (b − T)^c     T in Sekunden
-Technik: P = a · (L − b)^c     L in cm (Sprünge) bzw. m (Würfe)
+Lauf:  P = abrunden( (Distanz / (Zeit + Handzuschlag) − a) / c )
+Feld:  P = abrunden( (√Leistung[m] − a) / c )
 ```
 
-Die Beiwerte stehen unter `WA_TABELLE`. Geprüft an den
-bekannten 1000-Punkte-Marken: 100 m 10,395 s · Weitsprung 7,76 m ·
-Hochsprung 2,208 m · Kugel 18,40 m · 1500 m 3:53,79 – alle exakt 1000.
+Handzeit-Zuschlag wie in der Vorlage: bis 300 m +0,24 s, über 300 bis 400 m
++0,14 s, darüber keiner. Die Beiwerte `a` und `c` stehen in `assets/app.js`
+unter `DLV`, getrennt nach Jungen und Mädchen.
 
-Nicht jede Disziplin hat offizielle Beiwerte: Im Siebenkampf gibt es 100 m
-Hürden statt 100 m flach und 800 m statt 1500 m, und 5000 m kommt in keinem
-Mehrkampf vor. Diese Felder bleiben leer, statt geraten zu werden.
+Gewertet werden fünf Disziplinen: je eine aus Sprint, Sprung, Wurf/Stoß und
+Langstrecke, die fünfte frei. Die App probiert alle vier Möglichkeiten durch
+und nimmt die beste Summe; die gezählten Zeilen sind mit „zählt" markiert.
+Aus der Summe kommt die Bewertung in Notenpunkten (15 NP = 1+, 0 NP = 6)
+nach der SH-Tabelle unter `NOTENPUNKTE`. Jede Zeile zeigt zusätzlich, was die
+Leistung einzeln wäre – dieselbe Tabelle, geteilt durch fünf.
+
+Umschalter für Jungen/Mädchen, Handzeit/elektronisch und die Altersklasse
+(U18/U20/U23, bestimmt die angezeigten Gerätegewichte). Die Einstellungen
+gelten je Profil.
+
+Geprüft gegen die Marken der Bewertungstabelle: Weitsprung 5,12 m → 507,
+Kugel 10,90 m → 507, Speer 32,31 m → 507, 5000 m 19:05,68 → 507 (Jungen)
+sowie Weitsprung 4,13 m → 451, Kugel 9,45 m → 451, 800 m 2:41,90 → 451 und
+2000 m 7:52,21 → 451 (Mädchen).
 
 **Profil** – der fünfte Reiter hält alles, was nicht Sport ist: Profilliste
 zum Anlegen, Umbenennen und Löschen, die Farbe der App, Speicherort und die
