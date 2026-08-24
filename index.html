@@ -108,21 +108,9 @@
     <h1 class="view-title">Punktewertung</h1>
     <p class="view-note">Fünfkampf nach DLV-Punkten, Note nach der SH-Tabelle. Gewertet wird der <strong>Bestwert</strong> jeder Disziplin.</p>
 
-    <div class="seg-reihe">
-      <div class="seg" id="genderSeg" role="group" aria-label="Tabelle">
-        <button type="button" class="seg-btn" data-wert="m">Jungen</button>
-        <button type="button" class="seg-btn" data-wert="w">Mädchen</button>
-      </div>
-      <div class="seg" id="zeitSeg" role="group" aria-label="Zeitmessung">
-        <button type="button" class="seg-btn" data-wert="hand">Handzeit</button>
-        <button type="button" class="seg-btn" data-wert="elektro">elektronisch</button>
-      </div>
-      <div class="seg" id="klasseSeg" role="group" aria-label="Altersklasse">
-        <button type="button" class="seg-btn" data-wert="U18">U18</button>
-        <button type="button" class="seg-btn" data-wert="U20">U20</button>
-        <button type="button" class="seg-btn" data-wert="U23">U23</button>
-      </div>
-    </div>
+    <button type="button" class="wertung-zeile" data-ziel="einstellungen">
+      <span id="wertungInfo">–</span><span class="mr-chev" aria-hidden="true">›</span>
+    </button>
 
     <div class="punkte-summe">
       <div class="ps-block">
@@ -152,15 +140,67 @@
         <p id="profilName" class="profil-name">–</p>
         <p id="profilWerte" class="profil-sub"></p>
       </div>
-      <button type="button" id="profilSwitch" class="btn btn-mint">Wechseln</button>
     </div>
+    <p class="hint-text" style="margin:8px 2px 0">Profil wechseln: oben rechts auf den Namen tippen.</p>
 
-    <h2 class="section-title">Alle Profile</h2>
-    <ul id="profileList" class="profile-list"></ul>
-    <div class="data-actions">
-      <button type="button" id="profilNeuBtn" class="btn btn-mint">Neues Profil anlegen</button>
+    <ul class="menu">
+      <li>
+        <button type="button" class="menu-row" data-ziel="einstellungen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2M12 18.5v2M20.5 12h-2M5.5 12h-2M18 6l-1.4 1.4M7.4 16.6 6 18M18 18l-1.4-1.4M7.4 7.4 6 6"/></svg>
+          <span class="mr-text">
+            <span class="mr-title">Einstellungen</span>
+            <span class="mr-sub">Wertung, Farbe, Hintergrund, Datenbank, Daten</span>
+          </span>
+          <span class="mr-chev" aria-hidden="true">›</span>
+        </button>
+      </li>
+      <li>
+        <button type="button" class="menu-row" data-ziel="profile">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M2.8 19a6.2 6.2 0 0112.4 0"/><path d="M16 5.6a3.2 3.2 0 010 5.8M17.5 19a6.4 6.4 0 00-1.6-4.2"/></svg>
+          <span class="mr-text">
+            <span class="mr-title">Profile verwalten</span>
+            <span id="profileAnzahl" class="mr-sub"></span>
+          </span>
+          <span class="mr-chev" aria-hidden="true">›</span>
+        </button>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ============ EINSTELLUNGEN ============ -->
+  <section id="view-einstellungen" class="view" data-eltern="profil">
+    <button type="button" class="zurueck" data-ziel="profil">‹ Profil</button>
+    <h1 class="view-title">Einstellungen</h1>
+    <p id="einstellungenFuer" class="view-note"></p>
+
+    <h2 class="section-title">Wertung</h2>
+    <div class="feld-zeile">
+      <span class="feld-name">Tabelle</span>
+      <div class="seg" id="genderSeg" role="group" aria-label="Wertungstabelle">
+        <button type="button" class="seg-btn" data-wert="m">Jungen</button>
+        <button type="button" class="seg-btn" data-wert="w">Mädchen</button>
+      </div>
     </div>
-    <p id="profileHint" class="hint-text"></p>
+    <div class="feld-zeile">
+      <span class="feld-name">Zeitmessung</span>
+      <div class="seg" id="zeitSeg" role="group" aria-label="Zeitmessung">
+        <button type="button" class="seg-btn" data-wert="hand">Handzeit</button>
+        <button type="button" class="seg-btn" data-wert="elektro">elektronisch</button>
+      </div>
+    </div>
+    <div class="feld-zeile">
+      <span class="feld-name">Altersklasse</span>
+      <div class="seg" id="klasseSeg" role="group" aria-label="Altersklasse">
+        <button type="button" class="seg-btn" data-wert="U18">U18</button>
+        <button type="button" class="seg-btn" data-wert="U20">U20</button>
+        <button type="button" class="seg-btn" data-wert="U23">U23</button>
+      </div>
+    </div>
+    <div class="feld-zeile">
+      <span class="feld-name">Geburtsjahr</span>
+      <input id="jahrInput" type="number" inputmode="numeric" min="1950" max="2035" placeholder="2008" class="feld-eingabe">
+    </div>
+    <p id="wertungHinweis" class="hint-text"></p>
 
     <h2 class="section-title">Farbe</h2>
     <div id="themeGrid" class="theme-grid"></div>
@@ -180,6 +220,20 @@
       <input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
   </section>
+
+  <!-- ============ PROFILE VERWALTEN ============ -->
+  <section id="view-profile" class="view" data-eltern="profil">
+    <button type="button" class="zurueck" data-ziel="profil">‹ Profil</button>
+    <h1 class="view-title">Profile</h1>
+    <p class="view-note">Tippe auf einen Namen, um zu wechseln.</p>
+
+    <ul id="profileList" class="profile-list"></ul>
+    <div class="data-actions">
+      <button type="button" id="profilNeuBtn" class="btn btn-mint">Neues Profil anlegen</button>
+    </div>
+    <p id="profileHint" class="hint-text"></p>
+  </section>
+
 </main>
 
 <nav class="tabbar">
@@ -296,12 +350,12 @@
 
 <div id="app"></div>
 
-<!-- Verbindung zur Datenbank für alle Besucher dieser Seite.
-     In der App: Übersicht → Datenbank verbinden → "Für Website kopieren",
-     dann die folgende Zeile durch die kopierte ersetzen. Beispiel:
-     {"url":"https://abcdefgh.supabase.co","key":"eyJhbGciOi…"}
-     Der Klassen-Code gehört NICHT hierher – er bleibt auf jedem Gerät. -->
-<script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA"}</script>
+<!-- Verbindung zur Klassen-Datenbank. Alle, die diese Seite öffnen,
+     landen in derselben Gruppe: url und key stammen aus Supabase
+     (Project Settings → API), code ist der feste Klassen-Schlüssel.
+     Achtung: Wer die Seite aufruft, sieht damit die Werte der Klasse –
+     das ist hier so gewollt, damit sich niemand anmelden muss. -->
+<script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "sportprofil-gam-2027"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
 <script id="appScript" src="assets/app.js"></script>

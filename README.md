@@ -98,74 +98,53 @@ das gilt für einzelne Werte und für ganze Profile.
 
 ## Wo die Werte liegen
 
-Das Feld oben rechts neben dem Namen zeigt es an:
+Die Seite ist für **eine Klasse** gedacht: Projekt-URL, öffentlicher Key und
+der Klassen-Schlüssel stehen fest in `index.html` (`id="appConfig"`). Wer die
+Seite öffnet, ist sofort verbunden – **ohne Anmeldung**. Beim ersten Öffnen
+fragt die App nur, wer man ist: vorhandenes Profil antippen oder ein neues
+anlegen. Das Gerät merkt sich die Wahl.
 
-- **Datenbank** – eine echte Postgres-Datenbank bei Supabase. Alle, die den
-  Klassen-Code eintragen, sehen dieselben Werte und können gleichzeitig
-  eintragen. Einrichtung siehe unten.
-- **Cloud** – ohne Datenbank und als Claude-Artifact sichert die Seite ihren
-  Stand selbst: Die Werte stecken in der Seite und sind auf jedem Gerät da, das
-  den Link öffnet. Eine Kopie bleibt zusätzlich im Browser.
-- **Gerät** – bei der Datei- oder GitHub-Pages-Version ohne Datenbank wird nur
-  im Browser gespeichert (`localStorage`).
+Das heißt auch: Wer den Link hat, sieht die Werte der Klasse und kann
+eintragen. Das ist der Preis dafür, dass sich niemand anmelden muss.
+
+Das Feld oben rechts zeigt den Zustand:
+
+- **Datenbank** – verbunden, alle tragen in denselben Bestand ein.
 - **offline** – keine Verbindung. Eingeben geht weiter, die Änderungen liegen
   in einer Warteschlange und gehen automatisch raus, sobald es wieder klappt.
+- **Gerät** – ohne hinterlegte Verbindung (etwa beim lokalen Öffnen der
+  Datei); dann wird nur im Browser gespeichert.
 
 Abgeglichen wird bei **jedem Aufruf**: beim Öffnen der Seite, beim Zurück-
 wechseln zum Tab, beim Aufwecken des Handys und sobald das Netz wieder da
 ist. Solange das läuft, deckt ein Vollbild-Fenster den Bildschirm ab –
 erst gehen offene Änderungen raus, dann kommt der Stand der anderen herein.
-Beim Verlassen der Seite wird ebenfalls gesichert.
+
+**Keine Dopplungen:** Ein Wert gilt als derselbe, wenn Profil, Disziplin,
+Datum und Leistung übereinstimmen; beim Übertragen und beim Laden einer
+Datei wird danach abgeglichen.
 
 ## Datenbank einrichten (Supabase, kostenlos)
 
 1. Auf [supabase.com](https://supabase.com) anmelden und ein Projekt anlegen.
 2. Links **SQL Editor** öffnen, `supabase/schema.sql` einfügen, **Run** drücken.
-   (In der App macht das der Knopf „SQL kopieren“ im Verbinden-Dialog.)
 3. Unter **Project Settings → API** die *Project URL* und den *anon public* Key
    kopieren.
-4. In der App: Übersicht → **Datenbank verbinden**, beides eintragen und einen
-   **Klassen-Code** wählen (mindestens 6 Zeichen, z. B. `9b-sport-2026`).
+4. Beides zusammen mit einem frei gewählten `code` in `index.html` bei
+   `id="appConfig"` eintragen:
 
-Alle weiteren Geräte brauchen nur denselben Code. Vorhandene Werte vom Gerät
-bietet die App beim Verbinden zum Übertragen an.
+```html
+<script id="appConfig" type="application/json">
+{"url":"https://abcdefgh.supabase.co","key":"eyJhbGciOi…","code":"sportprofil-gam-2027"}
+</script>
+```
 
 ### Wie der Zugriff geschützt ist
 
-Die Tabellen sind für den öffentlichen Key komplett gesperrt (RLS ohne Policy).
-Gelesen und geschrieben wird nur über Funktionen, die jedes Mal den
-Klassen-Code prüfen (`supabase/schema.sql`). Ein falscher Code sieht nichts,
-ein fremdes Profil lässt sich nicht bespielen, und der Code selbst wird nie in
-der Seite gespeichert – er liegt nur auf dem jeweiligen Gerät.
-
-Der Code ist ein gemeinsames Passwort: Wer ihn kennt, sieht alle Werte der
-Gruppe und kann sie ändern. Nehmt deshalb einen, den man nicht rät, und
-schreibt keine Daten hinein, die nicht die ganze Gruppe sehen soll.
-
-In beiden Fällen: **Sichern (JSON)** legt ein Backup an, **Laden (JSON)** holt
-es zurück und führt es mit vorhandenen Werten zusammen, **CSV** öffnet sich in
-Excel oder LibreOffice.
-
-**Keine Dopplungen:** Ein Wert gilt als derselbe, wenn Profil, Disziplin,
-Datum und Leistung übereinstimmen. Beim Verbinden mit einer Datenbank, beim
-Übertragen vom Gerät und beim Laden einer Datei wird danach abgeglichen –
-mehrfaches Anmelden legt also nichts zweimal an.
-
-## Dateien
-
-```
-index.html            Aufbau der Seite (Oberfläche liegt in <template id="appShell">)
-assets/styles.css     Design (Mint auf Petrol, Helvetica)
-assets/app.js         Eingabe-Logik, Speicherung, Diagramme
-supabase/schema.sql   Tabellen, Funktionen und Rechte der Datenbank
-build.py              baut daraus eine einzelne HTML-Datei
-```
-
-Keine Bibliotheken, kein Framework. `python3 build.py` erzeugt
-`leichtathletik-tracker.html` – eine einzige Datei zum Verschicken oder
-Hochladen; `--fragment` lässt den Seitenrahmen weg (für Claude-Artifacts).
-Die Cloud-Speicherung braucht diese Einzeldatei, weil die App sich daraus
-selbst neu aufbaut.
+Die Tabellen sind für den öffentlichen Key komplett gesperrt (RLS ohne
+Policy). Gelesen und geschrieben wird nur über Funktionen, die jedes Mal den
+Klassen-Schlüssel prüfen (`supabase/schema.sql`). Andere Gruppen kommen an
+eure Werte also nicht heran – wohl aber jeder, der eure Seite öffnet.
 
 ## Für andere veröffentlichen
 

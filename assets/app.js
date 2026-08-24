@@ -214,7 +214,7 @@
   function readEmbeddedCfg() {
     const tag = document.getElementById('appConfig');
     if (!tag) return null;
-    try { const c = JSON.parse((tag.textContent || '').trim() || 'null'); return c && c.url && c.key ? c : null; }
+    try { const c = JSON.parse((tag.textContent || '').trim() || 'null'); return c && c.url && c.key ? c : null; }   // code optional
     catch (e) { return null; }
   }
 
@@ -995,11 +995,8 @@
   function renderPunkte() {
     const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
     const hand = zeit === 'hand';
-    const setzeAktiv = (id, wert) => document.querySelectorAll(id + ' .seg-btn').forEach(b =>
-      b.classList.toggle('is-active', b.dataset.wert === wert));
-    setzeAktiv('#genderSeg', g);
-    setzeAktiv('#zeitSeg', zeit);
-    setzeAktiv('#klasseSeg', klasse);
+    $('#wertungInfo').textContent =
+      `${g === 'w' ? 'Mädchen' : 'Jungen'} · ${hand ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
 
     const punkte = {}, bestwerte = {};
     KEYS.forEach(key => {
@@ -1104,7 +1101,10 @@
     const line = t => { const n = el('p', null, t); n.style.margin = '0 0 8px'; box.append(n); };
 
     if (usingDb()) {
-      line(`Verbunden mit eurer Datenbank (${cfg.url.replace(/^https?:\/\//, '')}), Klassen-Code „${cfg.code}“. Alle, die diesen Code eintragen, sehen dieselben Werte – auf jedem Gerät.`);
+      const fest = (readEmbeddedCfg() || {}).code && String((readEmbeddedCfg() || {}).code).toLowerCase() === cfg.code;
+      line(fest
+        ? 'Verbunden mit der Klassen-Datenbank. Alle, die diese Seite öffnen, tragen in denselben Bestand ein – ohne Anmeldung.'
+        : `Verbunden mit ${cfg.url.replace(/^https?:\/\//, '')}, Gruppe „${cfg.code}“.`);
       if (queue.length) line(`${queue.length} ${queue.length === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf die Verbindung und ${queue.length === 1 ? 'wird' : 'werden'} nachgereicht.`);
       else line('Eine Kopie bleibt zusätzlich auf diesem Gerät, damit die App auch ohne Netz läuft.');
       acts.append(btn('btn', 'Jetzt abgleichen', () => pull(true)),
@@ -1289,6 +1289,7 @@
   }
 
   function switchTo(name) {
+    try { localStorage.setItem('la-profil-gewaehlt', name); } catch (e) { /* egal */ }
     Store.switchProfile(name);
     renderAll(); syncProfileName();
     closePicker();
@@ -1314,8 +1315,10 @@
   }
 
   /* ---------------- Profil wechseln (Vollbild) ---------------- */
-  function openPicker() {
+  function openPicker(frage) {
     renderPicker();
+    const titel = document.querySelector('.pscreen-title');
+    if (titel) titel.textContent = frage || 'Wer trägt ein?';
     $('#profileScreen').hidden = false;
     document.body.style.overflow = 'hidden';
   }
@@ -1348,6 +1351,17 @@
     grid.append(add);
   }
 
+
+  // Auf einem neuen Gerät steht noch nicht fest, wer eintragt: direkt fragen.
+  function starteProfilwahl() {
+    let gewaehlt = null;
+    try { gewaehlt = localStorage.getItem('la-profil-gewaehlt'); } catch (e) { /* egal */ }
+    if (gewaehlt && db.athletes.includes(gewaehlt)) return;
+    if (!db.athletes.length || (db.athletes.length === 1 && db.athletes[0] === 'Ich' && !countOf('Ich')))
+      openNeuesProfil();
+    else
+      openPicker();
+  }
 
   /* ---------------- Profil anlegen (Vollbild) ---------------- */
   let npGeschlecht = 'm';
@@ -1401,12 +1415,15 @@
     $('#profilName').textContent = db.current;
     const n = countOf(db.current);
     const jahr = Number(einstellung('jahr', 0));
-    const klasse = klasseVon(), g = geschlechtVon();
     $('#profilWerte').textContent =
       (n ? `${n} ${n === 1 ? 'Wert' : 'Werte'}` : 'noch keine Werte')
-      + ` · ${g === 'w' ? 'Mädchen' : 'Jungen'}`
-      + (jahr ? ` · Jahrgang ${jahr} · ${klasse}` : ` · ${klasse}`);
+      + ` · ${geschlechtVon() === 'w' ? 'Mädchen' : 'Jungen'}`
+      + (jahr ? ` · Jahrgang ${jahr}` : '') + ` · ${klasseVon()}`;
+    const anzahl = db.athletes.length;
+    $('#profileAnzahl').textContent = `${anzahl} ${anzahl === 1 ? 'Profil' : 'Profile'} · anlegen, umbenennen, löschen`;
+  }
 
+  function renderProfilListe() {
     const list = $('#profileList');
     list.textContent = '';
     db.athletes.forEach(name => {
@@ -1415,7 +1432,21 @@
       list.append(li);
     });
     $('#profileHint').textContent = 'Umbenennen ändert nichts an den Werten – sie wandern mit.';
+  }
 
+  function renderEinstellungen() {
+    const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
+    const setzeAktiv = (id, wert) => document.querySelectorAll(id + ' .seg-btn').forEach(b =>
+      b.classList.toggle('is-active', b.dataset.wert === wert));
+    setzeAktiv('#genderSeg', g);
+    setzeAktiv('#zeitSeg', zeit);
+    setzeAktiv('#klasseSeg', klasse);
+    $('#jahrInput').value = einstellung('jahr', '');
+    $('#einstellungenFuer').textContent = 'Gelten für das Profil ' + db.current + '. Farbe und Hintergrund gelten für dieses Gerät.';
+    $('#wertungHinweis').textContent =
+      `${g === 'w' ? 'Mädchen' : 'Jungen'}, ${zeit === 'hand' ? 'Handzeit (Zuschlag 0,24 s bis 300 m)' : 'elektronische Zeit'}, `
+      + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`
+      + (g === 'w' ? ' Mädchen laufen 800 m statt 1500 m und 2000 m statt 5000 m.' : '');
     renderThemes();
     renderStorageInfo();
   }
@@ -1457,10 +1488,13 @@
   }
 
   // Kompatibel halten: beide Ansichten aktualisieren
+  // Nach Änderungen alle Stellen auffrischen, die Profile zeigen
   function renderProfiles() {
     if (!$('#profileScreen').hidden) renderPicker();
     if ($('#view-punkte').classList.contains('is-active')) renderPunkte();
     if ($('#view-profil').classList.contains('is-active')) renderProfil();
+    if ($('#view-profile').classList.contains('is-active')) renderProfilListe();
+    if ($('#view-einstellungen').classList.contains('is-active')) renderEinstellungen();
   }
 
   function drawProfileRow(li, name) {
@@ -1588,12 +1622,19 @@
   /* ---------------- Navigation ---------------- */
   function show(view) {
     currentView = view;
-    document.querySelectorAll('.view').forEach(v => v.classList.toggle('is-active', v.id === 'view-' + view));
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === view));
+    let reiter = view;
+    document.querySelectorAll('.view').forEach(v => {
+      const an = v.id === 'view-' + view;
+      v.classList.toggle('is-active', an);
+      if (an && v.dataset.eltern) reiter = v.dataset.eltern;   // Unterseite: Reiter bleibt markiert
+    });
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === reiter));
     if (view === 'verlauf') renderVerlauf();
     if (view === 'uebersicht') renderUebersicht();
     if (view === 'punkte') renderPunkte();
     if (view === 'profil') renderProfil();
+    if (view === 'einstellungen') renderEinstellungen();
+    if (view === 'profile') renderProfilListe();
     window.scrollTo(0, 0);
   }
 
@@ -1626,6 +1667,13 @@
     cfg = readCfg();
     queue = readQueue();
 
+    // Feste Klassen-Verbindung aus der Seite: kein Anmelden nötig.
+    const fest = readEmbeddedCfg();
+    if (!cloud && fest && fest.code && (!cfg || cfg.code !== fest.code)) {
+      cfg = { url: fest.url.replace(/\/+$/, ''), key: fest.key, code: String(fest.code).toLowerCase() };
+      writeCfg();
+    }
+
     const fromCloud = readEmbedded(), fromLocal = readLocal();
     if (cloud && fromCloud) {
       db = fromCloud;
@@ -1644,6 +1692,7 @@
     // In einer Claude-Seite sind Verbindungen nach außen gesperrt – dort bleibt
     // die hinterlegte Datenbank außen vor, gespeichert wird in der Seite selbst.
     setSync(usingDb() ? 'db' : (readEmbeddedCfg() && !cloud) ? 'needcode' : cloud ? 'cloud' : 'local');
+    const festerCode = !!(readEmbeddedCfg() || {}).code;
     renderAll();
     $('#dateInput').value = todayISO();
     restoreUi();
@@ -1656,10 +1705,18 @@
 
     [['#genderSeg', 'geschlecht'], ['#zeitSeg', 'zeit'], ['#klasseSeg', 'klasse']].forEach(([id, name]) => {
       document.querySelectorAll(id + ' .seg-btn').forEach(b =>
-        b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderPunkte(); }));
+        b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderEinstellungen(); }));
     });
+    $('#jahrInput').addEventListener('change', () => {
+      const jahr = $('#jahrInput').value.trim();
+      setzeEinstellung('jahr', jahr);
+      if (jahr) setzeEinstellung('klasse', '');            // Klasse folgt wieder dem Jahrgang
+      renderEinstellungen();
+      toast(jahr ? 'Jahrgang ' + jahr + ' · ' + klasseVon() : 'Jahrgang gelöscht');
+    });
+    document.querySelectorAll('[data-ziel]').forEach(b =>
+      b.addEventListener('click', () => show(b.dataset.ziel)));
     $('#profileBtn').addEventListener('click', openPicker);
-    $('#profilSwitch').addEventListener('click', openPicker);
     $('#pscreenClose').addEventListener('click', closePicker);
     $('#pscreenManage').addEventListener('click', () => { closePicker(); show('profil'); });
     $('#profilNeuForm').addEventListener('submit', speichereNeuesProfil);
@@ -1706,7 +1763,8 @@
     $('#valueInput').focus();
 
     await abgleichen(usingDb() ? 'Werte werden abgeglichen …' : 'Werte werden geladen …');
-    if (readEmbeddedCfg() && !cloud && !usingDb()) openDbDialog();
+    if (readEmbeddedCfg() && !cloud && !usingDb() && !festerCode) openDbDialog();
+    else starteProfilwahl();
   }
 
   main();
