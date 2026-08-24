@@ -3,23 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a">
+<meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
 
+<!-- Die gesamte Oberfläche liegt in einem template: unverändertes Original,
+     aus dem die App beim Speichern in der Cloud die neue Seite bauen kann. -->
+<template id="appShell">
+
 <header class="topbar">
   <div class="brand">
     <span class="brand-icon" aria-hidden="true">L</span>
     <span class="brand-text">Leichtathletik&nbsp;Tracker</span>
   </div>
-  <label class="athlete">
-    <span class="sr-only">Sportler:in</span>
-    <select id="athleteSelect" title="Sportler:in wählen"></select>
-  </label>
-  <button id="addAthleteBtn" class="icon-btn" title="Neue Sportler:in anlegen">+</button>
+  <span id="syncChip" class="sync-chip" title="Speicherort der Werte">…</span>
+  <button id="profileBtn" class="profile-btn" title="Profil wechseln oder anlegen">
+    <span id="profileName">Ich</span><span class="chev" aria-hidden="true">▾</span>
+  </button>
 </header>
 
 <main>
@@ -95,17 +98,16 @@
     <p class="view-note">Bestwerte von <strong id="overviewName">–</strong></p>
     <div id="overviewGrid" class="overview-grid"></div>
 
+    <h2 class="section-title">Speicherort</h2>
+    <div id="storageInfo" class="hint-text"></div>
+
     <h2 class="section-title">Daten</h2>
     <div class="data-actions">
-      <button id="exportBtn" class="btn">⬇︎ Sichern (JSON)</button>
-      <button id="importBtn" class="btn">⬆︎ Laden (JSON)</button>
-      <button id="csvBtn" class="btn">⬇︎ CSV</button>
+      <button id="exportBtn" class="btn">⬇ Sichern (JSON)</button>
+      <button id="importBtn" class="btn">⬆ Laden (JSON)</button>
+      <button id="csvBtn" class="btn">⬇ CSV</button>
       <input id="importFile" type="file" accept="application/json,.json" hidden>
     </div>
-    <p class="hint-text">
-      Die Werte liegen nur in diesem Browser (localStorage). Sichere sie ab und zu als Datei,
-      damit nichts verloren geht.
-    </p>
   </section>
 </main>
 
@@ -121,8 +123,31 @@
   </button>
 </nav>
 
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<!-- ============ Profile ============ -->
+<dialog id="profileDialog" class="sheet">
+  <div class="sheet-head">
+    <h2>Profile</h2>
+    <button id="profileClose" class="icon-btn" aria-label="Schließen">✕</button>
+  </div>
+  <ul id="profileList" class="profile-list"></ul>
+  <form id="profileAddForm" class="profile-add" autocomplete="off">
+    <input id="profileNewName" type="text" maxlength="24" placeholder="Name, z.&nbsp;B. Lena"
+           aria-label="Name des neuen Profils">
+    <button type="submit" class="btn btn-mint">Anlegen</button>
+  </form>
+  <p id="profileHint" class="hint-text">Jedes Profil hat eigene Werte. Tippe auf einen Namen, um zu wechseln.</p>
+</dialog>
 
-<script src="assets/app.js"></script>
+<div id="toast" class="toast" role="status" aria-live="polite">
+  <span id="toastText"></span>
+  <button id="toastAction" class="toast-action" hidden></button>
+</div>
+
+</template>
+
+<div id="app"></div>
+
+<script id="appState" type="application/json">null</script>
+<script id="appScript" src="assets/app.js"></script>
 </body>
 </html>

@@ -34,23 +34,46 @@ Durchschnitt und alle Einzelwerte (löschbar).
 **Übersicht** – alle Bestwerte auf einen Blick mit Mini-Verlauf; ein Klick
 springt ins passende Diagramm.
 
-Über das Feld oben rechts lassen sich mehrere Sportler:innen anlegen –
-jede Person hat ihre eigenen Werte.
+**Profile** – oben rechts auf den Namen tippen: anlegen, wechseln, umbenennen,
+löschen. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit.
 
-## Daten
+Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
+das gilt für einzelne Werte und für ganze Profile.
 
-Gespeichert wird im Browser (`localStorage`), also nur auf dem Gerät, auf dem
-die Werte eingegeben wurden. In der Übersicht gibt es deshalb **Sichern
-(JSON)** für ein Backup, **Laden (JSON)** zum Zurückholen oder Zusammenführen
-und **CSV** für Excel oder LibreOffice.
+## Wo die Werte liegen
+
+Das Feld oben rechts neben dem Namen zeigt es an:
+
+- **Cloud** – läuft die App als Claude-Artifact, sichert die Seite ihren Stand
+  selbst: Die Werte stecken in der Seite und sind auf jedem Gerät da, auf dem
+  der Link geöffnet wird. Gespeichert wird kurz nach jeder Eingabe; danach lädt
+  die Seite einmal neu, Ansicht und Disziplin bleiben erhalten. Eine Kopie
+  bleibt zusätzlich im Browser.
+- **Gerät** – bei der Datei- oder GitHub-Pages-Version gibt es keinen Server;
+  dann wird nur im Browser gespeichert (`localStorage`).
+
+In beiden Fällen: **Sichern (JSON)** legt ein Backup an, **Laden (JSON)** holt
+es zurück und führt es mit vorhandenen Werten zusammen (nach ID, ohne
+Dubletten), **CSV** öffnet sich in Excel oder LibreOffice.
 
 ## Dateien
 
 ```
-index.html          Aufbau der Seite
+index.html          Aufbau der Seite (Oberfläche liegt in <template id="appShell">)
 assets/styles.css   Design (Mint auf Petrol, Helvetica)
 assets/app.js       Eingabe-Logik, Speicherung, Diagramme
+build.py            baut daraus eine einzelne HTML-Datei
 ```
 
-Kein Build-Schritt, keine Bibliotheken. Zum Teilen mit der Klasse reicht
-GitHub Pages: Repository-Einstellungen → Pages → Branch wählen.
+Keine Bibliotheken, kein Framework. `python3 build.py` erzeugt
+`leichtathletik-tracker.html` – eine einzige Datei zum Verschicken oder
+Hochladen; `--fragment` lässt den Seitenrahmen weg (für Claude-Artifacts).
+Die Cloud-Speicherung braucht diese Einzeldatei, weil die App sich daraus
+selbst neu aufbaut.
+
+Zum Teilen mit der Klasse reicht sonst GitHub Pages:
+Repository-Einstellungen → Pages → Branch wählen.
+
+Browser-Dialoge (`confirm`, `prompt`) werden bewusst nicht benutzt – in
+eingebetteten Seiten sind sie blockiert. Nachfragen laufen deshalb über
+eigene Dialoge und die Rückgängig-Meldung.
