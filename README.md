@@ -63,6 +63,12 @@ Das Feld oben rechts neben dem Namen zeigt es an:
 - **offline** – keine Verbindung. Eingeben geht weiter, die Änderungen liegen
   in einer Warteschlange und gehen automatisch raus, sobald es wieder klappt.
 
+Abgeglichen wird bei **jedem Aufruf**: beim Öffnen der Seite, beim Zurück-
+wechseln zum Tab, beim Aufwecken des Handys und sobald das Netz wieder da
+ist. Solange das läuft, deckt ein Vollbild-Fenster den Bildschirm ab –
+erst gehen offene Änderungen raus, dann kommt der Stand der anderen herein.
+Beim Verlassen der Seite wird ebenfalls gesichert.
+
 ## Datenbank einrichten (Supabase, kostenlos)
 
 1. Auf [supabase.com](https://supabase.com) anmelden und ein Projekt anlegen.

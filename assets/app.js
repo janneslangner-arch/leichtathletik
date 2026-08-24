@@ -498,6 +498,69 @@
 
   function save() { commit(); }
 
+
+  /* ---------------- Abgleich-Fenster ----------------
+     Deckt beim Öffnen der Seite und bei jeder Rückkehr den Bildschirm ab,
+     solange gespeichert und geholt wird. */
+  let syncSeit = 0, syncLaeuft = false, syncNotbremse = null;
+
+  function showSync(text, unter) {
+    const box = $('#syncScreen');
+    if (!box) return;
+    $('#syncScreenText').textContent = text || 'Werte werden abgeglichen …';
+    $('#syncScreenSub').textContent = unter || '';
+    $('#syncScreenSkip').hidden = true;
+    box.hidden = false;
+    box.classList.remove('is-done');
+    syncSeit = Date.now();
+    clearTimeout(syncNotbremse);
+    syncNotbremse = setTimeout(() => hideSync('Dauert ungewöhnlich lange – die Werte liegen auch auf diesem Gerät.'), 9000);
+  }
+
+  function hideSync(meldung) {
+    const box = $('#syncScreen');
+    if (!box || box.hidden) return;
+    clearTimeout(syncNotbremse);
+    const rest = Math.max(0, 500 - (Date.now() - syncSeit));   // kein Aufblitzen
+    setTimeout(() => {
+      if (meldung) {
+        $('#syncScreenText').textContent = meldung;
+        $('#syncScreenSub').textContent = '';
+        $('#syncScreenSkip').hidden = false;
+        setTimeout(() => schliesseSync(), 2200);
+        return;
+      }
+      schliesseSync();
+    }, rest);
+  }
+  function schliesseSync() {
+    const box = $('#syncScreen');
+    if (!box || box.hidden) return;
+    box.classList.add('is-done');
+    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 240);
+  }
+
+  // Bei jedem Aufruf: erst Offenes wegschicken, dann den Serverstand holen.
+  async function abgleichen(text) {
+    if (syncLaeuft) return;
+    syncLaeuft = true;
+    try {
+      if (!usingDb()) {
+        // Ohne Datenbank gibt es nichts zu holen: nur beim Öffnen kurz zeigen,
+        // beim Zurückwechseln stillschweigend weiterlaufen.
+        if (text) { showSync(text, 'von diesem Gerät'); hideSync(); }
+        return;
+      }
+      showSync(text || 'Werte werden abgeglichen …',
+               queue.length ? `${queue.length} ${queue.length === 1 ? 'Änderung wird' : 'Änderungen werden'} gesendet` : 'mit eurer Datenbank');
+      await flush();
+      await pull(true);
+      hideSync(sync === 'offline' ? 'Keine Verbindung – die Werte von diesem Gerät bleiben erhalten.' : null);
+    } finally {
+      syncLaeuft = false;
+    }
+  }
+
   /* ---------------- kleine Helfer ---------------- */
   const $ = sel => document.querySelector(sel);
   const el = (tag, cls, text) => {
@@ -1299,16 +1362,18 @@
     $('#dbTest').addEventListener('click', testeVerbindung);
 
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) flushSave();
-      else if (usingDb()) { flush(); pull(); }
+      if (document.hidden) { flushSave(); if (usingDb()) flush(); }
+      else abgleichen();
     });
-    window.addEventListener('pagehide', flushSave);
-    window.addEventListener('online', () => { if (usingDb()) { flush(); pull(true); } });
+    window.addEventListener('pageshow', ev => { if (ev.persisted) abgleichen(); });
+    window.addEventListener('pagehide', () => { flushSave(); if (usingDb()) flush(); });
+    window.addEventListener('online', () => abgleichen('Verbindung wieder da – wird abgeglichen …'));
+    $('#syncScreenSkip').addEventListener('click', schliesseSync);
 
     $('#valueInput').focus();
 
-    if (usingDb()) { await pull(true); await flush(); }
-    else if (readEmbeddedCfg() && !cloud) openDbDialog();
+    await abgleichen(usingDb() ? 'Werte werden abgeglichen …' : 'Werte werden geladen …');
+    if (readEmbeddedCfg() && !cloud && !usingDb()) openDbDialog();
   }
 
   main();
