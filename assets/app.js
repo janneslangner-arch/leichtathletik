@@ -350,6 +350,9 @@
     const css = style.textContent || '';
     if (!code.trim() || !css.trim()) return null;              // lokale Version mit externen Dateien
     const T = 'scr' + 'ipt';
+    // Zusammengesetzt, damit im Quelltext dieser Datei keine schließenden
+    // body-/html-Marken stehen – sonst schneiden Werkzeuge hier die Datei ab.
+    const ENDE = '</bo' + 'dy>\n</ht' + 'ml>';
     // Im Datenbank-Betrieb steckt nichts in der Seite: die Werte holt sie sich
     // mit dem Klassen-Code, der nur auf dem jeweiligen Gerät liegt.
     const state = (usingDb() ? 'null' : JSON.stringify(db)).replace(/</g, '\\u003c');
@@ -364,7 +367,7 @@
       `<${T} id="appConfig" type="application/json">` + conf + `</${T}>\n` +
       `<${T} id="appState" type="application/json">` + state + `</${T}>\n` +
       `<${T} id="schemaSql" type="text/plain">` + (document.getElementById('schemaSql') || { textContent: '' }).textContent + `</${T}>\n` +
-      `<${T} id="appScript">\n` + code + `\n</${T}>\n</body>\n</html>`;
+      `<${T} id="appScript">\n` + code + `\n</${T}>\n` + ENDE;
     // Sicherung: nur veröffentlichen, wenn das Ergebnis vollständig aussieht
     return html.includes('id="appShell"') && html.includes('id="discGrid"') && html.length > 20000 ? html : null;
   }

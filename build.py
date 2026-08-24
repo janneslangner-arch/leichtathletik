@@ -32,10 +32,28 @@ html = html.replace(
     '<script id="appScript">\n' + js + '\n</script>')
 
 if fragment:
-    head = re.search(r'<head>(.*?)</head>', html, re.S).group(1)
-    body = re.search(r'<body>(.*?)</body>', html, re.S).group(1)
-    head = re.sub(r'\s*<(meta|link)\b[^>]*>', '', head)
-    html = head.strip() + '\n' + body.strip() + '\n'
+    # Nur Titel und Stil aus dem Kopf übernehmen; Rahmen, meta und Favicon
+    # stellt die Artifact-Umgebung selbst. Der Körper geht bis zum LETZTEN
+    # </body> – im App-Code steht diese Zeichenfolge sonst als Text.
+    titel = re.search(r'<title>.*?</title>', html, re.S).group(0)
+    stil = re.search(r'<style id="appStyle">.*?</style>', html, re.S).group(0)
+    koerper = html[html.index('<body>') + len('<body>'):html.rindex('</body>')]
+    html = titel + '\n' + stil + '\n' + koerper.strip() + '\n'
+
+# Sicherheitsnetz: was hier nicht stimmt, fällt sonst erst im Browser auf
+pruefungen = {
+    'Gerüst fehlt': '<template id="appShell">' in html,
+    'App-Behälter fehlt': '<div id="app"></div>' in html,
+    'Stil nicht eingebettet': '<style id="appStyle">' in html,
+    'Skript nicht eingebettet': '<script id="appScript">' in html,
+    'Skript nicht geschlossen': html.count('<script') == html.count('</script>'),
+    'SQL-Schema fehlt': 'create or replace function daten_lesen' in html,
+    'Favicon-Rest im Fragment': not fragment or 'data:image/svg+xml' not in html,
+    'Kopfzeile fehlt': 'id="profileBtn"' in html,
+}
+fehler = [name for name, ok in pruefungen.items() if not ok]
+if fehler:
+    raise SystemExit('Bau abgebrochen: ' + ', '.join(fehler))
 
 out.write_text(html, encoding='utf-8')
 print(f'{out} geschrieben ({len(html)} Zeichen)')
