@@ -102,32 +102,22 @@ selbst neu aufbaut.
 
 ## Für andere veröffentlichen
 
-**Als Website (GitHub Pages).** Zuerst einmalig einschalten – das darf nur der
-Repository-Besitzer, keine Aktion:
+**Als Claude-Artifact.** Es gibt zwei getrennte Seiten: eine private zum
+Selbst-Eintragen und eine leere Klassenversion zum Weitergeben. Teilen geht im
+Artifact oben rechts über **Teilen**.
 
-> **Settings → Pages → Build and deployment → Source: „GitHub Actions“**
+Ohne Datenbank können geteilte Betrachter nichts dauerhaft speichern (Anzeige
+„nur Ansicht"); mit Datenbank arbeiten alle am selben Bestand. Dafür in der
+Klassenversion einmal **Datenbank verbinden** ausfüllen.
 
-Danach baut `.github/workflows/pages.yml` bei jedem Push auf `main` oder den
-Entwicklungszweig die Seite und stellt sie online, erreichbar unter
-`https://<benutzer>.github.io/<repo>/` – ohne Konto, für alle mit dem Link.
-Läuft die Aktion vor dem Umlegen des Schalters, bricht sie mit
-„Get Pages site failed“ ab; danach genügt **Re-run jobs**.
+Der Klassen-Code gehört **nicht** ins Repository und nicht in die Seite – er
+ist das Passwort und wird mündlich weitergegeben.
 
-Ohne Aktion geht es auch: **Settings → Pages → Source: „Deploy from a branch“**,
-Branch auswählen, Ordner `/ (root)`. Dann liefert GitHub `index.html` und
-`assets/` direkt aus.
-
-Damit Mitschüler:innen nicht URL und Key eintippen müssen: in der App auf
-**Datenbank verbinden → Für Website kopieren**, die kopierte Zeile in
-`index.html` an der Stelle mit `id="appConfig"` einsetzen und pushen. Dann
-fragt die Seite beim ersten Öffnen nur noch nach dem Klassen-Code.
-
-Der Klassen-Code gehört **nicht** ins Repository – er ist das Passwort und
-wird nur mündlich weitergegeben.
-
-**Als Claude-Artifact.** Im Artifact oben rechts auf Teilen. Ohne Datenbank
-sehen die anderen dann den Stand der Seite, können aber nichts dauerhaft
-speichern; mit Datenbank arbeiten alle gemeinsam am selben Datenbestand.
+**Selbst hosten.** Die App ist eine statische Seite, sie läuft auf jedem
+Webspace: `index.html`, `assets/` und – für die Einrichtung – `supabase/schema.sql`
+hochladen, oder die Einzeldatei aus `python3 build.py` nehmen. Damit Besucher
+nicht URL und Key eintippen müssen, legt der Knopf **Für Website kopieren** im
+Verbinden-Dialog die passende Zeile für `id="appConfig"` in die Zwischenablage.
 
 Browser-Dialoge (`confirm`, `prompt`) werden bewusst nicht benutzt – in
 eingebetteten Seiten sind sie blockiert. Nachfragen laufen deshalb über
