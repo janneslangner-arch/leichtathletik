@@ -42,8 +42,17 @@ Datei-Knöpfe. Die ersten drei Reiter bleiben so nur beim Sport.
 runden Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
 <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit.
 
-**Farbe** – fünf fertige Farbschemas (Mint, Eis, Sonne, Beere, Koralle).
-Die Wahl gilt pro Gerät und färbt auch Diagramme und Monogramme.
+**Farbe** – zehn Akzentfarben (Mint, Limette, Aqua, Cyan, Blau, Violett,
+Magenta, Koralle, Orange, Gold). Jedes Schema wird aus einem Farbton
+berechnet: Grund, Flächen, Linien, Text und Akzent kommen aus derselben
+Quelle, deshalb bleibt keine Farbe zurück.
+
+**Hintergrund** – zehn Muster (Schlicht, Raster, Punkte, Laufbahn, Wellen,
+Karo, Waben, Konfetti, Höhenlinien, Strahlen), alle aus CSS-Verläufen in der
+jeweiligen Akzentfarbe – ohne Bilddateien.
+
+Farbe und Muster gelten pro Gerät; jede und jeder in der Klasse kann eine
+eigene Kombination haben.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.

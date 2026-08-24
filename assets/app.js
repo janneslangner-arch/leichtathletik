@@ -25,36 +25,43 @@
   const KEYS = Object.keys(DISC);
 
 
-  /* ---------------- Farbschemas ----------------
-     Gleicher Aufbau, andere Stimmung: dunkler Grund, eine kräftige Farbe. */
-  const THEMES = {
-    mint: { name: 'Mint', hue: 152, vars: {
-      '--bg':'#0E1F27','--bg-glow':'#123039','--surface':'#142B34','--surface-2':'#1A3641',
-      '--line':'#24505C','--line-soft':'#1D414C','--text':'#E8F6EF','--muted':'#8FAFB2',
-      '--mint':'#7BF29C','--mint-dim':'#4FBF77','--mint-glow':'rgba(123,242,156,.18)',
-      '--ink':'#0B1A21','--bad':'#FF8A73' } },
-    eis: { name: 'Eis', hue: 205, vars: {
-      '--bg':'#0D1B2A','--bg-glow':'#122A40','--surface':'#132738','--surface-2':'#1A3247',
-      '--line':'#254A63','--line-soft':'#1E3C52','--text':'#E7F1FA','--muted':'#8FA9BF',
-      '--mint':'#7CC6FF','--mint-dim':'#4E9AD6','--mint-glow':'rgba(124,198,255,.18)',
-      '--ink':'#08131F','--bad':'#FF8A73' } },
-    sonne: { name: 'Sonne', hue: 32, vars: {
-      '--bg':'#1D1710','--bg-glow':'#2C2116','--surface':'#241C14','--surface-2':'#2E241A',
-      '--line':'#4A3A25','--line-soft':'#3B2F1F','--text':'#F7EFE4','--muted':'#B4A18A',
-      '--mint':'#FFB067','--mint-dim':'#C9803E','--mint-glow':'rgba(255,176,103,.18)',
-      '--ink':'#1A1109','--bad':'#FF7A6B' } },
-    beere: { name: 'Beere', hue: 268, vars: {
-      '--bg':'#170F26','--bg-glow':'#221635','--surface':'#1D1430','--surface-2':'#261A3E',
-      '--line':'#3E2C5E','--line-soft':'#33244D','--text':'#F0EAFB','--muted':'#A697C0',
-      '--mint':'#C2A0FF','--mint-dim':'#8E6CD1','--mint-glow':'rgba(194,160,255,.20)',
-      '--ink':'#120B1E','--bad':'#FF8A9B' } },
-    koralle: { name: 'Koralle', hue: 348, vars: {
-      '--bg':'#21131A','--bg-glow':'#2F1B25','--surface':'#291823','--surface-2':'#341F2C',
-      '--line':'#553144','--line-soft':'#452838','--text':'#FBEAF1','--muted':'#C098AB',
-      '--mint':'#FF9BB8','--mint-dim':'#D06A8B','--mint-glow':'rgba(255,155,184,.20)',
-      '--ink':'#1A0E14','--bad':'#FFC17A' } }
-  };
-  let theme = 'mint';
+  /* ---------------- Farbschemas und Muster ----------------
+     Jedes Schema entsteht aus einem Farbton: Grund, Flächen, Linien, Text
+     und Akzent werden daraus berechnet. So kann keine Farbe zurückbleiben. */
+  const THEME_DEFS = [
+    ['mint',    'Mint',    152], ['limette', 'Limette', 84],  ['aqua',    'Aqua',    172],
+    ['cyan',    'Cyan',    193], ['blau',    'Blau',    222], ['violett', 'Violett', 268],
+    ['magenta', 'Magenta', 315], ['koralle', 'Koralle', 8],   ['orange',  'Orange',  28],
+    ['gold',    'Gold',    46]
+  ];
+  function themeVars(h) {
+    const badH = (h >= 330 || h <= 45) ? 350 : 5;     // Warnfarbe bleibt unterscheidbar
+    return {
+      '--bg':        `hsl(${h} 26% 8%)`,
+      '--bg-glow':   `hsl(${h} 34% 15%)`,
+      '--surface':   `hsl(${h} 22% 12.5%)`,
+      '--surface-2': `hsl(${h} 20% 17.5%)`,
+      '--line':      `hsl(${h} 20% 31%)`,
+      '--line-soft': `hsl(${h} 20% 22%)`,
+      '--text':      `hsl(${h} 32% 96%)`,
+      '--muted':     `hsl(${h} 15% 68%)`,
+      '--mint':      `hsl(${h} 94% 66%)`,
+      '--mint-dim':  `hsl(${h} 58% 52%)`,
+      '--mint-glow': `hsla(${h} 94% 66% / .22)`,
+      '--ink':       `hsl(${h} 48% 7%)`,
+      '--bad':       `hsl(${badH} 88% 70%)`
+    };
+  }
+  const THEMES = {};
+  THEME_DEFS.forEach(([key, name, hue]) => { THEMES[key] = { name, hue, vars: themeVars(hue) }; });
+
+  const PATTERNS = [
+    ['keins',    'Schlicht'],   ['raster',  'Raster'],    ['punkte',  'Punkte'],
+    ['bahn',     'Laufbahn'],   ['wellen',  'Wellen'],    ['karo',    'Karo'],
+    ['waben',    'Waben'],      ['konfetti','Konfetti'],  ['hoehen',  'Höhenlinien'],
+    ['strahlen', 'Strahlen']
+  ];
+  let theme = 'mint', pattern = 'keins';
 
   function applyTheme(key, merken) {
     if (!THEMES[key]) key = 'mint';
@@ -62,13 +69,20 @@
     const wurzel = document.documentElement;
     Object.entries(THEMES[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', THEMES[key].vars['--bg']);
+    if (meta) meta.setAttribute('content', `hsl(${THEMES[key].hue} 26% 8%)`);
     if (merken) { try { localStorage.setItem('la-theme', key); } catch (e) { /* egal */ } }
   }
+  function applyPattern(key, merken) {
+    if (!PATTERNS.some(pp => pp[0] === key)) key = 'keins';
+    pattern = key;
+    document.body.dataset.pattern = key;
+    if (merken) { try { localStorage.setItem('la-pattern', key); } catch (e) { /* egal */ } }
+  }
   function ladeTheme() {
-    let k = null;
-    try { k = localStorage.getItem('la-theme'); } catch (e) { k = null; }
-    applyTheme(THEMES[k] ? k : 'mint');
+    let t = null, m = null;
+    try { t = localStorage.getItem('la-theme'); m = localStorage.getItem('la-pattern'); } catch (e) { /* egal */ }
+    applyTheme(THEMES[t] ? t : 'mint');
+    applyPattern(m || 'keins');
   }
   const akzent = () => (getComputedStyle(document.documentElement)
     .getPropertyValue('--mint') || '#7BF29C').trim();
@@ -1123,19 +1137,37 @@
 
   function renderThemes() {
     const grid = $('#themeGrid');
-    if (!grid) return;
-    grid.textContent = '';
-    Object.entries(THEMES).forEach(([key, t]) => {
-      const b = btn('theme-card' + (key === theme ? ' is-active' : ''), null, () => {
-        applyTheme(key, true);
-        renderAll(); renderProfil();
-        toast('Farbe: ' + t.name);
-      }, 'Farbschema ' + t.name);
-      const probe = el('span', 'theme-swatch');
-      probe.style.background = `linear-gradient(150deg, ${t.vars['--surface-2']} 0 52%, ${t.vars['--mint']} 52% 100%)`;
-      probe.style.borderColor = t.vars['--line'];
-      b.append(probe, el('span', 'theme-name', t.name));
-      grid.append(b);
+    if (grid) {
+      grid.textContent = '';
+      Object.entries(THEMES).forEach(([key, t]) => {
+        const b = btn('theme-card' + (key === theme ? ' is-active' : ''), null, () => {
+          applyTheme(key, true);
+          renderAll(); renderProfil();
+          toast('Farbe: ' + t.name);
+        }, 'Farbschema ' + t.name);
+        const probe = el('span', 'theme-swatch');
+        probe.style.background =
+          `radial-gradient(circle at 32% 28%, ${t.vars['--mint']} 0 42%, transparent 43%), ` +
+          `linear-gradient(150deg, ${t.vars['--surface-2']}, ${t.vars['--bg']})`;
+        probe.style.borderColor = t.vars['--line'];
+        b.append(probe, el('span', 'theme-name', t.name));
+        grid.append(b);
+      });
+    }
+
+    const pgrid = $('#patternGrid');
+    if (!pgrid) return;
+    pgrid.textContent = '';
+    PATTERNS.forEach(([key, name]) => {
+      const b = btn('theme-card pattern-card' + (key === pattern ? ' is-active' : ''), null, () => {
+        applyPattern(key, true);
+        renderProfil();
+        toast('Hintergrund: ' + name);
+      }, 'Hintergrund ' + name);
+      const probe = el('span', 'pattern-swatch');
+      probe.dataset.pattern = key;
+      b.append(probe, el('span', 'theme-name', name));
+      pgrid.append(b);
     });
   }
 

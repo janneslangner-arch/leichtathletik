@@ -45,7 +45,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; gap: 10px;
   padding: 11px 16px;
-  background: rgba(14, 31, 39, .82);
+  background: color-mix(in srgb, var(--bg) 84%, transparent);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line-soft);
 }
@@ -147,7 +147,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   font-variant-numeric: tabular-nums; color: var(--mint);
   border-radius: 0;
 }
-.value-input::placeholder { color: #26505C; }
+.value-input::placeholder { color: color-mix(in srgb, var(--mint) 24%, var(--surface-2)); }
 .value-input:focus { outline: none; border-bottom-color: var(--mint); }
 .value-unit { align-self: flex-end; padding-bottom: 14px; font-size: 17px; color: var(--muted); font-weight: 600; }
 .save-btn {
@@ -156,7 +156,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   background: var(--mint); color: var(--ink);
   font-size: 27px; font-weight: 700; transition: .12s;
 }
-.save-btn:hover { background: #92FFAF; }
+.save-btn:hover { background: color-mix(in srgb, var(--mint) 82%, white); }
 .save-btn:active { transform: scale(.95); }
 .parse-preview { margin: 10px 2px 0; min-height: 20px; font-size: 13px; color: var(--muted); }
 .parse-preview.ok  { color: var(--mint); }
@@ -228,7 +228,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   font-variant-numeric: tabular-nums;
 }
 .trend.up { color: var(--mint); background: var(--mint-glow); }
-.trend.down { color: var(--bad); background: rgba(255, 138, 115, .12); }
+.trend.down { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
 .chart-wrap { overflow-x: auto; margin-top: 4px; }
 .chart-wrap svg { width: 100%; min-width: 300px; height: auto; display: block; }
 .grid-line { stroke: var(--line-soft); stroke-width: 1; }
@@ -262,7 +262,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .ov-card .nm { font-size: 12px; color: var(--muted); display: flex; align-items: baseline; gap: 7px; }
 .ov-card .nm span:first-child { font-size: 9.5px; font-weight: 700; letter-spacing: .1em; color: var(--mint-dim); }
 .ov-card .pb { font-size: 27px; font-weight: 700; letter-spacing: -.03em; color: var(--mint); font-variant-numeric: tabular-nums; }
-.ov-card .pb.none { color: #2C5A66; }
+.ov-card .pb.none { color: var(--line); }
 .ov-card .sub { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ov-card .spark { margin-top: 8px; height: 30px; }
 
@@ -279,7 +279,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   display: flex; border-top: 1px solid var(--line-soft);
-  background: rgba(14, 31, 39, .92); backdrop-filter: blur(12px);
+  background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px);
   padding-bottom: env(safe-area-inset-bottom);
 }
 .tab {
@@ -310,7 +310,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   padding: 16px; margin: auto;
   max-height: 86vh; overflow-y: auto;
 }
-.sheet::backdrop { background: rgba(6, 16, 21, .72); backdrop-filter: blur(3px); }
+.sheet::backdrop { background: color-mix(in srgb, var(--ink) 82%, transparent); backdrop-filter: blur(3px); }
 .sheet-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .sheet-head h2 { font-size: 19px; }
 .sheet-head .icon-btn { margin-left: auto; font-size: 15px; color: var(--muted); }
@@ -333,9 +333,10 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .p-avatar {
   display: grid; place-items: center;
   width: 100%; aspect-ratio: 1; max-width: 96px;
-  border-radius: 50%; border: 2px solid transparent;
+  border-radius: 26px; border: 2px solid transparent;
   font-size: 30px; font-weight: 700; letter-spacing: .02em;
-  transition: border-color .14s ease, box-shadow .14s ease;
+  box-shadow: 0 1px 0 rgba(255,255,255,.09) inset, 0 16px 30px -18px rgba(0,0,0,.95);
+  transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
 }
 .p-tile:hover .p-avatar { border-color: var(--line); }
 .p-tile.is-current .p-avatar { border-color: var(--mint); box-shadow: 0 0 24px var(--mint-glow); }
@@ -365,7 +366,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   background: none; border: 0; color: inherit; cursor: pointer; text-align: left; padding: 4px 5px;
   border-radius: 8px;
 }
-.p-name:hover { background: rgba(123, 242, 156, .07); }
+.p-name:hover { background: color-mix(in srgb, var(--mint) 8%, transparent); }
 .p-nm { font-weight: 700; font-size: 15px; }
 .p-count { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .p-act {
@@ -393,7 +394,10 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 
 /* ---------- Knopf-Varianten ---------- */
 .btn-mint { background: var(--mint); border-color: var(--mint); color: var(--ink); }
-.btn-mint:hover { background: #92FFAF; border-color: #92FFAF; color: var(--ink); }
+.btn-mint:hover {
+  background: color-mix(in srgb, var(--mint) 82%, white);
+  border-color: color-mix(in srgb, var(--mint) 82%, white); color: var(--ink);
+}
 .btn-sm { padding: 7px 11px; font-size: 12.5px; border-radius: 9px; }
 .btn-danger { border-color: var(--bad); color: var(--bad); }
 .btn-danger:hover { background: var(--bad); color: var(--ink); border-color: var(--bad); }
@@ -402,11 +406,11 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .toast { display: flex; align-items: center; gap: 12px; }
 .toast-action {
   pointer-events: auto;                 /* der Toast selbst ist klick-durchlässig */
-  border: 0; background: rgba(11, 26, 33, .16); color: inherit;
+  border: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); color: inherit;
   font: inherit; font-weight: 700; cursor: pointer;
   border-radius: 999px; padding: 4px 12px; margin: -4px -8px -4px 0;
 }
-.toast-action:hover { background: rgba(11, 26, 33, .28); }
+.toast-action:hover { background: color-mix(in srgb, var(--ink) 30%, transparent); }
 
 /* ---------- Datenbank-Dialog ---------- */
 .steps {
@@ -448,7 +452,8 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   overflow-y: auto;
   background:
     radial-gradient(900px 520px at 50% 0%, var(--bg-glow) 0%, transparent 60%),
-    var(--bg);
+    color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(22px);
   animation: pscreen-in .22s ease both;
 }
 .pscreen[hidden] { display: none; }
@@ -467,10 +472,11 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   font-size: clamp(26px, 7vw, 38px); letter-spacing: -.02em; margin-bottom: 26px;
 }
 .pscreen .profile-grid {
-  grid-template-columns: repeat(auto-fit, minmax(92px, 118px));
-  justify-content: center; gap: 18px 12px; margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(116px, 152px));
+  justify-content: center; gap: 22px 16px; margin-bottom: 22px;
 }
-.pscreen .p-avatar { max-width: 104px; font-size: clamp(26px, 7vw, 34px); }
+.pscreen .p-avatar { max-width: 148px; border-radius: 30px; font-size: clamp(34px, 10vw, 46px); }
+.pscreen .p-tile:hover .p-avatar { transform: translateY(-1px) scale(1.02); }
 .pscreen .p-label { font-size: 15px; margin-top: 2px; }
 .pscreen-add { display: flex; gap: 8px; max-width: 340px; margin: 0 auto 14px; }
 .pscreen-add[hidden] { display: none; }
@@ -493,7 +499,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   background: var(--surface); border: 1px solid var(--line-soft);
   border-radius: var(--r-lg); padding: 16px; margin-bottom: 6px;
 }
-.p-avatar-lg { width: 64px; height: 64px; flex: none; font-size: 24px; }
+.p-avatar-lg { width: 68px; height: 68px; flex: none; font-size: 25px; border-radius: 22px; }
 .profil-name { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .profil-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .profil-head .btn { margin-left: auto; }
@@ -521,7 +527,8 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   padding: 24px;
   background:
     radial-gradient(900px 520px at 50% 0%, var(--bg-glow) 0%, transparent 60%),
-    var(--bg);
+    color-mix(in srgb, var(--bg) 90%, transparent);
+  backdrop-filter: blur(24px);
   transition: opacity .24s ease;
 }
 .syncscreen[hidden] { display: none; }
@@ -546,3 +553,97 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 }
 .sync-text { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
 .sync-sub { margin: -8px 0 0; font-size: 13px; color: var(--muted); }
+
+
+/* ---------- Tiefe: leichte Wölbung statt flacher Flächen ---------- */
+.entry-card, .chart-card, .row, .stat, .ov-card, .disc, .p-row, .theme-card,
+.profil-head, .sheet {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
+  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 14px 28px -22px rgba(0,0,0,.95);
+}
+.disc.is-active {
+  box-shadow: 0 0 0 1px var(--mint) inset, 0 0 26px var(--mint-glow),
+              0 14px 28px -20px rgba(0,0,0,.95);
+}
+.save-btn, .btn-mint {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
+  box-shadow: 0 10px 22px -12px var(--mint-glow), 0 1px 0 rgba(255,255,255,.35) inset;
+}
+.topbar { box-shadow: 0 10px 24px -24px rgba(0,0,0,1); }
+.tabbar { box-shadow: 0 -12px 26px -26px rgba(0,0,0,1); }
+.toast { box-shadow: 0 14px 34px -16px rgba(0,0,0,.6); }
+
+/* ---------- Hintergrundmuster ---------- */
+#bgfx {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  --p1: color-mix(in srgb, var(--mint) 14%, transparent);
+  --p2: color-mix(in srgb, var(--mint) 7%, transparent);
+  --s: 1;
+  opacity: .9;
+}
+main, .topbar, .tabbar { position: relative; z-index: 1; }
+.topbar { z-index: 20; }
+.pattern-swatch[data-pattern="konfetti"] { --s: .18; }
+.pattern-swatch[data-pattern="hoehen"] { --s: .5; }
+.pattern-swatch[data-pattern="strahlen"] {
+  background-image: repeating-conic-gradient(from 0deg at 50% 50%,
+    transparent 0 9deg, var(--p2) 9deg 18deg) !important;
+}
+.pattern-swatch {
+  width: 46px; height: 46px; border-radius: 12px;
+  border: 1px solid var(--line); background-color: var(--bg);
+  --p1: color-mix(in srgb, var(--mint) 30%, transparent);
+  --p2: color-mix(in srgb, var(--mint) 16%, transparent);
+  --s: .34;
+}
+
+body[data-pattern="raster"] #bgfx, .pattern-swatch[data-pattern="raster"] {
+  background-image:
+    repeating-linear-gradient(90deg, var(--p2) 0 1px, transparent 1px calc(46px * var(--s))),
+    repeating-linear-gradient(0deg,  var(--p2) 0 1px, transparent 1px calc(46px * var(--s)));
+}
+body[data-pattern="punkte"] #bgfx, .pattern-swatch[data-pattern="punkte"] {
+  background-image: radial-gradient(var(--p1) calc(1.6px * var(--s) * 2), transparent 0);
+  background-size: calc(26px * var(--s)) calc(26px * var(--s));
+}
+body[data-pattern="bahn"] #bgfx, .pattern-swatch[data-pattern="bahn"] {
+  background-image: repeating-linear-gradient(64deg,
+    var(--p2) 0 calc(2px * var(--s) * 1.4),
+    transparent calc(2px * var(--s) * 1.4) calc(40px * var(--s)));
+}
+body[data-pattern="wellen"] #bgfx, .pattern-swatch[data-pattern="wellen"] {
+  background-image: repeating-radial-gradient(circle at 50% 108%,
+    transparent 0 calc(22px * var(--s)), var(--p2) calc(22px * var(--s)) calc(24px * var(--s)));
+}
+body[data-pattern="karo"] #bgfx, .pattern-swatch[data-pattern="karo"] {
+  background-image:
+    repeating-linear-gradient(45deg,  var(--p2) 0 1px, transparent 1px calc(34px * var(--s))),
+    repeating-linear-gradient(-45deg, var(--p2) 0 1px, transparent 1px calc(34px * var(--s)));
+}
+body[data-pattern="waben"] #bgfx, .pattern-swatch[data-pattern="waben"] {
+  background-image:
+    repeating-linear-gradient(60deg,  var(--p2) 0 1px, transparent 1px calc(30px * var(--s))),
+    repeating-linear-gradient(-60deg, var(--p2) 0 1px, transparent 1px calc(30px * var(--s))),
+    repeating-linear-gradient(0deg,   var(--p2) 0 1px, transparent 1px calc(52px * var(--s)));
+}
+body[data-pattern="konfetti"] #bgfx, .pattern-swatch[data-pattern="konfetti"] {
+  background-image:
+    radial-gradient(var(--p1) calc(2px * var(--s) * 2), transparent 0),
+    radial-gradient(var(--p2) calc(3px * var(--s) * 2), transparent 0),
+    radial-gradient(var(--p2) calc(1.5px * var(--s) * 2), transparent 0);
+  background-size: calc(120px * var(--s)) calc(120px * var(--s)),
+                   calc(160px * var(--s)) calc(160px * var(--s)),
+                   calc(90px * var(--s))  calc(90px * var(--s));
+  background-position: 0 0, calc(40px * var(--s)) calc(70px * var(--s)), calc(20px * var(--s)) calc(30px * var(--s));
+}
+body[data-pattern="hoehen"] #bgfx, .pattern-swatch[data-pattern="hoehen"] {
+  background-image:
+    repeating-radial-gradient(circle at 22% 30%,
+      transparent 0 calc(17px * var(--s)), var(--p2) calc(17px * var(--s)) calc(18px * var(--s))),
+    repeating-radial-gradient(circle at 78% 74%,
+      transparent 0 calc(21px * var(--s)), var(--p2) calc(21px * var(--s)) calc(22px * var(--s)));
+}
+body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
+  background-image: repeating-conic-gradient(from 196deg at 50% -12%,
+    transparent 0 3deg, var(--p2) 3deg 6deg);
+}

@@ -14,6 +14,8 @@
      aus dem die App beim Speichern in der Cloud die neue Seite bauen kann. -->
 <template id="appShell">
 
+<div id="bgfx" aria-hidden="true"></div>
+
 <header class="topbar">
   <div class="brand">
     <span class="brand-icon" aria-hidden="true">L</span>
@@ -126,6 +128,9 @@
 
     <h2 class="section-title">Farbe</h2>
     <div id="themeGrid" class="theme-grid"></div>
+
+    <h2 class="section-title">Hintergrund</h2>
+    <div id="patternGrid" class="theme-grid"></div>
 
     <h2 class="section-title">Speicherort</h2>
     <div id="storageInfo" class="hint-text"></div>
