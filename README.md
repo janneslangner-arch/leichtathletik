@@ -72,8 +72,14 @@ sowie Weitsprung 4,13 m → 451, Kugel 9,45 m → 451, 800 m 2:41,90 → 451 und
 zum Anlegen, Umbenennen und Löschen, die Farbe der App, Speicherort und die
 Datei-Knöpfe. Die ersten drei Reiter bleiben so nur beim Sport.
 
+**Profil anlegen** – die gestrichelte Kachel in der Auswahl oder der Knopf im
+Profil-Reiter öffnen ein Vollbild und fragen nach **Name, Geburtsjahr und
+Wertungstabelle**. Daraus ergeben sich Tabelle und Altersklasse für die
+Punkte (16–17 = U18, 18–19 = U20, 20–22 = U23); die passenden Gerätegewichte
+stehen schon beim Eintippen darunter.
+
 **Profil wechseln** – oben rechts auf den Namen tippen: ein Vollbild mit
-runden Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
+Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
 <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit.
 
 **Farbe** – zehn Akzentfarben (Mint, Limette, Aqua, Cyan, Blau, Violett,

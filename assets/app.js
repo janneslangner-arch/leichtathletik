@@ -993,8 +993,17 @@
     } catch (e) { /* egal */ }
   }
   const geschlechtVon = () => einstellung('geschlecht', 'm');
+  // Altersklassen wie in der Vorlage: 16–17 = U18, 18–19 = U20, 20–22 = U23
+  function altersklasse(jahr) {
+    if (!jahr) return null;
+    const alter = new Date().getFullYear() - jahr;
+    if (alter < 16) return 'U18';
+    if (alter <= 17) return 'U18';
+    if (alter <= 19) return 'U20';
+    return 'U23';
+  }
   const zeitmessungVon = () => einstellung('zeit', geschlechtVon() === 'w' ? 'hand' : 'elektro');
-  const klasseVon = () => einstellung('klasse', 'U20');
+  const klasseVon = () => einstellung('klasse', altersklasse(Number(einstellung('jahr', 0))) || 'U20');
 
   function renderPunkte() {
     const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
@@ -1324,7 +1333,6 @@
   }
   function closePicker() {
     $('#profileScreen').hidden = true;
-    $('#pscreenAddForm').hidden = true;
     document.body.style.overflow = '';
   }
 
@@ -1346,13 +1354,57 @@
     });
 
     const add = el('li');
-    const addTile = btn('p-tile p-tile-add', null, () => {
-      $('#pscreenAddForm').hidden = false;
-      $('#pscreenName').focus();
-    }, 'Neues Profil anlegen');
+    const addTile = btn('p-tile p-tile-add', null, openNeuesProfil, 'Neues Profil anlegen');
     addTile.append(el('span', 'p-avatar p-avatar-add', '+'), el('span', 'p-label', 'Neu'));
     add.append(addTile);
     grid.append(add);
+  }
+
+
+  /* ---------------- Profil anlegen (Vollbild) ---------------- */
+  let npGeschlecht = 'm';
+
+  function openNeuesProfil() {
+    closePicker();
+    npGeschlecht = 'm';
+    $('#npName').value = '';
+    $('#npJahr').value = '';
+    document.querySelectorAll('#npGeschlecht .seg-btn').forEach(b =>
+      b.classList.toggle('is-active', b.dataset.wert === 'm'));
+    npHinweis();
+    $('#profilScreen').hidden = false;
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => $('#npName').focus(), 30);
+  }
+  function closeNeuesProfil() {
+    $('#profilScreen').hidden = true;
+    document.body.style.overflow = '';
+  }
+  function npHinweis(text) {
+    const jahr = Number($('#npJahr').value);
+    const klasse = altersklasse(jahr);
+    $('#npHinweis').textContent = text || (klasse
+      ? `Jahrgang ${jahr} · Altersklasse ${klasse} · ${GERAETE[npGeschlecht + '|' + klasse]}`
+      : 'Beides bestimmt die Punkte: die Tabelle die Beiwerte, das Geburtsjahr die Altersklasse und damit die Gerätegewichte.');
+  }
+
+  function speichereNeuesProfil(ev) {
+    ev.preventDefault();
+    const name = $('#npName').value.trim();
+    const jahr = Number($('#npJahr').value);
+    if (!name) { npHinweis('Bitte einen Namen eingeben.'); $('#npName').focus(); return; }
+    if (db.athletes.includes(name)) { npHinweis(`„${name}“ gibt es schon.`); return; }
+    const jetzt = new Date().getFullYear();
+    if ($('#npJahr').value && (jahr < 1950 || jahr > jetzt)) {
+      npHinweis(`Geburtsjahr zwischen 1950 und ${jetzt} eingeben.`); $('#npJahr').focus(); return;
+    }
+    Store.addProfile(name);
+    switchTo(name);                       // ab hier gelten die Einstellungen dem neuen Profil
+    setzeEinstellung('geschlecht', npGeschlecht);
+    if (jahr) setzeEinstellung('jahr', String(jahr));
+    closeNeuesProfil();
+    renderAll();
+    toast('Profil angelegt: ' + name);
   }
 
   /* ---------------- Reiter „Profil“ ---------------- */
@@ -1360,7 +1412,12 @@
     paintAvatar($('#profilAvatar'), db.current);
     $('#profilName').textContent = db.current;
     const n = countOf(db.current);
-    $('#profilWerte').textContent = n ? `${n} ${n === 1 ? 'Wert' : 'Werte'} erfasst` : 'noch keine Werte';
+    const jahr = Number(einstellung('jahr', 0));
+    const klasse = klasseVon(), g = geschlechtVon();
+    $('#profilWerte').textContent =
+      (n ? `${n} ${n === 1 ? 'Wert' : 'Werte'}` : 'noch keine Werte')
+      + ` · ${g === 'w' ? 'Mädchen' : 'Jungen'}`
+      + (jahr ? ` · Jahrgang ${jahr} · ${klasse}` : ` · ${klasse}`);
 
     const list = $('#profileList');
     list.textContent = '';
@@ -1476,17 +1533,6 @@
     li.append(q);
   }
 
-  function addProfile(ev, feldId, hinweisId) {
-    ev.preventDefault();
-    const input = $(feldId), hinweis = $(hinweisId), name = input.value.trim();
-    if (!name) { hinweis.textContent = 'Bitte einen Namen eingeben.'; input.focus(); return; }
-    if (db.athletes.includes(name)) { hinweis.textContent = `„${name}“ gibt es schon.`; return; }
-    Store.addProfile(name);
-    input.value = '';
-    hinweis.textContent = '';
-    switchTo(name);
-    toast('Profil angelegt: ' + name);
-  }
 
   /* ---------------- Sichern & Laden ---------------- */
   async function download(name, text, type) {
@@ -1628,10 +1674,22 @@
     $('#profilSwitch').addEventListener('click', openPicker);
     $('#pscreenClose').addEventListener('click', closePicker);
     $('#pscreenManage').addEventListener('click', () => { closePicker(); show('profil'); });
-    $('#pscreenAddForm').addEventListener('submit', ev => addProfile(ev, '#pscreenName', '#pscreenHint'));
-    $('#profileAddForm').addEventListener('submit', ev => addProfile(ev, '#profileNewName', '#profileHint'));
+    $('#profilNeuForm').addEventListener('submit', speichereNeuesProfil);
+    $('#profilNeuBtn').addEventListener('click', openNeuesProfil);
+    $('#npClose').addEventListener('click', closeNeuesProfil);
+    $('#npAbbrechen').addEventListener('click', closeNeuesProfil);
+    $('#npJahr').addEventListener('input', () => npHinweis());
+    document.querySelectorAll('#npGeschlecht .seg-btn').forEach(b =>
+      b.addEventListener('click', () => {
+        npGeschlecht = b.dataset.wert;
+        document.querySelectorAll('#npGeschlecht .seg-btn').forEach(x =>
+          x.classList.toggle('is-active', x === b));
+        npHinweis();
+      }));
     document.addEventListener('keydown', ev => {
-      if (ev.key === 'Escape' && !$('#profileScreen').hidden) closePicker();
+      if (ev.key !== 'Escape') return;
+      if (!$('#profilScreen').hidden) closeNeuesProfil();
+      else if (!$('#profileScreen').hidden) closePicker();
     });
 
     $('#exportBtn').addEventListener('click', exportJSON);

@@ -711,3 +711,15 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   font-size: 9.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
   color: var(--ink); background: var(--mint); border-radius: 999px; padding: 2px 7px; margin-top: 3px;
 }
+
+/* Profil anlegen: Vollbild-Formular */
+.np-form { display: grid; gap: 14px; max-width: 380px; margin: 0 auto; text-align: left; }
+.np-form .field span { font-size: 12px; }
+.np-form input {
+  width: 100%; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: var(--r); padding: 12px; font-size: 16px;
+}
+.np-form input:focus { outline: none; border-color: var(--mint); }
+.np-form .seg { margin: 0; }
+.np-actions { display: flex; gap: 8px; margin-top: 4px; }
+.np-actions .btn { flex: 1; }
