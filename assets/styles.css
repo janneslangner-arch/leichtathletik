@@ -685,3 +685,13 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   display: block; height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, var(--mint-dim), var(--mint));
 }
+
+/* Punktewertung: zwei Summen nebeneinander */
+.punkte-summe { display: flex; gap: 18px; align-items: stretch; }
+.ps-block { display: grid; gap: 2px; align-content: start; }
+.ps-block.ps-wa { margin-left: auto; text-align: right; justify-items: end; }
+.ps-block .vmax { font-size: 16px; color: var(--muted); font-weight: 600; margin-left: 3px; }
+.ps-wa .v { font-size: 24px; color: var(--text); }
+.punkte-summe .sub { margin-left: 0; }
+.p-note { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: .04em; }
+.p-wa { font-size: 11px; color: var(--mint-dim); font-variant-numeric: tabular-nums; margin-top: 2px; }

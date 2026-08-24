@@ -861,7 +861,61 @@
   }
 
 
-  /* ---------------- Punktewertung ----------------
+  /* ---------------- Schulwertung ----------------
+     Aus „Leichtathletik Prüfung – Bewertung Einzeldisziplin ab Q1"
+     (GaM, Sportprofil). 15 bis 0 Punkte je Disziplin, daraus die Note.
+     Achtung: Bei den Läufen laufen Mädchen kürzere Strecken (800 m statt
+     1500 m, 2000 m statt 5000 m) – die Tabelle gilt entsprechend. */
+  const SCHUL_TABELLE = {
+    sprint100: { w: [[15, 14.2], [14, 14.4], [13, 14.6], [12, 14.9], [11, 15.1], [10, 15.4], [9, 15.7], [8, 15.9], [7, 16.2], [6, 16.5], [5, 16.8], [4, 17.2], [3, 17.5], [2, 17.9], [1, 18.2]],
+               m: [[15, 12.7], [14, 12.8], [13, 13.0], [12, 13.1], [11, 13.3], [10, 13.5], [9, 13.7], [8, 13.8], [7, 14.0], [6, 14.2], [5, 14.4], [4, 14.6], [3, 14.8], [2, 15.0], [1, 15.2]] },
+    weitsprung: { w: [[15, 4.13], [14, 3.99], [13, 3.85], [12, 3.71], [11, 3.58], [10, 3.44], [9, 3.31], [8, 3.2], [7, 3.07], [6, 2.95], [5, 2.83], [4, 2.71], [3, 2.6], [2, 2.49], [1, 2.38]],
+                m: [[15, 5.12], [14, 4.98], [13, 4.85], [12, 4.72], [11, 4.58], [10, 4.45], [9, 4.33], [8, 4.22], [7, 4.07], [6, 3.99], [5, 3.83], [4, 3.71], [3, 3.61], [2, 3.51], [1, 3.41]] },
+    hochsprung: { w: [[15, 1.41], [14, 1.38], [13, 1.35], [12, 1.33], [11, 1.3], [10, 1.27], [9, 1.25], [8, 1.22], [7, 1.2], [6, 1.17], [5, 1.15], [4, 1.12], [3, 1.1], [2, 1.07], [1, 1.05]],
+                m: [[15, 1.55], [14, 1.52], [13, 1.5], [12, 1.47], [11, 1.44], [10, 1.42], [9, 1.39], [8, 1.37], [7, 1.34], [6, 1.32], [5, 1.29], [4, 1.26], [3, 1.24], [2, 1.22], [1, 1.2]] },
+    kugelstossen: { w: [[15, 9.45], [14, 9.04], [13, 8.64], [12, 8.25], [11, 7.86], [10, 7.49], [9, 7.12], [8, 6.81], [7, 6.46], [6, 6.12], [5, 5.79], [4, 5.47], [3, 5.16], [2, 4.86], [1, 4.56]],
+                  m: [[15, 10.9], [14, 10.56], [13, 10.25], [12, 9.92], [11, 9.6], [10, 9.28], [9, 8.97], [8, 8.7], [7, 8.36], [6, 8.15], [5, 7.77], [4, 7.48], [3, 7.24], [2, 7.01], [1, 6.77]] },
+    speerwurf: { w: [[15, 24.87], [14, 23.18], [13, 21.55], [12, 19.99], [11, 18.48], [10, 17.03], [9, 15.64], [8, 14.46], [7, 13.18], [6, 11.96], [5, 10.8], [4, 9.7], [3, 8.66], [2, 7.68], [1, 6.75]],
+               m: [[15, 32.31], [14, 30.66], [13, 29.16], [12, 27.59], [11, 26.07], [10, 24.58], [9, 23.15], [8, 21.95], [7, 20.4], [6, 19.46], [5, 17.82], [4, 16.6], [3, 15.59], [2, 14.61], [1, 13.66]] },
+    lauf1500: { w: [[15, 161.9], [14, 165.59], [13, 169.44], [12, 173.59], [11, 177.72], [10, 182.18], [9, 186.86], [8, 191.19], [7, 196.35], [6, 201.8], [5, 207.56], [4, 213.66], [3, 220.12], [2, 226.99], [1, 234.31]],
+              m: [[15, 298.43], [14, 303.99], [13, 308.98], [12, 314.14], [11, 320.31], [10, 326.28], [9, 332.49], [8, 338.0], [7, 345.64], [6, 350.59], [5, 359.88], [4, 367.44], [3, 374.18], [2, 381.18], [1, 388.44]] },
+    lauf5000: { w: [[15, 472.21], [14, 482.67], [13, 493.6], [12, 505.05], [11, 517.03], [10, 529.6], [9, 542.79], [8, 555.0], [7, 569.5], [6, 584.79], [5, 600.92], [4, 617.97], [3, 636.01], [2, 655.13], [1, 675.44]],
+              m: [[15, 1145.68], [14, 1166.64], [13, 1186.8], [12, 1209.3], [11, 1232.68], [10, 1256.97], [9, 1282.24], [8, 1304.73], [7, 1335.96], [6, 1356.26], [5, 1394.38], [4, 1425.55], [3, 1393.4], [2, 1482.35], [1, 1512.49]] },
+  };
+
+  // Andere Strecke bei den Mädchen
+  const SCHUL_STRECKE = { lauf1500: { w: '800 m' }, lauf5000: { w: '2000 m' } };
+
+  const NOTEN = ['6', '5−', '5', '5+', '4−', '4', '4+', '3−', '3', '3+', '2−', '2', '2+', '1−', '1', '1+'];
+  const noteZuPunkten = p => NOTEN[p] || '–';
+
+  function schulPunkte(disc, wert, geschlecht) {
+    const t = (SCHUL_TABELLE[disc] || {})[geschlecht];
+    if (!t) return null;
+    const zeit = DISC[disc].better === 'low';
+    let beste = 0;
+    t.forEach(([punkte, grenze]) => {
+      if (zeit ? wert <= grenze : wert >= grenze) beste = Math.max(beste, punkte);
+    });
+    return beste;
+  }
+
+  // Zeilen, die aus der Reihe fallen (Tippfehler in der Vorlage), melden
+  function tabellenWarnung(geschlecht) {
+    const stellen = [];
+    Object.entries(SCHUL_TABELLE).forEach(([disc, seiten]) => {
+      const t = seiten[geschlecht];
+      if (!t) return;
+      const zeit = DISC[disc].better === 'low';
+      for (let i = 1; i < t.length; i++) {
+        const [p, v] = t[i], [pv, vv] = t[i - 1];
+        if (zeit ? v <= vv : v >= vv) stellen.push(`${DISC[disc].name}: ${p} Punkte`);
+      }
+    });
+    return stellen;
+  }
+
+  /* ---------------- Mehrkampf-Punkte ----------------
      Offizielle Mehrkampf-Formel der World Athletics (Zehnkampf der Männer,
      Siebenkampf der Frauen), unverändert seit 1985:
        Laufen:  P = a · (b − T)^c      T in Sekunden
@@ -920,45 +974,61 @@
 
     const liste = $('#punkteListe');
     liste.textContent = '';
-    let summe = 0, gewertet = 0, offen = 0;
+    let schulSumme = 0, schulAnzahl = 0, waSumme = 0, waAnzahl = 0;
 
     KEYS.forEach(key => {
       const d = DISC[key], b = best(key);
-      const punkte = b ? waPunkte(key, b.value, g) : null;
+      const schul = b ? schulPunkte(key, b.value, g) : null;
+      const wa = b ? waPunkte(key, b.value, g) : null;
+      const strecke = (SCHUL_STRECKE[key] || {})[g];
+
       const li = el('li', 'row punkte-row');
       li.append(el('span', 'ic', d.ic));
 
       const main = el('div', 'main');
-      main.append(el('div', 'nm', d.name));
+      main.append(el('div', 'nm', d.name + (strecke ? ` · bei Mädchen ${strecke}` : '')));
       main.append(el('div', 'val', b ? fmt(key, b.value) : '– noch kein Wert'));
-      if (b && punkte === null) main.append(el('div', 'nm', 'keine offizielle Wertung: ' + (OHNE_TABELLE[key] || '')));
+      if (b && wa === null) main.append(el('div', 'nm', 'Mehrkampf: ' + (OHNE_TABELLE[key] || 'keine Tabelle')));
+
+      if (schul !== null && b) {
+        schulSumme += schul; schulAnzahl++;
+        const bar = el('div', 'p-bar');
+        const fuell = el('span');
+        fuell.style.width = Math.max(3, (schul / 15) * 100) + '%';
+        bar.append(fuell);
+        main.append(bar);
+      }
       li.append(main);
 
       const rechts = el('div', 'punkte-wert');
-      if (punkte !== null && b) {
-        summe += punkte; gewertet++;
-        rechts.append(el('span', 'p-zahl', String(punkte)), el('span', 'p-einheit', 'Punkte'));
-        const bar = el('div', 'p-bar');
-        const fuell = el('span');
-        fuell.style.width = Math.max(2, Math.min(100, punkte / 12)) + '%';   // 1200 Punkte = voll
-        bar.append(fuell);
-        main.append(bar);
+      if (schul !== null && b) {
+        rechts.append(el('span', 'p-zahl', String(schul)));
+        rechts.append(el('span', 'p-note', 'Note ' + noteZuPunkten(schul)));
       } else {
-        if (b) offen++;
         rechts.append(el('span', 'p-zahl p-leer', '–'));
+      }
+      if (wa !== null && b) {
+        waSumme += wa; waAnzahl++;
+        rechts.append(el('span', 'p-wa', wa + ' WA'));
       }
       li.append(rechts);
       liste.append(li);
     });
 
-    $('#punkteSumme').textContent = summe.toLocaleString('de-DE');
-    $('#punkteAnzahl').textContent = gewertet
-      ? `aus ${gewertet} ${gewertet === 1 ? 'Disziplin' : 'Disziplinen'}` + (offen ? `, ${offen} ohne Tabelle` : '')
+    $('#punkteSumme').textContent = schulSumme;
+    $('#punkteMax').textContent = schulAnzahl ? '/ ' + (schulAnzahl * 15) : '';
+    $('#punkteAnzahl').textContent = schulAnzahl
+      ? `${schulAnzahl} ${schulAnzahl === 1 ? 'Disziplin' : 'Disziplinen'} · Schnitt Note ${noteZuPunkten(Math.round(schulSumme / schulAnzahl))}`
       : 'noch nichts zu werten';
+    $('#punkteWaSumme').textContent = waAnzahl ? waSumme.toLocaleString('de-DE') : '–';
+    $('#punkteWaSub').textContent = waAnzahl ? `aus ${waAnzahl} ${waAnzahl === 1 ? 'Disziplin' : 'Disziplinen'}` : '';
+
+    const warnungen = tabellenWarnung(g);
     $('#punkteHinweis').textContent =
-      'Gerechnet wird mit der offiziellen Mehrkampf-Formel der World Athletics – '
-      + (g === 'm' ? 'Zehnkampf der Männer' : 'Siebenkampf der Frauen')
-      + '. 1000 Punkte je Disziplin entsprechen etwa dem Niveau einer sehr guten Landeskader-Leistung.';
+      'Schulpunkte nach der Bewertungstabelle „Einzeldisziplin ab Q1" (15 = 1+, 0 = 6). '
+      + 'WA sind die Mehrkampf-Punkte der World Athletics – '
+      + (g === 'm' ? 'Zehnkampf' : 'Siebenkampf') + '. Gewertet wird immer der Bestwert.'
+      + (warnungen.length ? ' Achtung, die Vorlage ist an dieser Stelle nicht eindeutig: ' + warnungen.join(', ') + '.' : '');
   }
 
   /* ---------------- Übersicht ---------------- */

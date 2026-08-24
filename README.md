@@ -34,16 +34,24 @@ Durchschnitt und alle Einzelwerte (löschbar).
 **Übersicht** – alle Bestwerte auf einen Blick mit Mini-Verlauf; ein Klick
 springt ins passende Diagramm.
 
-**Punkte** – rechnet aus dem **Bestwert** jeder Disziplin die Punkte nach der
-offiziellen Mehrkampf-Formel der World Athletics aus (Zehnkampf der Männer,
-Siebenkampf der Frauen), dazu die Summe als simulierte Endleistung:
+**Punkte** – rechnet aus dem **Bestwert** jeder Disziplin zwei Wertungen aus:
+
+*Schulpunkte* nach der Bewertungstabelle „Leichtathletik Prüfung – Bewertung
+Einzeldisziplin ab Q1" (GaM, Sportprofil): 15 bis 0 Punkte je Disziplin, dazu
+die Note (15 = 1+, 0 = 6), die Summe und der Notenschnitt. Die Tabelle steht
+in `assets/app.js` unter `SCHUL_TABELLE`. Bei den Läufen gelten für Mädchen
+die kürzeren Strecken – 800 m statt 1500 m und 2000 m statt 5000 m; die App
+schreibt das an die Zeile.
+
+*World-Athletics-Punkte* nach der offiziellen Mehrkampf-Formel (Zehnkampf der
+Männer, Siebenkampf der Frauen):
 
 ```
 Laufen:  P = a · (b − T)^c     T in Sekunden
 Technik: P = a · (L − b)^c     L in cm (Sprünge) bzw. m (Würfe)
 ```
 
-Die Beiwerte stehen in `assets/app.js` unter `WA_TABELLE`. Geprüft an den
+Die Beiwerte stehen unter `WA_TABELLE`. Geprüft an den
 bekannten 1000-Punkte-Marken: 100 m 10,395 s · Weitsprung 7,76 m ·
 Hochsprung 2,208 m · Kugel 18,40 m · 1500 m 3:53,79 – alle exakt 1000.
 
