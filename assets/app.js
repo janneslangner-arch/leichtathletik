@@ -773,7 +773,39 @@
   }
 
   /* ---------------- Datenbank-Dialog ---------------- */
+  const WEBSITE = 'https://janneslangner-arch.github.io/leichtathletik/';
   const dbHint = t => { $('#dbHint').textContent = t; };
+
+  // Antwortet der Server überhaupt? Ohne CORS-Regeln, deshalb no-cors:
+  // gelingt die Anfrage, steht der Server; scheitert sie, ist er gar nicht da.
+  async function serverErreichbar(url) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      await fetch(url.replace(/\/+$/, '') + '/rest/v1/', { mode: 'no-cors', signal: ctrl.signal });
+      return true;
+    } catch (e) {
+      return false;
+    } finally { clearTimeout(t); }
+  }
+
+  // Wenn gar keine Antwort kommt: herausfinden, woran es liegt.
+  async function diagnose(url) {
+    if (window.claude && typeof window.claude.use === 'function')
+      return 'Diese Claude-Seite darf keine Verbindung nach außen aufbauen. Die Datenbank läuft nur auf der Website: ' + WEBSITE;
+    if (navigator.onLine === false)
+      return 'Das Gerät ist offline. Netz prüfen und noch einmal versuchen.';
+    return (await serverErreichbar(url))
+      ? 'Der Server antwortet, lehnt die Anfrage aber ab. Meist liegt es an einem Browser-Add-on (Adblocker, Privatsphäre-Schutz), das supabase.co blockiert – oder die Data API ist im Projekt ausgeschaltet (Supabase → Settings → API).'
+      : 'Der Server ist nicht erreichbar. Häufigster Grund: Das Supabase-Projekt ist pausiert oder wird noch eingerichtet – im Supabase-Dashboard nachsehen und auf „Restore“ drücken bzw. warten, bis es „Active“ ist. Sonst prüfen, ob die Projekt-URL stimmt.';
+  }
+
+  async function testeVerbindung() {
+    const url = $('#dbUrl').value.trim();
+    if (!/^https?:\/\//.test(url)) { dbHint('Erst die Projekt-URL eintragen.'); return; }
+    dbHint('Teste …');
+    dbHint(await diagnose(url));
+  }
 
   function openDbDialog() {
     const emb = readEmbeddedCfg();
@@ -803,8 +835,12 @@
     try {
       data = await rpc('daten_lesen', { p_code: code }, conf);
     } catch (err) {
-      dbHint('Klappt nicht: ' + err.message + (err.status === 404
-        ? ' – ist das Schema im SQL-Editor gelaufen?' : ''));
+      if (err.status) {                       // Server hat geantwortet, aber abgelehnt
+        dbHint('Die Datenbank meldet: ' + err.message + (err.status === 404
+          ? ' – ist das Schema aus supabase/schema.sql im SQL-Editor gelaufen?' : ''));
+      } else {                                // gar keine Antwort
+        dbHint('Keine Verbindung zur Datenbank. ' + (await diagnose(conf.url)));
+      }
       return;
     }
 
@@ -1099,6 +1135,7 @@
     $('#dbDisconnect').addEventListener('click', disconnectDb);
     $('#sqlCopy').addEventListener('click', copySql);
     $('#dbShare').addEventListener('click', shareCfg);
+    $('#dbTest').addEventListener('click', testeVerbindung);
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) flushSave();
