@@ -100,8 +100,26 @@ Hochladen; `--fragment` lässt den Seitenrahmen weg (für Claude-Artifacts).
 Die Cloud-Speicherung braucht diese Einzeldatei, weil die App sich daraus
 selbst neu aufbaut.
 
-Zum Teilen mit der Klasse reicht sonst GitHub Pages:
-Repository-Einstellungen → Pages → Branch wählen.
+## Für andere veröffentlichen
+
+**Als Website (GitHub Pages).** Im Repository liegt
+`.github/workflows/pages.yml`. Nach einem Push auf `main` oder den
+Entwicklungszweig baut die Aktion die Seite und stellt sie online. Einmalig
+nötig: **Settings → Pages → Source: GitHub Actions**. Danach ist die App unter
+`https://<benutzer>.github.io/<repo>/` erreichbar – ohne Konto, für alle, die
+den Link haben.
+
+Damit Mitschüler:innen nicht URL und Key eintippen müssen: in der App auf
+**Datenbank verbinden → Für Website kopieren**, die kopierte Zeile in
+`index.html` an der Stelle mit `id="appConfig"` einsetzen und pushen. Dann
+fragt die Seite beim ersten Öffnen nur noch nach dem Klassen-Code.
+
+Der Klassen-Code gehört **nicht** ins Repository – er ist das Passwort und
+wird nur mündlich weitergegeben.
+
+**Als Claude-Artifact.** Im Artifact oben rechts auf Teilen. Ohne Datenbank
+sehen die anderen dann den Stand der Seite, können aber nichts dauerhaft
+speichern; mit Datenbank arbeiten alle gemeinsam am selben Datenbestand.
 
 Browser-Dialoge (`confirm`, `prompt`) werden bewusst nicht benutzt – in
 eingebetteten Seiten sind sie blockiert. Nachfragen laufen deshalb über

@@ -781,6 +781,7 @@
     $('#dbKey').value = (cfg && cfg.key) || (emb && emb.key) || '';
     $('#dbCode').value = (cfg && cfg.code) || '';
     $('#dbDisconnect').hidden = !cfg;
+    $('#dbShare').hidden = !cfg;
     dbHint(cfg ? 'Verbunden. Ein anderer Klassen-Code öffnet eine andere Gruppe.'
                : 'Der Klassen-Code ist das Passwort eurer Gruppe. Er wird nicht in der Seite gespeichert, sondern nur auf diesem Gerät.');
     $('#dbDialog').showModal();
@@ -825,6 +826,26 @@
       toast('Mit der Datenbank verbunden');
       $('#dbDialog').close();
     }
+  }
+
+  // Projekt-URL und Key für eine eigene Website (GitHub Pages) herausgeben.
+  // Der Klassen-Code bleibt außen vor – der wird nie geteilt.
+  async function shareCfg() {
+    if (!cfg) return;
+    const T = 'scr' + 'ipt';
+    const zeile = `<${T} id="appConfig" type="application/json">`
+      + JSON.stringify({ url: cfg.url, key: cfg.key }) + `</${T}>`;
+    try {
+      await navigator.clipboard.writeText(zeile);
+      dbHint('Kopiert. Damit in index.html die Zeile mit id="appConfig" ersetzen und hochladen – '
+        + 'dann brauchen die anderen nur noch den Klassen-Code.');
+      return;
+    } catch (e) { /* Zwischenablage gesperrt */ }
+    const box = $('#dbHint');
+    box.textContent = 'Diese Zeile in index.html bei id="appConfig" einsetzen:';
+    const ta = el('textarea', 'sql-box');
+    ta.value = zeile; ta.readOnly = true;
+    box.append(ta); ta.focus(); ta.select();
   }
 
   function disconnectDb() {
@@ -1077,6 +1098,7 @@
     $('#dbClose').addEventListener('click', () => $('#dbDialog').close());
     $('#dbDisconnect').addEventListener('click', disconnectDb);
     $('#sqlCopy').addEventListener('click', copySql);
+    $('#dbShare').addEventListener('click', shareCfg);
 
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) flushSave();
