@@ -100,6 +100,7 @@
 
     <h2 class="section-title">Speicherort</h2>
     <div id="storageInfo" class="hint-text"></div>
+    <div class="data-actions" id="storageActions"></div>
 
     <h2 class="section-title">Daten</h2>
     <div class="data-actions">
@@ -138,6 +139,42 @@
   <p id="profileHint" class="hint-text">Jedes Profil hat eigene Werte. Tippe auf einen Namen, um zu wechseln.</p>
 </dialog>
 
+<dialog id="dbDialog" class="sheet">
+  <div class="sheet-head">
+    <h2>Datenbank verbinden</h2>
+    <button id="dbClose" class="icon-btn" aria-label="Schließen">✕</button>
+  </div>
+
+  <ol class="steps">
+    <li>Auf <strong>supabase.com</strong> kostenlos anmelden und ein Projekt anlegen.</li>
+    <li>Im Projekt links auf <strong>SQL Editor</strong>, das Schema einfügen und <strong>Run</strong> drücken.
+      <button type="button" id="sqlCopy" class="btn btn-sm">SQL kopieren</button></li>
+    <li>Unter <strong>Project Settings → API</strong> die <em>Project URL</em> und den
+      <em>anon public</em>-Schlüssel kopieren.</li>
+    <li>Hier eintragen, Klassen-Code frei wählen (mind. 6 Zeichen) und verbinden.</li>
+  </ol>
+
+  <form id="dbForm" class="db-form" autocomplete="off" novalidate>
+    <label class="field">
+      <span>Projekt-URL</span>
+      <input id="dbUrl" type="url" placeholder="https://abcdefgh.supabase.co">
+    </label>
+    <label class="field">
+      <span>anon public key</span>
+      <input id="dbKey" type="text" placeholder="eyJhbGciOi…">
+    </label>
+    <label class="field">
+      <span>Klassen-Code (das ist das Passwort für eure Gruppe)</span>
+      <input id="dbCode" type="text" placeholder="z.&nbsp;B. 9b-sport-2026">
+    </label>
+    <div class="db-actions">
+      <button type="submit" class="btn btn-mint">Verbinden</button>
+      <button type="button" id="dbDisconnect" class="btn" hidden>Trennen</button>
+    </div>
+  </form>
+  <p id="dbHint" class="hint-text"></p>
+</dialog>
+
 <div id="toast" class="toast" role="status" aria-live="polite">
   <span id="toastText"></span>
   <button id="toastAction" class="toast-action" hidden></button>
@@ -147,7 +184,9 @@
 
 <div id="app"></div>
 
+<script id="appConfig" type="application/json">null</script>
 <script id="appState" type="application/json">null</script>
+<script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
 <script id="appScript" src="assets/app.js"></script>
 </body>
 </html>

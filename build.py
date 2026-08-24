@@ -20,10 +20,13 @@ out = pathlib.Path(args[0]) if args else root / 'leichtathletik-tracker.html'
 html = (root / 'index.html').read_text(encoding='utf-8')
 css = (root / 'assets/styles.css').read_text(encoding='utf-8')
 js = (root / 'assets/app.js').read_text(encoding='utf-8')
+sql = (root / 'supabase/schema.sql').read_text(encoding='utf-8')
 
 html = html.replace(
     '<link rel="stylesheet" href="assets/styles.css">',
     '<style id="appStyle">\n' + css + '\n</style>')
+# Das SQL-Schema mitliefern, damit der Einrichtungs-Dialog es anbieten kann
+html = html.replace('/* SCHEMA_SQL */', sql.replace('</', '<\\/'))
 html = html.replace(
     '<script id="appScript" src="assets/app.js"></script>',
     '<script id="appScript">\n' + js + '\n</script>')

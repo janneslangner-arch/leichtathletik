@@ -44,13 +44,41 @@ das gilt für einzelne Werte und für ganze Profile.
 
 Das Feld oben rechts neben dem Namen zeigt es an:
 
-- **Cloud** – läuft die App als Claude-Artifact, sichert die Seite ihren Stand
-  selbst: Die Werte stecken in der Seite und sind auf jedem Gerät da, auf dem
-  der Link geöffnet wird. Gespeichert wird kurz nach jeder Eingabe; danach lädt
-  die Seite einmal neu, Ansicht und Disziplin bleiben erhalten. Eine Kopie
-  bleibt zusätzlich im Browser.
-- **Gerät** – bei der Datei- oder GitHub-Pages-Version gibt es keinen Server;
-  dann wird nur im Browser gespeichert (`localStorage`).
+- **Datenbank** – eine echte Postgres-Datenbank bei Supabase. Alle, die den
+  Klassen-Code eintragen, sehen dieselben Werte und können gleichzeitig
+  eintragen. Einrichtung siehe unten.
+- **Cloud** – ohne Datenbank und als Claude-Artifact sichert die Seite ihren
+  Stand selbst: Die Werte stecken in der Seite und sind auf jedem Gerät da, das
+  den Link öffnet. Eine Kopie bleibt zusätzlich im Browser.
+- **Gerät** – bei der Datei- oder GitHub-Pages-Version ohne Datenbank wird nur
+  im Browser gespeichert (`localStorage`).
+- **offline** – keine Verbindung. Eingeben geht weiter, die Änderungen liegen
+  in einer Warteschlange und gehen automatisch raus, sobald es wieder klappt.
+
+## Datenbank einrichten (Supabase, kostenlos)
+
+1. Auf [supabase.com](https://supabase.com) anmelden und ein Projekt anlegen.
+2. Links **SQL Editor** öffnen, `supabase/schema.sql` einfügen, **Run** drücken.
+   (In der App macht das der Knopf „SQL kopieren“ im Verbinden-Dialog.)
+3. Unter **Project Settings → API** die *Project URL* und den *anon public* Key
+   kopieren.
+4. In der App: Übersicht → **Datenbank verbinden**, beides eintragen und einen
+   **Klassen-Code** wählen (mindestens 6 Zeichen, z. B. `9b-sport-2026`).
+
+Alle weiteren Geräte brauchen nur denselben Code. Vorhandene Werte vom Gerät
+bietet die App beim Verbinden zum Übertragen an.
+
+### Wie der Zugriff geschützt ist
+
+Die Tabellen sind für den öffentlichen Key komplett gesperrt (RLS ohne Policy).
+Gelesen und geschrieben wird nur über Funktionen, die jedes Mal den
+Klassen-Code prüfen (`supabase/schema.sql`). Ein falscher Code sieht nichts,
+ein fremdes Profil lässt sich nicht bespielen, und der Code selbst wird nie in
+der Seite gespeichert – er liegt nur auf dem jeweiligen Gerät.
+
+Der Code ist ein gemeinsames Passwort: Wer ihn kennt, sieht alle Werte der
+Gruppe und kann sie ändern. Nehmt deshalb einen, den man nicht rät, und
+schreibt keine Daten hinein, die nicht die ganze Gruppe sehen soll.
 
 In beiden Fällen: **Sichern (JSON)** legt ein Backup an, **Laden (JSON)** holt
 es zurück und führt es mit vorhandenen Werten zusammen (nach ID, ohne
@@ -59,10 +87,11 @@ Dubletten), **CSV** öffnet sich in Excel oder LibreOffice.
 ## Dateien
 
 ```
-index.html          Aufbau der Seite (Oberfläche liegt in <template id="appShell">)
-assets/styles.css   Design (Mint auf Petrol, Helvetica)
-assets/app.js       Eingabe-Logik, Speicherung, Diagramme
-build.py            baut daraus eine einzelne HTML-Datei
+index.html            Aufbau der Seite (Oberfläche liegt in <template id="appShell">)
+assets/styles.css     Design (Mint auf Petrol, Helvetica)
+assets/app.js         Eingabe-Logik, Speicherung, Diagramme
+supabase/schema.sql   Tabellen, Funktionen und Rechte der Datenbank
+build.py              baut daraus eine einzelne HTML-Datei
 ```
 
 Keine Bibliotheken, kein Framework. `python3 build.py` erzeugt

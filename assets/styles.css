@@ -363,3 +363,29 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   border-radius: 999px; padding: 4px 12px; margin: -4px -8px -4px 0;
 }
 .toast-action:hover { background: rgba(11, 26, 33, .28); }
+
+/* ---------- Datenbank-Dialog ---------- */
+.steps {
+  margin: 0 0 16px; padding-left: 20px;
+  display: grid; gap: 7px;
+  font-size: 13px; color: var(--muted); line-height: 1.5;
+}
+.steps li::marker { color: var(--mint); font-weight: 700; }
+.steps strong { color: var(--text); font-weight: 600; }
+.steps em { color: var(--text); font-style: normal; }
+.steps .btn-sm { margin-top: 5px; }
+
+.db-form { display: grid; gap: 11px; }
+.db-form .field input {
+  background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
+  border-radius: 10px; padding: 11px; font-size: 14px; width: 100%;
+}
+.db-form .field input:focus { outline: none; border-color: var(--mint); }
+.db-actions { display: flex; gap: 8px; margin-top: 3px; }
+
+.sql-box {
+  width: 100%; height: 130px; margin-top: 8px;
+  background: var(--bg); color: var(--muted); border: 1px solid var(--line-soft);
+  border-radius: 10px; padding: 9px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px; resize: vertical;
+}

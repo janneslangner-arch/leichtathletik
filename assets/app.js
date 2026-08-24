@@ -84,7 +84,7 @@
 
   /* ---------------- Daten ---------------- */
   const STORE = 'la-tracker-v1';
-  const blank = () => ({ athletes: ['Ich'], current: 'Ich', entries: [] });
+  const blank = () => ({ athletes: ['Ich'], current: 'Ich', entries: [], profileIds: {} });
   const valid = o => o && Array.isArray(o.entries) && Array.isArray(o.athletes);
 
   let db = blank();
@@ -94,6 +94,7 @@
 
   function normalize(o) {
     const d = Object.assign(blank(), o);
+    d.profileIds = (o && o.profileIds) || {};
     d.entries = d.entries.filter(e => e && DISC[e.disc] && typeof e.value === 'number' && e.date);
     d.athletes = d.athletes.filter(a => typeof a === 'string' && a.trim()).slice(0, 60);
     d.entries.forEach(e => { if (!d.athletes.includes(e.athlete)) d.athletes.push(e.athlete); });
@@ -115,9 +116,222 @@
     try { localStorage.setItem(STORE, JSON.stringify(db)); } catch (e) { /* Speicher voll oder gesperrt */ }
   }
 
+
+  /* ---------------- Echte Datenbank (Supabase) ----------------
+     Alle Zugriffe laufen über die Funktionen aus supabase/schema.sql und
+     brauchen jedes Mal den Klassen-Code. Änderungen gehen zuerst in die
+     Oberfläche, dann über eine Warteschlange zum Server – so lässt sich auch
+     ohne Netz weiter eintragen. */
+  const CFG_KEY = 'la-db-cfg', QUEUE_KEY = 'la-db-queue';
+  let cfg = null;                 // {url, key, code} – bleibt auf diesem Gerät
+  let queue = [];                 // noch nicht bestätigte Aufträge
+  let flushing = false, lastPull = 0;
+
+  const usingDb = () => !!cfg;
+  const newId = () => (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+        const r = Math.random() * 16 | 0;
+        return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+      });
+
+  function readCfg() {
+    try { const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null');
+          return c && c.url && c.key && c.code ? c : null; } catch (e) { return null; }
+  }
+  function writeCfg() {
+    try { cfg ? localStorage.setItem(CFG_KEY, JSON.stringify(cfg)) : localStorage.removeItem(CFG_KEY); }
+    catch (e) { /* egal */ }
+  }
+  function writeQueue() { try { localStorage.setItem(QUEUE_KEY, JSON.stringify(queue)); } catch (e) { /* egal */ } }
+  function readQueue() {
+    try { const q = JSON.parse(localStorage.getItem(QUEUE_KEY) || '[]'); return Array.isArray(q) ? q : []; }
+    catch (e) { return []; }
+  }
+  function readEmbeddedCfg() {
+    const tag = document.getElementById('appConfig');
+    if (!tag) return null;
+    try { const c = JSON.parse((tag.textContent || '').trim() || 'null'); return c && c.url && c.key ? c : null; }
+    catch (e) { return null; }
+  }
+
+  async function rpc(fn, args, conf) {
+    const c = conf || cfg;
+    const res = await fetch(c.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key },
+      body: JSON.stringify(args)
+    });
+    const text = await res.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
+    if (!res.ok) {
+      const err = new Error((data && (data.message || data.hint)) || ('Server-Fehler ' + res.status));
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+
+  // Serverstand in das Format der App bringen
+  function applyServer(data) {
+    const profile = (data && data.profile) || [], werte = (data && data.werte) || [];
+    const nameById = {}, idByName = {};
+    profile.forEach(p => { nameById[p.id] = p.name; idByName[p.name] = p.id; });
+    const names = profile.map(p => p.name);
+    const current = names.includes(db.current) ? db.current : (names[0] || db.current);
+    db = {
+      athletes: names.length ? names : [current || 'Ich'],
+      current: current || 'Ich',
+      profileIds: idByName,
+      entries: werte.filter(w => DISC[w.disziplin] && nameById[w.profil_id]).map(w => ({
+        id: w.id, athlete: nameById[w.profil_id], disc: w.disziplin,
+        value: Number(w.wert), date: String(w.datum).slice(0, 10), note: w.notiz || ''
+      }))
+    };
+    writeLocal();
+  }
+
+  function enqueue(fn, args) { queue.push({ fn, args }); writeQueue(); flush(); }
+
+  let retryTimer = null;
+  function scheduleRetry() {
+    if (retryTimer || !queue.length) return;
+    retryTimer = setTimeout(() => { retryTimer = null; flush(); }, 15000);
+  }
+
+  async function flush() {
+    if (!cfg || flushing || !queue.length) return;
+    flushing = true;
+    setSync('saving');
+    while (queue.length) {
+      const op = queue[0];
+      let data;
+      try {
+        data = await rpc(op.fn, op.args);
+      } catch (err) {
+        flushing = false;
+        if (err.status >= 400 && err.status < 500) {
+          // Der Server lehnt genau diesen Auftrag ab – sonst blockiert er die Schlange
+          queue.shift(); writeQueue();
+          toast(err.message, { warn: true });
+          setSync('db');
+          flush();
+        } else {
+          setSync('offline');
+          scheduleRetry();
+        }
+        return;
+      }
+      queue.shift(); writeQueue();
+      if (!queue.length && data) { applyServer(data); renderAll(); syncProfileName(); }
+    }
+    flushing = false;
+    lastPull = Date.now();
+    setSync('db');
+  }
+
+  // Stand vom Server holen (auch, um Eingaben der anderen zu sehen)
+  async function pull(force) {
+    if (!cfg || queue.length || flushing) return;
+    if (!force && Date.now() - lastPull < 15000) return;
+    try {
+      const data = await rpc('daten_lesen', { p_code: cfg.code });
+      lastPull = Date.now();
+      applyServer(data); renderAll(); syncProfileName(); setSync('db');
+    } catch (e) { setSync('offline'); }
+  }
+
+  function ensureProfileId(name) {
+    if (!db.profileIds) db.profileIds = {};
+    if (!db.profileIds[name]) {
+      const id = newId();
+      db.profileIds[name] = id;
+      enqueue('profil_anlegen', { p_code: cfg.code, p_id: id, p_name: name });
+    }
+    return db.profileIds[name];
+  }
+
+  function commit() {
+    writeLocal();
+    if (!usingDb() && cloud) scheduleSave();
+  }
+
+  /* Ein Ort für alle Änderungen: erst lokal, dann – falls verbunden – zum Server. */
+  const Store = {
+    addEntry(e) {
+      db.entries.push(e);
+      if (usingDb()) enqueue('wert_anlegen', {
+        p_code: cfg.code, p_id: e.id, p_profil: ensureProfileId(e.athlete),
+        p_disziplin: e.disc, p_wert: e.value, p_datum: e.date, p_notiz: e.note || ''
+      });
+      commit();
+    },
+    removeEntry(e) {
+      db.entries = db.entries.filter(x => x.id !== e.id);
+      if (usingDb()) enqueue('wert_loeschen', { p_code: cfg.code, p_id: e.id });
+      commit();
+    },
+    addProfile(name) {
+      db.athletes.push(name);
+      if (usingDb()) ensureProfileId(name);
+      commit();
+    },
+    renameProfile(alt, neu) {
+      db.athletes = db.athletes.map(a => a === alt ? neu : a);
+      db.entries.forEach(e => { if (e.athlete === alt) e.athlete = neu; });
+      if (db.current === alt) db.current = neu;
+      const id = db.profileIds && db.profileIds[alt];
+      if (id) { delete db.profileIds[alt]; db.profileIds[neu] = id; }
+      if (usingDb()) {
+        if (id) enqueue('profil_umbenennen', { p_code: cfg.code, p_id: id, p_name: neu });
+        else ensureProfileId(neu);
+      }
+      commit();
+    },
+    removeProfile(name) {
+      const removed = db.entries.filter(e => e.athlete === name);
+      const id = db.profileIds && db.profileIds[name];
+      db.athletes = db.athletes.filter(a => a !== name);
+      db.entries = db.entries.filter(e => e.athlete !== name);
+      if (db.profileIds) delete db.profileIds[name];
+      if (db.current === name) db.current = db.athletes[0];
+      if (usingDb() && id) enqueue('profil_loeschen', { p_code: cfg.code, p_id: id });
+      commit();
+      return removed;
+    },
+    restoreProfile(name, removed) {
+      if (!db.athletes.includes(name)) db.athletes.push(name);
+      db.entries = db.entries.concat(removed);
+      if (usingDb()) {
+        ensureProfileId(name);
+        removed.forEach(e => enqueue('wert_anlegen', {
+          p_code: cfg.code, p_id: e.id, p_profil: db.profileIds[name],
+          p_disziplin: e.disc, p_wert: e.value, p_datum: e.date, p_notiz: e.note || ''
+        }));
+      }
+      commit();
+    },
+    switchProfile(name) { db.current = name; commit(); }
+  };
+
+  // Vorhandene Werte dieses Geräts in die Datenbank schieben
+  function uploadLocal(profile, entries) {
+    profile.forEach(name => { if (!db.athletes.includes(name)) db.athletes.push(name); });
+    entries.forEach(e => {
+      const kopie = { id: newId(), athlete: e.athlete, disc: e.disc, value: e.value, date: e.date, note: e.note || '' };
+      db.entries.push(kopie);
+      enqueue('wert_anlegen', {
+        p_code: cfg.code, p_id: kopie.id, p_profil: ensureProfileId(kopie.athlete),
+        p_disziplin: kopie.disc, p_wert: kopie.value, p_datum: kopie.date, p_notiz: kopie.note
+      });
+    });
+    commit(); renderAll();
+    toast(`${entries.length} ${entries.length === 1 ? 'Wert' : 'Werte'} werden übertragen`);
+  }
+
   const entriesOf = key => db.entries
     .filter(e => e.athlete === db.current && e.disc === key)
-    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id);
+    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : String(a.id) < String(b.id) ? -1 : 1);
   const countOf = name => db.entries.filter(e => e.athlete === name).length;
   function best(key) {
     const list = entriesOf(key);
@@ -136,7 +350,10 @@
     const css = style.textContent || '';
     if (!code.trim() || !css.trim()) return null;              // lokale Version mit externen Dateien
     const T = 'scr' + 'ipt';
-    const state = JSON.stringify(db).replace(/</g, '\\u003c');
+    // Im Datenbank-Betrieb steckt nichts in der Seite: die Werte holt sie sich
+    // mit dem Klassen-Code, der nur auf dem jeweiligen Gerät liegt.
+    const state = (usingDb() ? 'null' : JSON.stringify(db)).replace(/</g, '\\u003c');
+    const conf = JSON.stringify(cfg ? { url: cfg.url, key: cfg.key } : readEmbeddedCfg()).replace(/</g, '\\u003c');
     const html =
       '<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n' +
       '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n' +
@@ -144,7 +361,9 @@
       '<title>Leichtathletik Tracker</title>\n' +
       '<style id="appStyle">\n' + css + '\n</style>\n</head>\n<body>\n' +
       '<template id="appShell">' + shell.innerHTML + '</template>\n<div id="app"></div>\n' +
+      `<${T} id="appConfig" type="application/json">` + conf + `</${T}>\n` +
       `<${T} id="appState" type="application/json">` + state + `</${T}>\n` +
+      `<${T} id="schemaSql" type="text/plain">` + (document.getElementById('schemaSql') || { textContent: '' }).textContent + `</${T}>\n` +
       `<${T} id="appScript">\n` + code + `\n</${T}>\n</body>\n</html>`;
     // Sicherung: nur veröffentlichen, wenn das Ergebnis vollständig aussieht
     return html.includes('id="appShell"') && html.includes('id="discGrid"') && html.length > 20000 ? html : null;
@@ -169,7 +388,7 @@
     rememberUi();                       // nach dem Veröffentlichen lädt die Seite neu
     try {
       await cloud.publish(html);
-      setSync('cloud');
+      setSync(usingDb() ? 'db' : 'cloud');
     } catch (err) {
       const code = err && err.code;
       if (code === 'conflict') {
@@ -185,6 +404,9 @@
   }
 
   const SYNC_TEXT = {
+    db:       ['Datenbank',    'Werte liegen in eurer Supabase-Datenbank'],
+    offline:  ['offline',      'Keine Verbindung – Änderungen werden nachgereicht'],
+    needcode: ['Code fehlt',   'Datenbank hinterlegt, es fehlt der Klassen-Code'],
     local:    ['Gerät',        'Werte liegen nur in diesem Browser'],
     saving:   ['speichert …',  'Werte werden in der Cloud gesichert'],
     cloud:    ['Cloud',        'Werte sind in der Cloud gesichert'],
@@ -195,7 +417,7 @@
   function setSync(s) {
     sync = s;
     const chip = document.getElementById('syncChip');
-    if (chip) {
+    if (chip && SYNC_TEXT[s]) {
       chip.textContent = SYNC_TEXT[s][0];
       chip.title = SYNC_TEXT[s][1];
       chip.className = 'sync-chip s-' + s;
@@ -221,10 +443,7 @@
     if (ui.y) setTimeout(() => window.scrollTo(0, ui.y), 30);
   }
 
-  function save() {
-    writeLocal();
-    scheduleSave();
-  }
+  function save() { commit(); }
 
   /* ---------------- kleine Helfer ---------------- */
   const $ = sel => document.querySelector(sel);
@@ -310,7 +529,7 @@
     const list = $('#recentList');
     list.textContent = '';
     const mine = db.entries.filter(e => e.athlete === db.current)
-      .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id)
+      .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : String(b.id) < String(a.id) ? -1 : 1)
       .slice(0, 6);
     if (!mine.length) { list.append(el('li', 'empty', 'Noch keine Werte – Disziplin wählen, Zahl tippen, ✓.')); return; }
     mine.forEach(e => list.append(rowFor(e, { showDisc: true })));
@@ -335,11 +554,11 @@
 
   // Löschen ohne Rückfrage-Dialog: sofort weg, dafür mit Rückgängig.
   function removeEntry(e) {
-    db.entries = db.entries.filter(x => x.id !== e.id);
-    save(); renderAll();
+    Store.removeEntry(e);
+    renderAll();
     toast(`${DISC[e.disc].name} ${fmt(e.disc, e.value)} gelöscht`, {
       action: 'Rückgängig',
-      onAction: () => { db.entries.push(e); save(); renderAll(); toast('Wieder da'); }
+      onAction: () => { Store.addEntry(e); renderAll(); toast('Wieder da'); }
     });
   }
 
@@ -349,13 +568,12 @@
     const v = parseValue(selDisc, raw);
     if (v == null) { toast('Wert nicht lesbar: ' + DISC[selDisc].hint, { warn: true }); return; }
     const b = best(selDisc);
-    db.entries.push({
-      id: Date.now() + Math.floor(Math.random() * 1000),
+    Store.addEntry({
+      id: newId(),
       athlete: db.current, disc: selDisc, value: v,
       date: $('#dateInput').value || todayISO(),
       note: $('#noteInput').value.trim()
     });
-    save();
     $('#valueInput').value = ''; $('#noteInput').value = '';
     preview(); renderAll(); $('#valueInput').focus();
     toast(b && isBetter(selDisc, v, b.value) ? `Bestleistung! ${fmt(selDisc, v)}` : `Gespeichert: ${fmt(selDisc, v)}`);
@@ -519,18 +737,29 @@
 
   function renderStorageInfo() {
     const box = document.getElementById('storageInfo');
-    if (!box) return;
-    box.textContent = '';
-    const p = el('p', null, cloud
-      ? 'Gespeichert wird in der Cloud: Die Seite sichert ihren Stand bei Claude. Öffnest du denselben Link auf einem anderen Gerät, sind die Werte da. Zusätzlich liegt eine Kopie in diesem Browser.'
-      : 'Gespeichert wird nur in diesem Browser (localStorage) – also auf diesem Gerät. Sichere die Werte ab und zu als JSON-Datei.');
-    p.style.margin = '0 0 8px';
-    box.append(p);
+    const acts = document.getElementById('storageActions');
+    if (!box || !acts) return;
+    box.textContent = ''; acts.textContent = '';
+    const line = t => { const n = el('p', null, t); n.style.margin = '0 0 8px'; box.append(n); };
+
+    if (usingDb()) {
+      line(`Verbunden mit eurer Datenbank (${cfg.url.replace(/^https?:\/\//, '')}), Klassen-Code „${cfg.code}“. Alle, die diesen Code eintragen, sehen dieselben Werte – auf jedem Gerät.`);
+      if (queue.length) line(`${queue.length} ${queue.length === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf die Verbindung und ${queue.length === 1 ? 'wird' : 'werden'} nachgereicht.`);
+      else line('Eine Kopie bleibt zusätzlich auf diesem Gerät, damit die App auch ohne Netz läuft.');
+      acts.append(btn('btn', 'Jetzt abgleichen', () => pull(true)),
+                  btn('btn', 'Verbindung ändern', openDbDialog));
+      return;
+    }
+
+    line(cloud
+      ? 'Gespeichert wird in der Seite selbst (Claude-Cloud): Die Werte sind auf jedem Gerät da, das diesen Link öffnet. Eine Kopie liegt zusätzlich in diesem Browser.'
+      : 'Gespeichert wird nur in diesem Browser (localStorage) – also auf diesem Gerät.');
+    line('Für eine echte Datenbank (mehrere Geräte, ganze Klasse, gleichzeitiges Eintragen) genügt ein kostenloses Supabase-Projekt.');
+    acts.append(btn('btn btn-mint', 'Datenbank verbinden', openDbDialog));
 
     if (cloud && localOnly.length) {
-      const warn = el('p', null, `${localOnly.length} ${localOnly.length === 1 ? 'Wert liegt' : 'Werte liegen'} nur auf diesem Gerät.`);
-      warn.style.margin = '0 0 8px';
-      box.append(warn, btn('btn btn-mint', 'In die Cloud übernehmen', () => {
+      line(`${localOnly.length} ${localOnly.length === 1 ? 'Wert liegt' : 'Werte liegen'} nur auf diesem Gerät.`);
+      acts.append(btn('btn', 'In die Cloud übernehmen', () => {
         db.entries = db.entries.concat(localOnly);
         localOnly = [];
         db = normalize(db);
@@ -540,6 +769,86 @@
     }
   }
 
+  /* ---------------- Datenbank-Dialog ---------------- */
+  const dbHint = t => { $('#dbHint').textContent = t; };
+
+  function openDbDialog() {
+    const emb = readEmbeddedCfg();
+    $('#dbUrl').value = (cfg && cfg.url) || (emb && emb.url) || '';
+    $('#dbKey').value = (cfg && cfg.key) || (emb && emb.key) || '';
+    $('#dbCode').value = (cfg && cfg.code) || '';
+    $('#dbDisconnect').hidden = !cfg;
+    dbHint(cfg ? 'Verbunden. Ein anderer Klassen-Code öffnet eine andere Gruppe.'
+               : 'Der Klassen-Code ist das Passwort eurer Gruppe. Er wird nicht in der Seite gespeichert, sondern nur auf diesem Gerät.');
+    $('#dbDialog').showModal();
+    if (!$('#dbUrl').value) $('#dbUrl').focus(); else $('#dbCode').focus();
+  }
+
+  async function submitDb(ev) {
+    ev.preventDefault();
+    const url = $('#dbUrl').value.trim();
+    const key = $('#dbKey').value.trim();
+    const code = $('#dbCode').value.trim().toLowerCase();
+    if (!/^https?:\/\//.test(url)) { dbHint('Die Projekt-URL beginnt mit https:// – sie steht in Supabase unter Project Settings → API.'); return; }
+    if (!key) { dbHint('Der anon public key fehlt – ebenfalls unter Project Settings → API.'); return; }
+    if (code.length < 6) { dbHint('Der Klassen-Code braucht mindestens 6 Zeichen.'); return; }
+
+    dbHint('Verbinde …');
+    const conf = { url: url.replace(/\/+$/, ''), key, code };
+    let data;
+    try {
+      data = await rpc('daten_lesen', { p_code: code }, conf);
+    } catch (err) {
+      dbHint('Klappt nicht: ' + err.message + (err.status === 404
+        ? ' – ist das Schema im SQL-Editor gelaufen?' : ''));
+      return;
+    }
+
+    const lokaleWerte = usingDb() ? [] : db.entries.slice();
+    const lokaleProfile = usingDb() ? [] : db.athletes.slice();
+    cfg = conf; writeCfg();
+    queue = []; writeQueue();
+    applyServer(data);
+    renderAll(); syncProfileName(); setSync('db');
+    if (cloud) publishNow();                     // URL und Key in die Seite, damit andere Geräte sie haben
+
+    if (lokaleWerte.length) {
+      dbHint(`Verbunden. Auf diesem Gerät liegen ${lokaleWerte.length} ${lokaleWerte.length === 1 ? 'Wert' : 'Werte'} – in die Datenbank übertragen?`);
+      $('#dbHint').append(document.createElement('br'), btn('btn btn-mint btn-sm', 'Übertragen', () => {
+        uploadLocal(lokaleProfile, lokaleWerte);
+        $('#dbDialog').close();
+      }));
+    } else {
+      toast('Mit der Datenbank verbunden');
+      $('#dbDialog').close();
+    }
+  }
+
+  function disconnectDb() {
+    cfg = null; writeCfg();
+    queue = []; writeQueue();
+    setSync(cloud ? 'cloud' : 'local');
+    $('#dbDialog').close();
+    toast('Verbindung getrennt – die Werte bleiben auf diesem Gerät');
+  }
+
+  async function copySql() {
+    const tag = document.getElementById('schemaSql');
+    const sql = tag ? tag.textContent.trim() : '';
+    if (!sql || sql.startsWith('/*')) { dbHint('Das SQL-Skript liegt im Repo unter supabase/schema.sql'); return; }
+    try {
+      await navigator.clipboard.writeText(sql);
+      toast('SQL kopiert – im SQL-Editor einfügen und Run drücken');
+      return;
+    } catch (e) { /* Zwischenablage gesperrt: Textfeld zum Markieren zeigen */ }
+    const box = $('#dbHint');
+    box.textContent = 'Text markieren und kopieren:';
+    const ta = el('textarea', 'sql-box');
+    ta.value = sql; ta.readOnly = true;
+    box.append(ta);
+    ta.focus(); ta.select();
+  }
+
   /* ---------------- Profile ---------------- */
   function syncProfileName() {
     const n = document.getElementById('profileName');
@@ -547,8 +856,8 @@
   }
 
   function switchTo(name) {
-    db.current = name;
-    save(); renderAll(); syncProfileName();
+    Store.switchProfile(name);
+    renderAll(); syncProfileName();
     $('#profileDialog').close();
     toast('Profil: ' + name);
   }
@@ -588,10 +897,8 @@
       if (!neu) { $('#profileHint').textContent = 'Bitte einen Namen eingeben.'; return; }
       if (neu !== name && db.athletes.includes(neu)) { $('#profileHint').textContent = `„${neu}“ gibt es schon.`; return; }
       if (neu !== name) {
-        db.athletes = db.athletes.map(a => a === name ? neu : a);
-        db.entries.forEach(e => { if (e.athlete === name) e.athlete = neu; });
-        if (db.current === name) db.current = neu;
-        save(); renderAll(); syncProfileName();
+        Store.renameProfile(name, neu);
+        renderAll(); syncProfileName();
       }
       renderProfiles();
       toast('Profil heißt jetzt ' + neu);
@@ -610,17 +917,13 @@
     const q = el('div', 'p-confirm');
     q.append(el('span', 'p-q', `„${name}“ mit ${n} ${n === 1 ? 'Wert' : 'Werten'} löschen?`),
       btn('btn btn-sm btn-danger', 'Löschen', () => {
-        const removed = db.entries.filter(e => e.athlete === name);
-        db.athletes = db.athletes.filter(a => a !== name);
-        db.entries = db.entries.filter(e => e.athlete !== name);
-        if (db.current === name) db.current = db.athletes[0];
-        save(); renderAll(); syncProfileName(); renderProfiles();
+        const removed = Store.removeProfile(name);
+        renderAll(); syncProfileName(); renderProfiles();
         toast(`Profil „${name}“ gelöscht`, {
           action: 'Rückgängig',
           onAction: () => {
-            if (!db.athletes.includes(name)) db.athletes.push(name);
-            db.entries = db.entries.concat(removed);
-            save(); renderAll(); renderProfiles(); toast('Profil wieder da');
+            Store.restoreProfile(name, removed);
+            renderAll(); syncProfileName(); renderProfiles(); toast('Profil wieder da');
           }
         });
       }),
@@ -633,7 +936,7 @@
     const input = $('#profileNewName'), name = input.value.trim();
     if (!name) { $('#profileHint').textContent = 'Bitte einen Namen eingeben.'; input.focus(); return; }
     if (db.athletes.includes(name)) { $('#profileHint').textContent = `„${name}“ gibt es schon.`; return; }
-    db.athletes.push(name);
+    Store.addProfile(name);
     input.value = '';
     switchTo(name);
     toast('Profil angelegt: ' + name);
@@ -678,13 +981,17 @@
       try {
         const p = JSON.parse(r.result);
         if (!valid(p)) throw new Error('Format');
-        const known = new Set(db.entries.map(e => e.id));
-        const neu = p.entries.filter(e => !known.has(e.id));
-        db.entries = db.entries.concat(neu);
-        (p.athletes || []).forEach(a => { if (!db.athletes.includes(a)) db.athletes.push(a); });
-        db = normalize(db);
-        save(); renderAll(); syncProfileName();
-        toast(`${neu.length} ${neu.length === 1 ? 'Wert' : 'Werte'} geladen`);
+        const known = new Set(db.entries.map(e => String(e.id)));
+        const neu = p.entries.filter(e => !known.has(String(e.id)));
+        if (usingDb()) {
+          uploadLocal(p.athletes || [], neu);
+        } else {
+          db.entries = db.entries.concat(neu);
+          (p.athletes || []).forEach(a => { if (!db.athletes.includes(a)) db.athletes.push(a); });
+          db = normalize(db);
+          save(); renderAll(); syncProfileName();
+          toast(`${neu.length} ${neu.length === 1 ? 'Wert' : 'Werte'} geladen`);
+        }
       } catch (err) { toast('Datei konnte nicht gelesen werden', { warn: true }); }
     };
     r.readAsText(file);
@@ -723,6 +1030,8 @@
     document.getElementById('app').append(shell.content.cloneNode(true));
 
     cloud = await initCloud();
+    cfg = readCfg();
+    queue = readQueue();
 
     const fromCloud = readEmbedded(), fromLocal = readLocal();
     if (cloud && fromCloud) {
@@ -739,14 +1048,16 @@
 
     syncEntryHead();
     syncProfileName();
-    setSync(cloud ? 'cloud' : 'local');
+    setSync(usingDb() ? 'db' : readEmbeddedCfg() ? 'needcode' : cloud ? 'cloud' : 'local');
     renderAll();
     $('#dateInput').value = todayISO();
     restoreUi();
 
     $('#entryForm').addEventListener('submit', addEntry);
     $('#valueInput').addEventListener('input', preview);
-    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { flushSave(); show(t.dataset.view); }));
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+      flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
+    }));
 
     $('#profileBtn').addEventListener('click', () => { renderProfiles(); $('#profileDialog').showModal(); });
     $('#profileClose').addEventListener('click', () => $('#profileDialog').close());
@@ -759,10 +1070,22 @@
       if (ev.target.files[0]) importJSON(ev.target.files[0]);
       ev.target.value = '';
     });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
+    $('#dbForm').addEventListener('submit', submitDb);
+    $('#dbClose').addEventListener('click', () => $('#dbDialog').close());
+    $('#dbDisconnect').addEventListener('click', disconnectDb);
+    $('#sqlCopy').addEventListener('click', copySql);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) flushSave();
+      else if (usingDb()) { flush(); pull(); }
+    });
     window.addEventListener('pagehide', flushSave);
+    window.addEventListener('online', () => { if (usingDb()) { flush(); pull(true); } });
 
     $('#valueInput').focus();
+
+    if (usingDb()) { await pull(true); await flush(); }
+    else if (readEmbeddedCfg()) openDbDialog();
   }
 
   main();
