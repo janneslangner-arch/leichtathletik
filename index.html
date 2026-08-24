@@ -86,31 +86,20 @@
         <span id="chartTrend" class="trend"></span>
       </div>
       <div id="chartWrap" class="chart-wrap"></div>
-      <p class="chart-legend"><span class="dot dot-pb"></span> Bestwert &nbsp;·&nbsp; <span class="dot dot-normal"></span> Messung &nbsp;·&nbsp; nach oben = besser</p>
+      <div id="statsLine" class="stats-line"></div>
     </div>
 
-    <div class="stats-grid" id="statsGrid"></div>
-
-    <h2 class="section-title">Alle Werte</h2>
-    <ul id="discList" class="entry-list"></ul>
-  </section>
-
-  <!-- ============ ÜBERSICHT ============ -->
-  <section id="view-uebersicht" class="view">
-    <h1 class="view-title">Übersicht</h1>
-    <p class="view-note">Bestwerte von <strong id="overviewName">–</strong></p>
-    <div id="overviewGrid" class="overview-grid"></div>
-
+    <details class="klapp" id="alleWerte">
+      <summary>Alle Werte <span id="alleWerteZahl" class="sub"></span></summary>
+      <div class="klapp-body">
+        <ul id="discList" class="entry-list"></ul>
+      </div>
+    </details>
   </section>
 
   <!-- ============ PUNKTE ============ -->
   <section id="view-punkte" class="view">
-    <h1 class="view-title">Punktewertung</h1>
-    <p class="view-note">Fünfkampf nach DLV-Punkten, Note nach der SH-Tabelle. Gewertet wird der <strong>Bestwert</strong> jeder Disziplin.</p>
-
-    <button type="button" class="wertung-zeile" data-ziel="einstellungen">
-      <span id="wertungInfo">–</span><span class="mr-chev" aria-hidden="true">›</span>
-    </button>
+    <h1 class="view-title">Punkte</h1>
 
     <div class="punkte-summe">
       <div class="ps-block">
@@ -119,14 +108,26 @@
         <span id="punkteStatus" class="sub"></span>
       </div>
       <div class="ps-block ps-wa">
-        <span class="k">Bewertung</span>
+        <span class="k">Note</span>
         <span id="punkteNote" class="v">–</span>
         <span id="punkteNoteFein" class="sub"></span>
       </div>
     </div>
 
+    <button type="button" class="wertung-zeile" data-ziel="einstellungen">
+      <span id="wertungInfo">–</span><span class="mr-chev" aria-hidden="true">›</span>
+    </button>
+
+    <h2 class="section-title">Diese fünf zählen</h2>
     <ul id="punkteListe" class="entry-list"></ul>
-    <p id="punkteHinweis" class="hint-text"></p>
+
+    <details class="klapp">
+      <summary>Alle Disziplinen <span class="sub">und wie gerechnet wird</span></summary>
+      <div class="klapp-body">
+        <ul id="punkteAlle" class="entry-list"></ul>
+        <p id="punkteHinweis" class="hint-text"></p>
+      </div>
+    </details>
   </section>
 
   <!-- ============ PROFIL ============ -->
@@ -173,52 +174,68 @@
     <h1 class="view-title">Einstellungen</h1>
     <p id="einstellungenFuer" class="view-note"></p>
 
-    <h2 class="section-title">Wertung</h2>
-    <div class="feld-zeile">
-      <span class="feld-name">Tabelle</span>
-      <div class="seg" id="genderSeg" role="group" aria-label="Wertungstabelle">
-        <button type="button" class="seg-btn" data-wert="m">Jungen</button>
-        <button type="button" class="seg-btn" data-wert="w">Mädchen</button>
+    <details class="klapp" open>
+      <summary>Wertung <span id="wertungKurz" class="sub"></span></summary>
+      <div class="klapp-body">
+        <div class="feld-zeile">
+          <span class="feld-name">Tabelle</span>
+          <div class="seg" id="genderSeg" role="group" aria-label="Wertungstabelle">
+            <button type="button" class="seg-btn" data-wert="m">Jungen</button>
+            <button type="button" class="seg-btn" data-wert="w">Mädchen</button>
+          </div>
+        </div>
+        <div class="feld-zeile">
+          <span class="feld-name">Zeitmessung</span>
+          <div class="seg" id="zeitSeg" role="group" aria-label="Zeitmessung">
+            <button type="button" class="seg-btn" data-wert="hand">Handzeit</button>
+            <button type="button" class="seg-btn" data-wert="elektro">elektronisch</button>
+          </div>
+        </div>
+        <div class="feld-zeile">
+          <span class="feld-name">Altersklasse</span>
+          <div class="seg" id="klasseSeg" role="group" aria-label="Altersklasse">
+            <button type="button" class="seg-btn" data-wert="U18">U18</button>
+            <button type="button" class="seg-btn" data-wert="U20">U20</button>
+            <button type="button" class="seg-btn" data-wert="U23">U23</button>
+          </div>
+        </div>
+        <div class="feld-zeile">
+          <span class="feld-name">Geburtsjahr</span>
+          <input id="jahrInput" type="number" inputmode="numeric" min="1950" max="2035" placeholder="2008" class="feld-eingabe">
+        </div>
+        <p id="wertungHinweis" class="hint-text"></p>
       </div>
-    </div>
-    <div class="feld-zeile">
-      <span class="feld-name">Zeitmessung</span>
-      <div class="seg" id="zeitSeg" role="group" aria-label="Zeitmessung">
-        <button type="button" class="seg-btn" data-wert="hand">Handzeit</button>
-        <button type="button" class="seg-btn" data-wert="elektro">elektronisch</button>
+    </details>
+
+    <details class="klapp">
+      <summary>Aussehen <span id="designKurz" class="sub"></span></summary>
+      <div class="klapp-body">
+        <h3 class="section-title">Farbe</h3>
+        <div id="themeGrid" class="theme-grid"></div>
+        <h3 class="section-title">Hintergrund</h3>
+        <div id="patternGrid" class="theme-grid"></div>
       </div>
-    </div>
-    <div class="feld-zeile">
-      <span class="feld-name">Altersklasse</span>
-      <div class="seg" id="klasseSeg" role="group" aria-label="Altersklasse">
-        <button type="button" class="seg-btn" data-wert="U18">U18</button>
-        <button type="button" class="seg-btn" data-wert="U20">U20</button>
-        <button type="button" class="seg-btn" data-wert="U23">U23</button>
+    </details>
+
+    <details class="klapp">
+      <summary>Speicherort <span id="speicherKurz" class="sub"></span></summary>
+      <div class="klapp-body">
+        <div id="storageInfo" class="hint-text"></div>
+        <div class="data-actions" id="storageActions"></div>
       </div>
-    </div>
-    <div class="feld-zeile">
-      <span class="feld-name">Geburtsjahr</span>
-      <input id="jahrInput" type="number" inputmode="numeric" min="1950" max="2035" placeholder="2008" class="feld-eingabe">
-    </div>
-    <p id="wertungHinweis" class="hint-text"></p>
+    </details>
 
-    <h2 class="section-title">Farbe</h2>
-    <div id="themeGrid" class="theme-grid"></div>
-
-    <h2 class="section-title">Hintergrund</h2>
-    <div id="patternGrid" class="theme-grid"></div>
-
-    <h2 class="section-title">Speicherort</h2>
-    <div id="storageInfo" class="hint-text"></div>
-    <div class="data-actions" id="storageActions"></div>
-
-    <h2 class="section-title">Daten</h2>
-    <div class="data-actions">
-      <button id="exportBtn" class="btn">⬇ Sichern (JSON)</button>
-      <button id="importBtn" class="btn">⬆ Laden (JSON)</button>
-      <button id="csvBtn" class="btn">⬇ CSV</button>
-      <input id="importFile" type="file" accept="application/json,.json" hidden>
-    </div>
+    <details class="klapp">
+      <summary>Daten sichern <span class="sub">JSON, CSV</span></summary>
+      <div class="klapp-body">
+        <div class="data-actions">
+          <button id="exportBtn" class="btn">⬇ Sichern (JSON)</button>
+          <button id="importBtn" class="btn">⬆ Laden (JSON)</button>
+          <button id="csvBtn" class="btn">⬇ CSV</button>
+          <input id="importFile" type="file" accept="application/json,.json" hidden>
+        </div>
+      </div>
+    </details>
   </section>
 
   <!-- ============ PROFILE VERWALTEN ============ -->
@@ -242,9 +259,6 @@
   </button>
   <button class="tab" data-view="verlauf">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-5 4 3 7-8"/><path d="M20 8h-4M20 8v4"/></svg>Verlauf
-  </button>
-  <button class="tab" data-view="uebersicht">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v5a5 5 0 01-10 0V4z"/><path d="M17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3"/><path d="M12 14v3M9 20h6"/></svg>Übersicht
   </button>
   <button class="tab" data-view="punkte">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M9.5 19V5M15 19v-6M20.5 19V8"/></svg>Punkte

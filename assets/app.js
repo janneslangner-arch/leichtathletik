@@ -674,7 +674,7 @@
     list.textContent = '';
     const mine = db.entries.filter(e => e.athlete === db.current)
       .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : String(b.id) < String(a.id) ? -1 : 1)
-      .slice(0, 6);
+      .slice(0, 4);
     if (!mine.length) { list.append(el('li', 'empty', 'Noch keine Werte – Disziplin wählen, Zahl tippen, ✓.')); return; }
     mine.forEach(e => list.append(rowFor(e, { showDisc: true })));
   }
@@ -799,24 +799,6 @@
     return svg;
   }
 
-  function sparkline(key, list) {
-    const W = 130, H = 30;
-    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, class: 'spark', 'aria-hidden': 'true', preserveAspectRatio: 'none' });
-    if (list.length < 2) return svg;
-    const vals = list.map(e => e.value);
-    let min = Math.min(...vals), max = Math.max(...vals);
-    if (min === max) { min -= 1; max += 1; }
-    const low = DISC[key].better === 'low';
-    const pts = list.map((e, i) => {
-      const frac = (e.value - min) / (max - min);
-      return [(W - 2) * (i / (list.length - 1)) + 1, 3 + (H - 6) * (low ? frac : 1 - frac)];
-    });
-    svg.append(svgEl('path', { class: 'line-path',
-      d: pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' '),
-      'stroke-width': '2', 'vector-effect': 'non-scaling-stroke' }));
-    return svg;
-  }
-
   function renderVerlauf() {
     const tabs = $('#chartTabs');
     tabs.textContent = '';
@@ -841,19 +823,21 @@
     wrap.textContent = '';
     wrap.append(buildChart(key, list));
 
-    const grid = $('#statsGrid');
-    grid.textContent = '';
+    const zeile = $('#statsLine');
+    zeile.textContent = '';
     const b = best(key);
-    [['Bestwert', b ? fmt(key, b.value) : '–', true],
-     ['Letzter Wert', list.length ? fmt(key, list[list.length - 1].value) : '–', false],
-     ['Durchschnitt', list.length ? fmt(key, list.reduce((s, e) => s + e.value, 0) / list.length) : '–', false],
-     ['Messungen', String(list.length), false]
+    [['Best', b ? fmt(key, b.value) : '–', true],
+     ['Zuletzt', list.length ? fmt(key, list[list.length - 1].value) : '–', false],
+     ['Schnitt', list.length ? fmt(key, list.reduce((s, e) => s + e.value, 0) / list.length) : '–', false]
     ].forEach(([k, v, mint]) => {
-      const s = el('div', 'stat');
-      s.append(el('div', 'k', k), el('div', 'v' + (mint ? ' mint' : ''), v));
-      grid.append(s);
+      const s = el('span', 'sl-item');
+      s.append(el('span', 'sl-k', k), el('span', 'sl-v' + (mint ? ' mint' : ''), v));
+      zeile.append(s);
     });
 
+    $('#alleWerteZahl').textContent = list.length
+      ? '· ' + list.length + (list.length === 1 ? ' Messung' : ' Messungen')
+      : '· noch leer';
     const ul = $('#discList');
     ul.textContent = '';
     if (!list.length) ul.append(el('li', 'empty', 'Für ' + d.name + ' ist noch nichts erfasst.'));
@@ -1017,52 +1001,62 @@
       $('#punkteNoteFein').textContent = 'Note ' + noteZuPunkten(np);
       const naechste = (NOTENPUNKTE[g] || NOTENPUNKTE.m).find(([, p]) => p === np + 1);
       $('#punkteStatus').textContent = naechste
-        ? `noch ${naechste[0] - ergebnis.summe} Punkte bis ${np + 1} NP · zweite Wertung aus ${ergebnis.zusatz}`
-        : `Höchstwertung · zweite Wertung aus ${ergebnis.zusatz}`;
+        ? `noch ${naechste[0] - ergebnis.summe} bis ${np + 1} NP`
+        : 'Höchstwertung';
     } else {
       $('#punkteNote').textContent = '–';
       $('#punkteNoteFein').textContent = '';
       $('#punkteStatus').textContent = ergebnis.status;
     }
 
+    // Eine Zeile je Disziplin: Wert links, DLV-Punkte rechts.
+    const zeile = (key, gruppe, zaehlt) => {
+      const d = DISC[key], b = bestwerte[key], p = punkte[key];
+      const li = el('li', 'row punkte-row' + (zaehlt ? ' is-gezaehlt' : ''));
+      li.append(el('span', 'ic', d.ic));
+      const main = el('div', 'main');
+      main.append(el('div', 'nm', gruppe));
+      main.append(el('div', 'val', b ? fmt(key, b.value) : '– kein Wert'));
+      li.append(main);
+      const rechts = el('div', 'punkte-wert');
+      rechts.append(el('span', 'p-zahl' + (p == null ? ' p-leer' : ''), p == null ? '–' : String(p)));
+      rechts.append(el('span', 'p-einheit', 'Punkte'));
+      li.append(rechts);
+      return li;
+    };
+
+    // Oben nur die fünf, die in die Note eingehen.
     const liste = $('#punkteListe');
     liste.textContent = '';
+    const gezaehlteKeys = [];
     Object.entries(GRUPPEN(g)).forEach(([gruppe, keys]) => {
-      liste.append(el('li', 'punkte-gruppe', gruppe));
       keys.forEach(key => {
-        const d = DISC[key], b = bestwerte[key], p = punkte[key];
-        const li = el('li', 'row punkte-row');
-        li.append(el('span', 'ic', d.ic));
+        const p = punkte[key];
+        if (p == null || !offen[gruppe] || !offen[gruppe].includes(p)) return;
+        offen[gruppe].splice(offen[gruppe].indexOf(p), 1);
+        gezaehlteKeys.push(key);
+        liste.append(zeile(key, DISC[key].name, true));
+      });
+    });
+    if (!gezaehlteKeys.length)
+      liste.append(el('li', 'empty', ergebnis.status || 'Noch zu wenige Werte für den Fünfkampf.'));
 
-        const main = el('div', 'main');
-        const strecke = ((DLV[g] || {})[key] || {}).strecke;
-        main.append(el('div', 'nm', d.name + (strecke ? ` · bei Mädchen ${strecke}` : '')));
-        main.append(el('div', 'val', b ? fmt(key, b.value) : '– noch kein Wert'));
-        if (p != null) {
-          const bar = el('div', 'p-bar');
-          const f = el('span');
-          f.style.width = Math.max(3, Math.min(100, (p / (g === 'w' ? 451 : 507)) * 100)) + '%';
-          bar.append(f);
-          main.append(bar);
-        }
-        li.append(main);
-
-        const rechts = el('div', 'punkte-wert');
+    // Ausgeklappt: alle sieben mit Einzelnote.
+    const alle = $('#punkteAlle');
+    alle.textContent = '';
+    Object.entries(GRUPPEN(g)).forEach(([gruppe, keys]) => {
+      keys.forEach(key => {
+        const li = zeile(key, gruppe, gezaehlteKeys.includes(key));
+        const p = punkte[key];
         if (p != null) {
           const np = notenpunkteEinzel(p, g);
-          rechts.append(el('span', 'p-zahl', String(p)));
-          rechts.append(el('span', 'p-note', `einzeln ${np} NP · ${noteZuPunkten(np)}`));
-          if (offen[gruppe] && offen[gruppe].includes(p)) {
-            offen[gruppe].splice(offen[gruppe].indexOf(p), 1);
-            li.classList.add('is-gezaehlt');
-            rechts.append(el('span', 'p-zaehlt', 'zählt'));
-          }
-        } else {
-          rechts.append(el('span', 'p-zahl p-leer', '–'));
-          if (b) rechts.append(el('span', 'p-note', 'keine Tabelle für ' + (g === 'w' ? 'Mädchen' : 'Jungen')));
+          li.querySelector('.punkte-wert').append(
+            el('span', 'p-note', `einzeln ${np} NP · ${noteZuPunkten(np)}`));
         }
-        li.append(rechts);
-        liste.append(li);
+        const strecke = ((DLV[g] || {})[key] || {}).strecke;
+        li.querySelector('.main .nm').textContent =
+          DISC[key].name + (strecke ? ` · bei Mädchen ${strecke}` : '');
+        alle.append(li);
       });
     });
 
@@ -1071,26 +1065,6 @@
       + 'Note aus der Summe der fünf gewerteten Disziplinen nach der SH-Tabelle (15 NP = 1+, 0 NP = 6); '
       + 'je eine Disziplin aus Sprint, Sprung, Wurf/Stoß und Langstrecke, die fünfte frei. '
       + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`;
-  }
-
-  /* ---------------- Übersicht ---------------- */
-  function renderUebersicht() {
-    $('#overviewName').textContent = db.current;
-    const grid = $('#overviewGrid');
-    grid.textContent = '';
-    KEYS.forEach(key => {
-      const d = DISC[key], list = entriesOf(key), b = best(key);
-      const card = el('button', 'ov-card');
-      card.type = 'button';
-      const nm = el('div', 'nm');
-      nm.append(el('span', null, d.ic), el('span', null, d.name));
-      card.append(nm, el('div', 'pb' + (b ? '' : ' none'), b ? fmt(key, b.value) : '–'),
-        el('div', 'sub', list.length ? `${list.length} × · zuletzt ${fmtDate(list[list.length - 1].date)}` : 'noch nichts erfasst'),
-        sparkline(key, list));
-      card.addEventListener('click', () => { chartDisc = key; show('verlauf'); });
-      grid.append(card);
-    });
-    renderStorageInfo();
   }
 
   function renderStorageInfo() {
@@ -1314,6 +1288,13 @@
     span.style.color = `hsl(${h} 72% 74%)`;
   }
 
+  // „Ich" ist nur die Vorbelegung eines frischen Geräts. Sobald echte Profile
+  // da sind und darunter kein Wert liegt, taucht es nirgends mehr auf.
+  function sichtbareProfile() {
+    return db.athletes.filter(n =>
+      n !== 'Ich' || n === db.current || countOf('Ich') > 0 || db.athletes.length === 1);
+  }
+
   /* ---------------- Profil wechseln (Vollbild) ---------------- */
   function openPicker(frage) {
     renderPicker();
@@ -1330,7 +1311,7 @@
   function renderPicker() {
     const grid = $('#profileGrid');
     grid.textContent = '';
-    db.athletes.forEach(name => {
+    sichtbareProfile().forEach(name => {
       const li = el('li');
       const tile = btn('p-tile' + (name === db.current ? ' is-current' : ''), null,
         () => name === db.current ? closePicker() : switchTo(name),
@@ -1419,14 +1400,14 @@
       (n ? `${n} ${n === 1 ? 'Wert' : 'Werte'}` : 'noch keine Werte')
       + ` · ${geschlechtVon() === 'w' ? 'Mädchen' : 'Jungen'}`
       + (jahr ? ` · Jahrgang ${jahr}` : '') + ` · ${klasseVon()}`;
-    const anzahl = db.athletes.length;
+    const anzahl = sichtbareProfile().length;
     $('#profileAnzahl').textContent = `${anzahl} ${anzahl === 1 ? 'Profil' : 'Profile'} · anlegen, umbenennen, löschen`;
   }
 
   function renderProfilListe() {
     const list = $('#profileList');
     list.textContent = '';
-    db.athletes.forEach(name => {
+    sichtbareProfile().forEach(name => {
       const li = el('li', 'p-row' + (name === db.current ? ' is-current' : ''));
       drawProfileRow(li, name);
       list.append(li);
@@ -1442,7 +1423,11 @@
     setzeAktiv('#zeitSeg', zeit);
     setzeAktiv('#klasseSeg', klasse);
     $('#jahrInput').value = einstellung('jahr', '');
-    $('#einstellungenFuer').textContent = 'Gelten für das Profil ' + db.current + '. Farbe und Hintergrund gelten für dieses Gerät.';
+    $('#einstellungenFuer').textContent = 'Für ' + db.current + '. Farbe und Hintergrund gelten für dieses Gerät.';
+    $('#wertungKurz').textContent =
+      `· ${g === 'w' ? 'Mädchen' : 'Jungen'} · ${zeit === 'hand' ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
+    $('#designKurz').textContent = '· ' + THEMES[theme].name + ' · ' + musterName(pattern);
+    $('#speicherKurz').textContent = '· ' + speicherName();
     $('#wertungHinweis').textContent =
       `${g === 'w' ? 'Mädchen' : 'Jungen'}, ${zeit === 'hand' ? 'Handzeit (Zuschlag 0,24 s bis 300 m)' : 'elektronische Zeit'}, `
       + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`
@@ -1450,6 +1435,9 @@
     renderThemes();
     renderStorageInfo();
   }
+
+  const musterName = key => (PATTERNS.find(([k]) => k === key) || [null, 'Schlicht'])[1];
+  const speicherName = () => usingDb() ? 'Datenbank' : cloud ? 'Cloud' : 'dieses Gerät';
 
   function renderThemes() {
     const grid = $('#themeGrid');
@@ -1630,7 +1618,6 @@
     });
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === reiter));
     if (view === 'verlauf') renderVerlauf();
-    if (view === 'uebersicht') renderUebersicht();
     if (view === 'punkte') renderPunkte();
     if (view === 'profil') renderProfil();
     if (view === 'einstellungen') renderEinstellungen();
@@ -1642,7 +1629,6 @@
     renderDiscGrid();
     renderRecent();
     if ($('#view-verlauf').classList.contains('is-active')) renderVerlauf();
-    if ($('#view-uebersicht').classList.contains('is-active')) renderUebersicht();
     if ($('#view-punkte').classList.contains('is-active')) renderPunkte();
     if ($('#view-profil').classList.contains('is-active')) renderProfil();
   }

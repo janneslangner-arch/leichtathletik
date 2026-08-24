@@ -28,11 +28,11 @@ Unter der Eingabe steht sofort, wie der Wert gelesen wurde und ob es eine
 neue Bestleistung ist. Datum und Notiz lassen sich bei Bedarf aufklappen.
 
 **Verlauf** – Liniendiagramm je Disziplin. Bei Laufzeiten ist die Achse
-gedreht, damit „nach oben“ immer „besser“ heißt. Dazu Bestwert, letzter Wert,
-Durchschnitt und alle Einzelwerte (löschbar).
-
-**Übersicht** – alle Bestwerte auf einen Blick mit Mini-Verlauf; ein Klick
-springt ins passende Diagramm.
+gedreht, damit „nach oben“ immer „besser“ heißt. Darunter in einer Zeile
+Bestwert, letzter Wert und Durchschnitt; die Einzelwerte (löschbar) stehen
+zum Ausklappen darunter. Die Bestwerte aller Disziplinen stehen ohnehin auf
+den Kacheln im Reiter „Erfassen“ – eine eigene Übersichtsseite gibt es
+deshalb nicht.
 
 **Punkte** – der Fünfkampf nach der Vorlage `Leichtathletik_Fuenfkampf_SH.xlsx`.
 
@@ -53,23 +53,27 @@ die fünfte frei – hier also eine zweite aus Sprung, Wurf oder Langstrecke.
 Mädchen laufen laut Vorlage 800 m statt 1500 m und 2000 m statt 5000 m; die
 Zeile heißt weiterhin so, gerechnet wird mit den Beiwerten der tatsächlich
 gelaufenen Strecke, und die App schreibt es an die Zeile. Die App probiert alle vier Möglichkeiten durch
-und nimmt die beste Summe; die gezählten Zeilen sind mit „zählt" markiert.
+und nimmt die beste Summe; oben stehen nur die fünf Zeilen, die zählen.
 Aus der Summe kommt die Bewertung in Notenpunkten (15 NP = 1+, 0 NP = 6)
-nach der SH-Tabelle unter `NOTENPUNKTE`. Jede Zeile zeigt zusätzlich, was die
-Leistung einzeln wäre – dieselbe Tabelle, geteilt durch fünf.
+nach der SH-Tabelle unter `NOTENPUNKTE`. Ausgeklappt („Alle Disziplinen")
+stehen alle sieben und dazu, was jede Leistung einzeln wäre – dieselbe
+Tabelle, geteilt durch fünf.
 
 Umschalter für Jungen/Mädchen, Handzeit/elektronisch und die Altersklasse
-(U18/U20/U23, bestimmt die angezeigten Gerätegewichte). Die Einstellungen
-gelten je Profil.
+(U18/U20/U23, bestimmt die angezeigten Gerätegewichte) stehen in den
+Einstellungen; die Zeile über der Wertung zeigt sie an und führt hin. Die
+Einstellungen gelten je Profil.
 
 Geprüft gegen die Marken der Bewertungstabelle: Weitsprung 5,12 m → 507,
 Kugel 10,90 m → 507, Speer 32,31 m → 507, 5000 m 19:05,68 → 507 (Jungen)
 sowie Weitsprung 4,13 m → 451, Kugel 9,45 m → 451, 800 m 2:41,90 → 451 und
 2000 m 7:52,21 → 451 (Mädchen).
 
-**Profil** – der fünfte Reiter hält alles, was nicht Sport ist: Profilliste
-zum Anlegen, Umbenennen und Löschen, die Farbe der App, Speicherort und die
-Datei-Knöpfe. Die ersten drei Reiter bleiben so nur beim Sport.
+**Profil** – der vierte Reiter hält alles, was nicht Sport ist, und zeigt
+selbst nur zwei Zeilen: „Einstellungen" und „Profile verwalten". In den
+Einstellungen liegt jeder Bereich (Wertung, Aussehen, Speicherort, Daten) in
+einem eigenen Abschnitt zum Ausklappen, damit die Seite kurz bleibt. Die
+ersten drei Reiter bleiben so nur beim Sport.
 
 **Profil anlegen** – die gestrichelte Kachel in der Auswahl oder der Knopf im
 Profil-Reiter öffnen ein Vollbild und fragen nach **Name, Geburtsjahr und
