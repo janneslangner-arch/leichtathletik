@@ -9,13 +9,8 @@ einfach `index.html` im Browser öffnen (Handy, Tablet oder Laptop).
 | Disziplin     | Einheit | Eingabe-Beispiele        |
 |---------------|---------|--------------------------|
 | Hochsprung    | m       | `1.45` oder `145` (cm)   |
-| Diskuswurf    | m       | `25.66` oder `2566` (cm) |
 | Weitsprung    | m       | `4.35` oder `435` (cm)   |
 | 100 m Sprint  | s       | `12.85`                  |
-| 200 m Sprint  | s       | `27.50`                  |
-| 400 m Sprint  | min     | `1:02` oder `62.5`       |
-| 800 m Lauf    | min     | `2:41` oder kurz `241`   |
-| 2000 m Lauf   | min     | `7:52` oder kurz `752`   |
 | 1500 m Lauf   | min     | `5:42` oder kurz `542`   |
 | 5000 m Lauf   | min     | `21:30` oder kurz `2130` |
 | Speerwurf     | m       | `27.50` oder `2750` (cm) |
@@ -52,8 +47,12 @@ Handzeit-Zuschlag wie in der Vorlage: bis 300 m +0,24 s, über 300 bis 400 m
 +0,14 s, darüber keiner. Die Beiwerte `a` und `c` stehen in `assets/app.js`
 unter `DLV`, getrennt nach Jungen und Mädchen.
 
-Gewertet werden fünf Disziplinen: je eine aus Sprint, Sprung, Wurf/Stoß und
-Langstrecke, die fünfte frei. Die App probiert alle vier Möglichkeiten durch
+Gewertet werden fünf Disziplinen: je eine aus Sprint (100 m), Sprung
+(Hoch, Weit), Wurf/Stoß (Kugel, Speer) und Langstrecke (1500 m, 5000 m),
+die fünfte frei – hier also eine zweite aus Sprung, Wurf oder Langstrecke.
+Mädchen laufen laut Vorlage 800 m statt 1500 m und 2000 m statt 5000 m; die
+Zeile heißt weiterhin so, gerechnet wird mit den Beiwerten der tatsächlich
+gelaufenen Strecke, und die App schreibt es an die Zeile. Die App probiert alle vier Möglichkeiten durch
 und nimmt die beste Summe; die gezählten Zeilen sind mit „zählt" markiert.
 Aus der Summe kommt die Bewertung in Notenpunkten (15 NP = 1+, 0 NP = 6)
 nach der SH-Tabelle unter `NOTENPUNKTE`. Jede Zeile zeigt zusätzlich, was die

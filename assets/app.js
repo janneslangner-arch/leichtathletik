@@ -7,30 +7,20 @@
 
   /* ---------------- Disziplinen ---------------- */
   const DISC = {
-    sprint100:    { name: '100 m Sprint', short: '100 m',  ic: '100',    kind: 'sec',    better: 'low',  unit: 's',
+    sprint100:    { name: '100 m Sprint', short: '100 m',  ic: '100',   kind: 'sec',    better: 'low',  unit: 's',
                     hint: 'Sekunden, z. B. 12.85', ph: '12.85' },
-    sprint200:    { name: '200 m Sprint', short: '200 m',  ic: '200',    kind: 'sec',    better: 'low',  unit: 's',
-                    hint: 'Sekunden, z. B. 27.50', ph: '27.50' },
-    sprint400:    { name: '400 m Sprint', short: '400 m',  ic: '400',    kind: 'mmss',   better: 'low',  unit: 'min',
-                    hint: '1:02 oder 62.5', ph: '1:02' },
-    lauf800:      { name: '800 m Lauf',   short: '800 m',  ic: '800',    kind: 'mmss',   better: 'low',  unit: 'min',
-                    hint: '2:41 oder kurz 241', ph: '2:41' },
-    lauf1500:     { name: '1500 m Lauf',  short: '1500 m', ic: '1500',   kind: 'mmss',   better: 'low',  unit: 'min',
+    lauf1500:     { name: '1500 m Lauf',  short: '1500 m', ic: '1500',  kind: 'mmss',   better: 'low',  unit: 'min',
                     hint: '5:42 oder kurz 542', ph: '5:42' },
-    lauf2000:     { name: '2000 m Lauf',  short: '2000 m', ic: '2000',   kind: 'mmss',   better: 'low',  unit: 'min',
-                    hint: '7:52 oder kurz 752', ph: '7:52' },
-    lauf5000:     { name: '5000 m Lauf',  short: '5000 m', ic: '5000',   kind: 'mmss',   better: 'low',  unit: 'min',
+    lauf5000:     { name: '5000 m Lauf',  short: '5000 m', ic: '5000',  kind: 'mmss',   better: 'low',  unit: 'min',
                     hint: '21:30 oder kurz 2130', ph: '21:30' },
-    hochsprung:   { name: 'Hochsprung',   short: 'Hoch',   ic: 'HOCH',   kind: 'length', better: 'high', unit: 'm', maxM: 3,
+    hochsprung:   { name: 'Hochsprung',   short: 'Hoch',   ic: 'HOCH',  kind: 'length', better: 'high', unit: 'm', maxM: 3,
                     hint: '1.45 oder 145 (cm)', ph: '1.45' },
-    weitsprung:   { name: 'Weitsprung',   short: 'Weit',   ic: 'WEIT',   kind: 'length', better: 'high', unit: 'm', maxM: 10,
+    weitsprung:   { name: 'Weitsprung',   short: 'Weit',   ic: 'WEIT',  kind: 'length', better: 'high', unit: 'm', maxM: 10,
                     hint: '4.35 oder 435 (cm)', ph: '4.35' },
-    kugelstossen: { name: 'Kugelstoßen',  short: 'Kugel',  ic: 'KUGEL',  kind: 'length', better: 'high', unit: 'm', maxM: 25,
+    kugelstossen: { name: 'Kugelstoßen',  short: 'Kugel',  ic: 'KUGEL', kind: 'length', better: 'high', unit: 'm', maxM: 25,
                     hint: '8.20 oder 820 (cm)', ph: '8.20' },
-    speerwurf:    { name: 'Speerwurf',    short: 'Speer',  ic: 'SPEER',  kind: 'length', better: 'high', unit: 'm', maxM: 110,
-                    hint: '27.50 oder 2750 (cm)', ph: '27.50' },
-    diskuswurf:   { name: 'Diskuswurf',   short: 'Diskus', ic: 'DISKUS', kind: 'length', better: 'high', unit: 'm', maxM: 80,
-                    hint: '25.66 oder 2566 (cm)', ph: '25.66' }
+    speerwurf:    { name: 'Speerwurf',    short: 'Speer',  ic: 'SPEER', kind: 'length', better: 'high', unit: 'm', maxM: 110,
+                    hint: '27.50 oder 2750 (cm)', ph: '27.50' }
   };
   const KEYS = Object.keys(DISC);
 
@@ -883,27 +873,24 @@
   const DLV = {
     m: {
       sprint100:   { typ: 'lauf', d: 100,  a: 4.3410,  c: 0.00676 },
-      sprint200:   { typ: 'lauf', d: 200,  a: 3.6040,  c: 0.00760 },
-      sprint400:   { typ: 'lauf', d: 400,  a: 2.9670,  c: 0.00716 },
       lauf1500:    { typ: 'lauf', d: 1500, a: 1.9122,  c: 0.00613 },
       lauf5000:    { typ: 'lauf', d: 5000, a: 1.5250,  c: 0.00560 },
       hochsprung:  { typ: 'feld', a: 0.8410,  c: 0.00080 },
       weitsprung:  { typ: 'feld', a: 1.15028, c: 0.00219 },
       kugelstossen:{ typ: 'feld', a: 1.4250,  c: 0.00370 },
-      speerwurf:   { typ: 'feld', a: 0.3500,  c: 0.01052 },
-      diskuswurf:  { typ: 'feld', a: 1.4000,  c: 0.00800 }
+      speerwurf:   { typ: 'feld', a: 0.3500,  c: 0.01052 }
     },
+    // Mädchen laufen in der Vorlage die kürzeren Strecken: 800 m statt
+    // 1500 m und 2000 m statt 5000 m. Die Zeile heißt weiter 1500/5000,
+    // gerechnet wird mit den Beiwerten der tatsächlich gelaufenen Strecke.
     w: {
       sprint100:   { typ: 'lauf', d: 100,  a: 4.0062,  c: 0.00656 },
-      sprint200:   { typ: 'lauf', d: 200,  a: 3.7890,  c: 0.00734 },
-      sprint400:   { typ: 'lauf', d: 400,  a: 2.8100,  c: 0.00716 },
-      lauf800:     { typ: 'lauf', d: 800,  a: 2.0232,  c: 0.00647 },
-      lauf2000:    { typ: 'lauf', d: 2000, a: 1.8000,  c: 0.00540 },
+      lauf1500:    { typ: 'lauf', d: 800,  a: 2.0232,  c: 0.00647, strecke: '800 m' },
+      lauf5000:    { typ: 'lauf', d: 2000, a: 1.8000,  c: 0.00540, strecke: '2000 m' },
       hochsprung:  { typ: 'feld', a: 0.8807,  c: 0.00068 },
       weitsprung:  { typ: 'feld', a: 1.0935,  c: 0.00208 },
       kugelstossen:{ typ: 'feld', a: 1.2790,  c: 0.00398 },
-      speerwurf:   { typ: 'feld', a: 0.4220,  c: 0.01012 },
-      diskuswurf:  { typ: 'feld', a: 1.0515,  c: 0.00890 }
+      speerwurf:   { typ: 'feld', a: 0.4220,  c: 0.01012 }
     }
   };
 
@@ -924,11 +911,11 @@
   };
 
   // Fünfkampf: je eine Disziplin aus vier Gruppen, die fünfte frei
-  const GRUPPEN = g => ({
-    Sprint:      ['sprint100', 'sprint200', 'sprint400'],
+  const GRUPPEN = () => ({
+    Sprint:      ['sprint100'],
     Sprung:      ['hochsprung', 'weitsprung'],
-    'Wurf/Stoß': ['kugelstossen', 'speerwurf', 'diskuswurf'],
-    Langstrecke: g === 'w' ? ['lauf800', 'lauf2000'] : ['lauf1500', 'lauf5000']
+    'Wurf/Stoß': ['kugelstossen', 'speerwurf'],
+    Langstrecke: ['lauf1500', 'lauf5000']
   });
 
   const HAND_ZUSCHLAG = d => d <= 300 ? 0.24 : d <= 400 ? 0.14 : 0;
@@ -1051,7 +1038,8 @@
         li.append(el('span', 'ic', d.ic));
 
         const main = el('div', 'main');
-        main.append(el('div', 'nm', d.name));
+        const strecke = ((DLV[g] || {})[key] || {}).strecke;
+        main.append(el('div', 'nm', d.name + (strecke ? ` · bei Mädchen ${strecke}` : '')));
         main.append(el('div', 'val', b ? fmt(key, b.value) : '– noch kein Wert'));
         if (p != null) {
           const bar = el('div', 'p-bar');
