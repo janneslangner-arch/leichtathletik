@@ -1300,7 +1300,9 @@
     renderPicker();
     const titel = document.querySelector('.pscreen-title');
     if (titel) titel.textContent = frage || 'Wer trägt ein?';
-    $('#profileScreen').hidden = false;
+    const screen = $('#profileScreen');
+    screen.hidden = false;
+    screen.scrollTop = 0;          // sonst steht das Vollbild noch dort, wo es zuletzt stand
     document.body.style.overflow = 'hidden';
   }
   function closePicker() {
@@ -1355,7 +1357,9 @@
     document.querySelectorAll('#npGeschlecht .seg-btn').forEach(b =>
       b.classList.toggle('is-active', b.dataset.wert === 'm'));
     npHinweis();
-    $('#profilScreen').hidden = false;
+    const screen = $('#profilScreen');
+    screen.hidden = false;
+    screen.scrollTop = 0;
     document.body.style.overflow = 'hidden';
     setTimeout(() => $('#npName').focus(), 30);
   }
