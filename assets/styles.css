@@ -787,6 +787,11 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 }
 .feld-eingabe:focus { outline: none; border-color: var(--mint); }
 
+/* Abschnitt mit Folgen: zurückhaltend, aber erkennbar */
+.klapp-gefahr > summary::after { color: var(--bad); }
+.klapp-gefahr > summary:hover { color: var(--bad); }
+.klapp-gefahr[open] { border-color: color-mix(in srgb, var(--bad) 45%, var(--line-soft)); }
+
 /* Befund der Verbindungsprüfung */
 .db-befund {
   margin: 10px 0 0; padding: 10px 12px;

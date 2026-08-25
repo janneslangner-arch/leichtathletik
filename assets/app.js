@@ -361,6 +361,7 @@
       if (db.current === alt) db.current = neu;
       const id = db.profileIds && db.profileIds[alt];
       if (id) { delete db.profileIds[alt]; db.profileIds[neu] = id; }
+      verschiebeEinstellungen(alt, neu);
       if (usingDb()) {
         if (id) enqueue('profil_umbenennen', { p_code: cfg.code, p_id: id, p_name: neu });
         else ensureProfileId(neu);
@@ -373,7 +374,7 @@
       db.athletes = db.athletes.filter(a => a !== name);
       db.entries = db.entries.filter(e => e.athlete !== name);
       if (db.profileIds) delete db.profileIds[name];
-      if (db.current === name) db.current = db.athletes[0];
+      if (db.current === name) db.current = nachfolger();
       if (usingDb() && id) enqueue('profil_loeschen', { p_code: cfg.code, p_id: id });
       commit();
       return removed;
@@ -975,11 +976,23 @@
   }
 
   /* ---------------- Einstellungen der Wertung (je Profil) ---------------- */
-  function einstellung(name, standard) {
+  function einstellungVon(profil, name, standard) {
     try {
       const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
-      return (alle[db.current] || {})[name] || standard;
+      return (alle[profil] || {})[name] || standard;
     } catch (e) { return standard; }
+  }
+  const einstellung = (name, standard) => einstellungVon(db.current, name, standard);
+
+  // Beim Umbenennen wandern die Einstellungen mit, beim Löschen gehen sie weg.
+  function verschiebeEinstellungen(alt, neu) {
+    try {
+      const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
+      if (!alle[alt]) return;
+      if (neu) alle[neu] = alle[alt];
+      delete alle[alt];
+      localStorage.setItem('la-wertung', JSON.stringify(alle));
+    } catch (e) { /* egal */ }
   }
   function setzeEinstellung(name, wert) {
     try {
@@ -1380,25 +1393,39 @@
   const monogram = name => name.split(/[\s.\-_]+/).filter(Boolean).slice(0, 2)
     .map(t => t[0].toUpperCase()).join('') || name[0].toUpperCase();
 
-  // Farbton je Name: bleibt gleich, passt zum gewählten Farbschema
+  // Kachelfarbe: hat das Profil selbst eine Farbe gewählt, gilt genau die.
+  // Sonst der Farbton des aktuellen Schemas, leicht gestreut, damit sich die
+  // Kacheln trotzdem auseinanderhalten lassen.
   function tint(name) {
+    const gewaehlt = einstellungVon(name, 'farbe', null);
+    if (gewaehlt && THEMES[gewaehlt]) return THEMES[gewaehlt].hue;
     let h = 0;
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-    const basis = THEMES[theme].hue;        // Farbton des Schemas, leicht gestreut
+    const basis = THEMES[theme].hue;
     return (basis - 26 + (h % 52) + 360) % 360;
   }
   function paintAvatar(span, name) {
     const h = tint(name);
     span.textContent = monogram(name);
+    span.dataset.hue = h;
     span.style.background = `linear-gradient(155deg, hsl(${h} 44% 27%), hsl(${h} 46% 16%))`;
     span.style.color = `hsl(${h} 72% 74%)`;
+  }
+
+  // Wer wird aktiv, wenn das aktuelle Profil verschwindet? Nicht das leere
+  // Vorgabe-Profil „Ich", solange es echte Profile gibt.
+  function nachfolger() {
+    const echte = db.athletes.filter(n => n !== 'Ich' || countOf('Ich') > 0);
+    return echte.sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }))[0]
+      || db.athletes[0];
   }
 
   // „Ich" ist nur die Vorbelegung eines frischen Geräts. Sobald echte Profile
   // da sind und darunter kein Wert liegt, taucht es nirgends mehr auf.
   function sichtbareProfile() {
-    return db.athletes.filter(n =>
-      n !== 'Ich' || n === db.current || countOf('Ich') > 0 || db.athletes.length === 1);
+    return db.athletes
+      .filter(n => n !== 'Ich' || n === db.current || countOf('Ich') > 0 || db.athletes.length === 1)
+      .sort((a, b) => a.localeCompare(b, 'de', { sensitivity: 'base' }));
   }
 
   /* ---------------- Profil wechseln (Vollbild) ---------------- */
@@ -1544,6 +1571,7 @@
       + (g === 'w' ? ' Mädchen laufen 800 m statt 1500 m und 2000 m statt 5000 m.' : '');
     renderThemes();
     renderStorageInfo();
+    renderLoeschen();
   }
 
   const musterName = key => (PATTERNS.find(([k]) => k === key) || [null, 'Schlicht'])[1];
@@ -1601,9 +1629,9 @@
     pick.append(el('span', 'p-nm', name),
                 el('span', 'p-count', countOf(name) + (countOf(name) === 1 ? ' Wert' : ' Werte')));
     if (name === db.current) pick.append(el('span', 'badge', 'aktiv'));
-    li.append(pick,
-      btn('p-act', 'Name', () => editProfile(li, name), 'Profil umbenennen'),
-      btn('p-act p-danger', 'Löschen', () => askDeleteProfile(li, name), 'Profil löschen'));
+    // Gelöscht wird nur in den Einstellungen des Profils selbst – hier
+    // stünde der Knopf direkt neben dem zum Wechseln.
+    li.append(pick, btn('p-act', 'Name', () => editProfile(li, name), 'Profil umbenennen'));
   }
 
   function editProfile(li, name) {
@@ -1629,30 +1657,51 @@
     input.focus(); input.select();
   }
 
-  function askDeleteProfile(li, name) {
+  // Profil löschen: nur in den eigenen Einstellungen, zugeklappt, und erst
+  // nach einer Rückfrage. Danach lässt es sich einmal rückgängig machen.
+  function renderLoeschen() {
+    const box = document.getElementById('loeschBereich');
+    if (!box) return;
+    box.textContent = '';
+    const name = db.current, n = countOf(name);
+    const hinweis = t => { const e = el('p', 'hint-text', t); e.style.marginTop = '0'; box.append(e); };
+
     if (db.athletes.length < 2) {
-      $('#profileHint').textContent = 'Mindestens ein Profil muss bleiben. Lege erst ein neues an.';
+      hinweis(`„${name}“ ist das einzige Profil und kann deshalb nicht gelöscht werden. `
+        + 'Lege erst ein weiteres an.');
       return;
     }
-    const n = countOf(name);
-    li.textContent = '';
-    const q = el('div', 'p-confirm');
-    q.append(el('span', 'p-q', `„${name}“ mit ${n} ${n === 1 ? 'Wert' : 'Werten'} löschen?`),
-      btn('btn btn-sm btn-danger', 'Löschen', () => {
-        const removed = Store.removeProfile(name);
-        renderAll(); syncProfileName(); renderProfiles();
-        toast(`Profil „${name}“ gelöscht`, {
-          action: 'Rückgängig',
-          onAction: () => {
-            Store.restoreProfile(name, removed);
-            renderAll(); syncProfileName(); renderProfiles(); toast('Profil wieder da');
-          }
-        });
-      }),
-      btn('btn btn-sm', 'Abbrechen', () => drawProfileRow(li, name)));
-    li.append(q);
+    hinweis(`Löscht „${name}“ mit ${n} ${n === 1 ? 'Wert' : 'Werten'}`
+      + (usingDb() ? ' – auch aus der Klassen-Datenbank, also für alle.' : '.')
+      + ' Danach ist die Sache über „Rückgängig" noch einmal umkehrbar.');
+
+    const takt = el('div', 'data-actions');
+    takt.append(btn('btn btn-danger', 'Profil „' + name + '" löschen', () => {
+      box.textContent = '';
+      hinweis(`„${name}“ mit ${n} ${n === 1 ? 'Wert' : 'Werten'} wirklich löschen?`);
+      const frage = el('div', 'data-actions');
+      frage.append(
+        btn('btn btn-danger', 'Ja, löschen', () => loescheProfil(name)),
+        btn('btn', 'Abbrechen', renderLoeschen));
+      box.append(frage);
+    }));
+    box.append(takt);
   }
 
+  function loescheProfil(name) {
+    const removed = Store.removeProfile(name);
+    merke('la-profil-gewaehlt', db.current);
+    ladeThemeVomProfil();               // das nächste Profil bringt seine Farbe mit
+    renderAll(); syncProfileName(); renderProfiles();
+    show('profil');
+    toast(`Profil „${name}“ gelöscht`, {
+      action: 'Rückgängig',
+      onAction: () => {
+        Store.restoreProfile(name, removed);
+        renderAll(); syncProfileName(); renderProfiles(); toast('Profil wieder da');
+      }
+    });
+  }
 
   /* ---------------- Sichern & Laden ---------------- */
   async function download(name, text, type) {

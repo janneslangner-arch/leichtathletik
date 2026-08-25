@@ -97,7 +97,18 @@ stehen schon beim Eintippen darunter.
 
 **Profil wechseln** – oben rechts auf den Namen tippen: ein Vollbild mit
 Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
-<Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit.
+<Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit,
+zusammen mit den Einstellungen (Wertung, Farbe, Muster).
+
+Die Kacheln stehen **alphabetisch** und tragen die Farbe, die das jeweilige
+Profil eingestellt hat – so erkennt man sich schon am Farbfleck. Wer noch
+keine gewählt hat, bekommt einen Ton rund um die gerade aktive Farbe.
+
+**Profil löschen** – bewusst versteckt: nur in den Einstellungen des
+Profils, das gelöscht werden soll, ganz unten in einem zugeklappten
+Abschnitt und erst nach einer Rückfrage. In der Profilliste steht der Knopf
+nicht mehr neben dem zum Wechseln. Danach lässt sich das Löschen einmal
+über „Rückgängig" umkehren; ist es das letzte Profil, geht es gar nicht.
 
 **Farbe** – zehn Akzentfarben (Mint, Limette, Aqua, Cyan, Blau, Violett,
 Magenta, Koralle, Orange, Gold). Jedes Schema wird aus einem Farbton
