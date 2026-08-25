@@ -47,9 +47,23 @@ Handzeit-Zuschlag wie in der Vorlage: bis 300 m +0,24 s, über 300 bis 400 m
 +0,14 s, darüber keiner. Die Beiwerte `a` und `c` stehen in `assets/app.js`
 unter `DLV`, getrennt nach Jungen und Mädchen.
 
-Gewertet werden fünf Disziplinen: je eine aus Sprint (100 m), Sprung
-(Hoch, Weit), Wurf/Stoß (Kugel, Speer) und Langstrecke (1500 m, 5000 m),
-die fünfte frei – hier also eine zweite aus Sprung, Wurf oder Langstrecke.
+Ein Ergebnis gibt es nur, wenn alle vier Pflichtbereiche abgedeckt sind:
+
+| # | Bereich  | hier verfügbar                 |
+|---|----------|--------------------------------|
+| 1 | Sprint   | 100 m                          |
+| 2 | Wurf     | Kugelstoßen, Speerwurf         |
+| 3 | Sprung   | Hochsprung, Weitsprung         |
+| 4 | Langlauf | Jungen 1500 m / 5000 m, Mädchen 800 m / 2000 m |
+
+Die fünfte Disziplin ist frei und wird dort eingesetzt, wo sie am meisten
+bringt. Der Reiter **Punkte** listet die vier Bereiche einzeln auf und
+markiert rot, welcher noch keinen Wert hat – ohne den kommt keine Note
+zustande.
+
+Die Prüfungsordnung nennt zusätzlich 200 m, 400 m und Diskus. Die gibt es
+im Schulsport hier nicht und sie sind deshalb nicht eingebaut; die App sagt
+das unter „Alle Disziplinen" auch dazu.
 Mädchen laufen laut Vorlage 800 m statt 1500 m und 2000 m statt 5000 m; die
 Zeile heißt weiterhin so, gerechnet wird mit den Beiwerten der tatsächlich
 gelaufenen Strecke, und die App schreibt es an die Zeile. Die App probiert alle vier Möglichkeiten durch
@@ -94,8 +108,9 @@ Quelle, deshalb bleibt keine Farbe zurück.
 Karo, Waben, Konfetti, Höhenlinien, Strahlen), alle aus CSS-Verläufen in der
 jeweiligen Akzentfarbe – ohne Bilddateien.
 
-Farbe und Muster gelten pro Gerät; jede und jeder in der Klasse kann eine
-eigene Kombination haben.
+Farbe und Muster gehören zum **Profil**, nicht zum Gerät: beim Wechseln
+wechselt auch das Aussehen mit. Ein neues Profil startet mit dem, was auf
+dem Gerät zuletzt gewählt war.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.
@@ -139,9 +154,15 @@ Datei wird danach abgeglichen.
 
 ```html
 <script id="appConfig" type="application/json">
-{"url":"https://abcdefgh.supabase.co","key":"eyJhbGciOi…","code":"sportprofil-gam-2027"}
+{"url":"https://abcdefgh.supabase.co","key":"eyJhbGciOi…","code":"q2sp2026"}
 </script>
 ```
+
+Steht der `code` in der Seite, ist die Verbindung **fest**: In den
+Einstellungen gibt es dann weder „Verbindung ändern" noch „Trennen", nur
+„Jetzt abgleichen" und „Verbindung prüfen". Letzteres fragt die Datenbank
+einmal wirklich an und sagt im Klartext, was zurückkommt – Serverfehler,
+blockierte Anfrage oder pausiertes Projekt.
 
 ### Wie der Zugriff geschützt ist
 

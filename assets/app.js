@@ -63,6 +63,16 @@
   ];
   let theme = 'mint', pattern = 'keins';
 
+  // Farbe und Muster gehören zum Profil. Was zuletzt gewählt wurde, steht
+  // zusätzlich auf dem Gerät: damit ist beim Laden schon vor dem ersten
+  // Profil etwas Vernünftiges da und neue Profile starten damit.
+  const merke = (schluessel, wert) => {
+    try { localStorage.setItem(schluessel, wert); } catch (e) { /* egal */ }
+  };
+  const gemerkt = schluessel => {
+    try { return localStorage.getItem(schluessel); } catch (e) { return null; }
+  };
+
   function applyTheme(key, merken) {
     if (!THEMES[key]) key = 'mint';
     theme = key;
@@ -70,19 +80,24 @@
     Object.entries(THEMES[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', `hsl(${THEMES[key].hue} 26% 8%)`);
-    if (merken) { try { localStorage.setItem('la-theme', key); } catch (e) { /* egal */ } }
+    if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
   }
   function applyPattern(key, merken) {
     if (!PATTERNS.some(pp => pp[0] === key)) key = 'keins';
     pattern = key;
     document.body.dataset.pattern = key;
-    if (merken) { try { localStorage.setItem('la-pattern', key); } catch (e) { /* egal */ } }
+    if (merken) { merke('la-pattern', key); setzeEinstellung('muster', key); }
   }
+  // Vor dem ersten Profil: das zuletzt auf diesem Gerät Gewählte
   function ladeTheme() {
-    let t = null, m = null;
-    try { t = localStorage.getItem('la-theme'); m = localStorage.getItem('la-pattern'); } catch (e) { /* egal */ }
+    const t = gemerkt('la-theme'), m = gemerkt('la-pattern');
     applyTheme(THEMES[t] ? t : 'mint');
     applyPattern(m || 'keins');
+  }
+  // Sobald feststeht, wer eingetragen hat: dessen Farbe und Muster
+  function ladeThemeVomProfil() {
+    applyTheme(einstellung('farbe', gemerkt('la-theme') || 'mint'));
+    applyPattern(einstellung('muster', gemerkt('la-pattern') || 'keins'));
   }
   const akzent = () => (getComputedStyle(document.documentElement)
     .getPropertyValue('--mint') || '#7BF29C').trim();
@@ -895,11 +910,15 @@
   };
 
   // Fünfkampf: je eine Disziplin aus vier Gruppen, die fünfte frei
+  /* Die vier Pflichtbereiche des Fünfkampfs, in der Reihenfolge der
+     Prüfungsordnung. Die fünfte Disziplin ist frei und wird dort gewertet,
+     wo sie am meisten bringt. Angeboten werden hier nur die Disziplinen des
+     Schulsports; 200 m, 400 m und Diskus kommen bei uns nicht vor. */
   const GRUPPEN = () => ({
-    Sprint:      ['sprint100'],
-    Sprung:      ['hochsprung', 'weitsprung'],
-    'Wurf/Stoß': ['kugelstossen', 'speerwurf'],
-    Langstrecke: ['lauf1500', 'lauf5000']
+    Sprint:   ['sprint100'],
+    Wurf:     ['kugelstossen', 'speerwurf'],
+    Sprung:   ['hochsprung', 'weitsprung'],
+    Langlauf: ['lauf1500', 'lauf5000']
   });
 
   const HAND_ZUSCHLAG = d => d <= 300 ? 0.24 : d <= 400 ? 0.14 : 0;
@@ -932,8 +951,14 @@
       vorhanden += werte[name].length;
     });
     const fehlend = Object.entries(werte).filter(([, v]) => !v.length).map(([n]) => n);
-    if (fehlend.length) return { status: fehlend.join(', ') + ' fehlt noch', summe: null };
-    if (vorhanden < 5) return { status: 'mindestens 5 Ergebnisse nötig', summe: null };
+    if (fehlend.length) return {
+      summe: null, fehlend,
+      status: (fehlend.length === 1 ? fehlend[0] + ' fehlt' : 'Es fehlen: ' + fehlend.join(', '))
+    };
+    if (vorhanden < 5) return {
+      summe: null, fehlend: [],
+      status: `noch ${5 - vorhanden} Ergebnis${5 - vorhanden === 1 ? '' : 'se'} bis zur Wertung`
+    };
 
     let beste = null;
     Object.keys(gruppen).forEach(zusatz => {
@@ -946,7 +971,7 @@
       });
       if (!beste || summe > beste.summe) beste = { summe, zusatz, gezaehlt, status: 'gültig' };
     });
-    return beste || { status: 'mindestens 5 Ergebnisse nötig', summe: null };
+    return beste || { status: 'noch 1 Ergebnis bis zur Wertung', summe: null, fehlend: [] };
   }
 
   /* ---------------- Einstellungen der Wertung (je Profil) ---------------- */
@@ -976,6 +1001,12 @@
   const zeitmessungVon = () => einstellung('zeit', geschlechtVon() === 'w' ? 'hand' : 'elektro');
   const klasseVon = () => einstellung('klasse', altersklasse(Number(einstellung('jahr', 0))) || 'U20');
 
+  // Name der Disziplin, bei den Läufen mit der Strecke, die tatsächlich zählt
+  const strecke = (key, g) => {
+    const s = ((DLV[g] || {})[key] || {}).strecke;
+    return s ? s + ' Lauf' : DISC[key].name;
+  };
+
   function renderPunkte() {
     const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
     const hand = zeit === 'hand';
@@ -1001,7 +1032,7 @@
       $('#punkteNoteFein').textContent = 'Note ' + noteZuPunkten(np);
       const naechste = (NOTENPUNKTE[g] || NOTENPUNKTE.m).find(([, p]) => p === np + 1);
       $('#punkteStatus').textContent = naechste
-        ? `noch ${naechste[0] - ergebnis.summe} bis ${np + 1} NP`
+        ? `noch ${naechste[0] - ergebnis.summe} Punkte bis ${np + 1} NP`
         : 'Höchstwertung';
     } else {
       $('#punkteNote').textContent = '–';
@@ -1025,6 +1056,40 @@
       return li;
     };
 
+    // Pflichtbereiche: was ist abgedeckt, was fehlt noch?
+    const vor = $('#voraussetzungen');
+    vor.textContent = '';
+    Object.entries(GRUPPEN(g)).forEach(([gruppe, keys], i) => {
+      // bester vorhandener Wert des Bereichs
+      let beste = null;
+      keys.forEach(key => {
+        if (punkte[key] == null) return;
+        if (!beste || punkte[key] > punkte[beste]) beste = key;
+      });
+      const li = el('li', 'vor-zeile' + (beste ? ' ist-da' : ' fehlt'));
+      li.append(el('span', 'vor-nr', String(i + 1)));
+
+      const mitte = el('div', 'vor-text');
+      mitte.append(el('span', 'vor-name', gruppe));
+      mitte.append(el('span', 'vor-sub', beste
+        ? `${DISC[beste].name} · ${fmt(beste, bestwerte[beste].value)}`
+        : keys.map(k => strecke(k, g)).join(' oder ')));
+      li.append(mitte);
+
+      li.append(el('span', 'vor-marke', beste ? String(punkte[beste]) : 'fehlt'));
+      vor.append(li);
+    });
+    const frei = el('li', 'vor-zeile vor-frei');
+    frei.append(el('span', 'vor-nr', '5'));
+    const fm = el('div', 'vor-text');
+    fm.append(el('span', 'vor-name', 'Fünfte Disziplin'));
+    fm.append(el('span', 'vor-sub', ergebnis.summe != null
+      ? 'frei wählbar · zählt gerade in ' + ergebnis.zusatz
+      : 'frei wählbar – aus einem beliebigen Bereich'));
+    frei.append(fm);
+    frei.append(el('span', 'vor-marke', ergebnis.summe != null ? '✓' : 'offen'));
+    vor.append(frei);
+
     // Oben nur die fünf, die in die Note eingehen.
     const liste = $('#punkteListe');
     liste.textContent = '';
@@ -1039,7 +1104,9 @@
       });
     });
     if (!gezaehlteKeys.length)
-      liste.append(el('li', 'empty', ergebnis.status || 'Noch zu wenige Werte für den Fünfkampf.'));
+      liste.append(el('li', 'empty', ergebnis.fehlend && ergebnis.fehlend.length
+        ? 'Sobald alle vier Pflichtbereiche einen Wert haben, steht hier die Wertung.'
+        : (ergebnis.status || 'Noch zu wenige Werte für den Fünfkampf.')));
 
     // Ausgeklappt: alle sieben mit Einzelnote.
     const alle = $('#punkteAlle');
@@ -1060,11 +1127,38 @@
       });
     });
 
+    const langlauf = g === 'w' ? '800 m oder 2000 m' : '1500 m oder 5000 m';
     $('#punkteHinweis').textContent =
-      `DLV-Punkte je Disziplin aus dem Bestwert, ${hand ? 'Handzeit (Zuschlag 0,24 s bis 300 m, 0,14 s bis 400 m)' : 'elektronische Zeitmessung'}. `
-      + 'Note aus der Summe der fünf gewerteten Disziplinen nach der SH-Tabelle (15 NP = 1+, 0 NP = 6); '
-      + 'je eine Disziplin aus Sprint, Sprung, Wurf/Stoß und Langstrecke, die fünfte frei. '
-      + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`;
+      'Ein Ergebnis gibt es nur, wenn unter den fünf gewerteten Disziplinen mindestens '
+      + 'je eine aus Sprint, Wurf, Sprung und Langlauf steckt. Die fünfte ist frei wählbar '
+      + 'und wird dort eingesetzt, wo sie am meisten bringt. '
+      + `Langlauf heißt bei ${g === 'w' ? 'Mädchen' : 'Jungen'} ${langlauf}. `
+      + `DLV-Punkte je Disziplin aus dem Bestwert, ${hand ? 'Handzeit (Zuschlag 0,24 s bis 300 m, 0,14 s bis 400 m)' : 'elektronische Zeitmessung'}; `
+      + 'Note aus der Summe nach der SH-Tabelle (15 NP = 1+, 0 NP = 6). '
+      + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}. `
+      + 'Nicht dabei: 200 m, 400 m und Diskus – die gibt es im Schulsport hier nicht.';
+  }
+
+  // Die Seite bringt Adresse, Schlüssel und Klassen-Code mit: dann ist die
+  // Verbindung nicht verhandelbar – weder wechseln noch trennen.
+  function festeVerbindung() {
+    const fest = readEmbeddedCfg();
+    return !!(fest && fest.code && cfg && String(fest.code).toLowerCase() === cfg.code);
+  }
+
+  // Einmal wirklich anfragen: antwortet die Datenbank, meldet sie einen
+  // Fehler, oder kommt gar nichts an?
+  async function pruefeVerbindung() {
+    try {
+      const data = await rpc('daten_lesen', { p_code: cfg.code });
+      const n = ((data || {}).werte || []).length, m = ((data || {}).profile || []).length;
+      return `Alles in Ordnung: Die Datenbank antwortet und kennt ${m} ${m === 1 ? 'Profil' : 'Profile'} `
+        + `und ${n} ${n === 1 ? 'Wert' : 'Werte'} in der Gruppe „${cfg.code}“.`;
+    } catch (err) {
+      if (err.status) return 'Die Datenbank meldet: ' + err.message + (err.status === 404
+        ? ' – ist das Schema aus supabase/schema.sql im SQL-Editor gelaufen?' : '');
+      return 'Keine Verbindung zur Datenbank. ' + (await diagnose(cfg.url));
+    }
   }
 
   function renderStorageInfo() {
@@ -1075,14 +1169,24 @@
     const line = t => { const n = el('p', null, t); n.style.margin = '0 0 8px'; box.append(n); };
 
     if (usingDb()) {
-      const fest = (readEmbeddedCfg() || {}).code && String((readEmbeddedCfg() || {}).code).toLowerCase() === cfg.code;
+      // Steht der Klassen-Code in der Seite, ist die Verbindung fest: dann
+      // gibt es hier nichts zu wechseln und nichts zu trennen.
+      const fest = festeVerbindung();
       line(fest
-        ? 'Verbunden mit der Klassen-Datenbank. Alle, die diese Seite öffnen, tragen in denselben Bestand ein – ohne Anmeldung.'
+        ? `Fest verbunden mit der Klassen-Datenbank (Gruppe „${cfg.code}“). Alle, die diese Seite öffnen, tragen in denselben Bestand ein – ohne Anmeldung. Umstellen lässt sich das hier nicht.`
         : `Verbunden mit ${cfg.url.replace(/^https?:\/\//, '')}, Gruppe „${cfg.code}“.`);
       if (queue.length) line(`${queue.length} ${queue.length === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf die Verbindung und ${queue.length === 1 ? 'wird' : 'werden'} nachgereicht.`);
       else line('Eine Kopie bleibt zusätzlich auf diesem Gerät, damit die App auch ohne Netz läuft.');
-      acts.append(btn('btn', 'Jetzt abgleichen', () => pull(true)),
-                  btn('btn', 'Verbindung ändern', openDbDialog));
+      acts.append(btn('btn', 'Jetzt abgleichen', () => pull(true)));
+      // Wenn die feste Verbindung klemmt, soll man wenigstens erfahren, woran.
+      acts.append(btn('btn', 'Verbindung prüfen', async ev => {
+        const knopf = ev && ev.currentTarget;
+        if (knopf) { knopf.disabled = true; knopf.textContent = 'Prüfe …'; }
+        box.querySelectorAll('.db-befund').forEach(n => n.remove());
+        box.append(el('p', 'db-befund', await pruefeVerbindung()));
+        if (knopf) { knopf.disabled = false; knopf.textContent = 'Verbindung prüfen'; }
+      }));
+      if (!fest) acts.append(btn('btn', 'Verbindung ändern', openDbDialog));
       return;
     }
 
@@ -1146,6 +1250,7 @@
   }
 
   function openDbDialog() {
+    if (festeVerbindung()) { toast('Die Klassen-Datenbank steht fest'); return; }
     const emb = readEmbeddedCfg();
     $('#dbUrl').value = (cfg && cfg.url) || (emb && emb.url) || '';
     $('#dbKey').value = (cfg && cfg.key) || (emb && emb.key) || '';
@@ -1263,9 +1368,10 @@
   }
 
   function switchTo(name) {
-    try { localStorage.setItem('la-profil-gewaehlt', name); } catch (e) { /* egal */ }
+    merke('la-profil-gewaehlt', name);
     Store.switchProfile(name);
-    renderAll(); syncProfileName();
+    ladeThemeVomProfil();          // jedes Profil hat seine eigene Farbe
+    renderAll(); syncProfileName(); renderProfiles();
     closePicker();
     toast('Hallo ' + name + '!');
   }
@@ -1427,7 +1533,7 @@
     setzeAktiv('#zeitSeg', zeit);
     setzeAktiv('#klasseSeg', klasse);
     $('#jahrInput').value = einstellung('jahr', '');
-    $('#einstellungenFuer').textContent = 'Für ' + db.current + '. Farbe und Hintergrund gelten für dieses Gerät.';
+    $('#einstellungenFuer').textContent = 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
     $('#wertungKurz').textContent =
       `· ${g === 'w' ? 'Mädchen' : 'Jungen'} · ${zeit === 'hand' ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
     $('#designKurz').textContent = '· ' + THEMES[theme].name + ' · ' + musterName(pattern);
@@ -1450,7 +1556,7 @@
       Object.entries(THEMES).forEach(([key, t]) => {
         const b = btn('theme-card' + (key === theme ? ' is-active' : ''), null, () => {
           applyTheme(key, true);
-          renderAll(); renderProfil();
+          renderAll(); renderProfil(); renderEinstellungen();
           toast('Farbe: ' + t.name);
         }, 'Farbschema ' + t.name);
         const probe = el('span', 'theme-swatch');
@@ -1469,7 +1575,7 @@
     PATTERNS.forEach(([key, name]) => {
       const b = btn('theme-card pattern-card' + (key === pattern ? ' is-active' : ''), null, () => {
         applyPattern(key, true);
-        renderProfil();
+        renderProfil(); renderEinstellungen();
         toast('Hintergrund: ' + name);
       }, 'Hintergrund ' + name);
       const probe = el('span', 'pattern-swatch');
@@ -1677,6 +1783,7 @@
     const last = (() => { try { return localStorage.getItem('la-last-disc'); } catch (e) { return null; } })();
     if (DISC[last]) { selDisc = last; chartDisc = last; }
 
+    ladeThemeVomProfil();          // ab jetzt gilt die Farbe des Profils
     syncEntryHead();
     syncProfileName();
     // In einer Claude-Seite sind Verbindungen nach außen gesperrt – dort bleibt

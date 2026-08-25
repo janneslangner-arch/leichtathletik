@@ -787,6 +787,48 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 }
 .feld-eingabe:focus { outline: none; border-color: var(--mint); }
 
+/* Befund der Verbindungsprüfung */
+.db-befund {
+  margin: 10px 0 0; padding: 10px 12px;
+  border-left: 3px solid var(--mint); border-radius: 0 10px 10px 0;
+  background: var(--surface-2); color: var(--text); font-size: 12.5px; line-height: 1.5;
+}
+
+/* Punkte: die vier Pflichtbereiche – abgedeckt oder fehlt */
+.vor-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.vor-zeile {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--line-soft);
+  border-radius: var(--r); padding: 10px 13px;
+  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
+}
+.vor-nr {
+  flex: none; display: grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
+  background: var(--surface-2); color: var(--muted);
+}
+.vor-text { flex: 1 1 auto; min-width: 0; display: grid; gap: 1px; }
+.vor-name { font-size: 14px; font-weight: 700; }
+.vor-sub { font-size: 12px; color: var(--muted); }
+.vor-marke {
+  flex: none; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--mint);
+}
+.vor-zeile.ist-da .vor-nr { background: color-mix(in srgb, var(--mint) 20%, var(--surface-2)); color: var(--mint); }
+.vor-zeile.fehlt {
+  border-color: color-mix(in srgb, var(--bad) 55%, var(--line-soft));
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--bad) 9%, transparent), transparent 60%);
+}
+.vor-zeile.fehlt .vor-nr { background: color-mix(in srgb, var(--bad) 22%, var(--surface-2)); color: var(--bad); }
+.vor-zeile.fehlt .vor-name { color: var(--bad); }
+.vor-zeile.fehlt .vor-marke {
+  color: var(--bad); font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+}
+.vor-zeile.vor-frei { border-style: dashed; }
+.vor-zeile.vor-frei .vor-marke { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.vor-zeile.vor-frei .vor-marke:not(:empty) { color: var(--muted); }
+
 /* Punkte: Kopfzeile mit Verweis auf die Einstellungen */
 .wertung-zeile {
   width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
