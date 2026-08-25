@@ -152,16 +152,11 @@ eure Werte also nicht heran – wohl aber jeder, der eure Seite öffnet.
 
 ## Für andere veröffentlichen
 
-**Als Claude-Artifact.** Es gibt zwei getrennte Seiten: eine private zum
-Selbst-Eintragen und eine leere Klassenversion zum Weitergeben. Teilen geht im
-Artifact oben rechts über **Teilen**.
-
-Ohne Datenbank können geteilte Betrachter nichts dauerhaft speichern (Anzeige
-„nur Ansicht"); mit Datenbank arbeiten alle am selben Bestand. Dafür in der
-Klassenversion einmal **Datenbank verbinden** ausfüllen.
-
-Der Klassen-Code gehört **nicht** ins Repository und nicht in die Seite – er
-ist das Passwort und wird mündlich weitergegeben.
+Es gibt **genau eine** Version: die Website. Sie hängt an der
+Klassen-Datenbank, alle sehen denselben Bestand, und niemand muss sich
+anmelden. Andere Kopien – etwa eine eingebettete Seite ohne Datenbank – sind
+absichtlich nicht im Umlauf: zwei Stände, die auseinanderlaufen, sind
+schlimmer als einer.
 
 **Als Website (GitHub Pages).** Die App ist eine statische Seite und braucht
 keinen Bau-Schritt – GitHub kann sie direkt ausliefern:
@@ -180,6 +175,8 @@ pushen. Der Klassen-Code bleibt außen vor.
 
 **Auf eigenem Webspace.** Genauso: `index.html`, `assets/` und
 `supabase/schema.sql` hochladen – oder die Einzeldatei aus `python3 build.py`.
+Diese Einzeldatei ist als Sicherung gedacht, nicht als zweite Adresse zum
+Weitergeben.
 
 Browser-Dialoge (`confirm`, `prompt`) werden bewusst nicht benutzt – in
 eingebetteten Seiten sind sie blockiert. Nachfragen laufen deshalb über
