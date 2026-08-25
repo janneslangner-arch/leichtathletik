@@ -591,8 +591,10 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   --s: 1;
   opacity: .9;
 }
-main, .topbar, .tabbar { position: relative; z-index: 1; }
-.topbar { z-index: 20; }
+/* Über dem Muster liegen, ohne die Leisten anzufassen: die Kopfzeile ist
+   sticky, die Tableiste fixed – beide dürfen hier nicht auf relative
+   zurückfallen, sonst scrollen sie mit weg. Ihre z-index stehen oben. */
+main { position: relative; z-index: 1; }
 .pattern-swatch[data-pattern="konfetti"] { --s: .18; }
 .pattern-swatch[data-pattern="hoehen"] { --s: .5; }
 .pattern-swatch[data-pattern="strahlen"] {
