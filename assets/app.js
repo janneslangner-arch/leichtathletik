@@ -760,7 +760,8 @@
     const box = $('#syncScreen');
     if (!box || box.hidden) return;
     box.classList.add('is-done');
-    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 240);
+    // So lange, wie die Form zum Aufwachsen und Verblassen braucht
+    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 640);
   }
 
   // Bei jedem Aufruf: erst Offenes wegschicken, dann den Serverstand holen.
@@ -1607,13 +1608,16 @@
     if (g) g.textContent = db.current;
   }
 
-  function switchTo(name) {
+  async function switchTo(name) {
     merke('la-profil-gewaehlt', name);
     Store.switchProfile(name);
     ladeThemeVomProfil();          // jedes Profil hat seine eigene Farbe
     renderAll(); syncProfileName(); renderProfiles();
     closePicker();
-    toast('Hallo ' + name + '!');
+    // Kurzes Vollbild und dabei abgleichen: eigene Änderungen gehen raus,
+    // fremde kommen herein. So sieht man beim Wechseln sofort den Stand
+    // der anderen – und nichts bleibt auf dem Gerät liegen.
+    await abgleichen('Hallo ' + name);
   }
 
   // Monogramm: erste Buchstaben von bis zu zwei Namensteilen
@@ -1760,12 +1764,11 @@
     const look = zufaelligesAussehen(name);
     setzeEinstellungVon(name, 'farbe', look.farbe);
     setzeEinstellungVon(name, 'verlauf', look.verlauf);   // gilt für alle Geräte
-    switchTo(name);                       // ab hier gelten die Einstellungen dem neuen Profil
-    setzeEinstellung('geschlecht', npGeschlecht);
-    if (jahr) setzeEinstellung('jahr', String(jahr));
+    setzeEinstellungVon(name, 'geschlecht', npGeschlecht);
+    if (jahr) setzeEinstellungVon(name, 'jahr', String(jahr));
     closeNeuesProfil();
-    renderAll();
     toast('Profil angelegt: ' + name);
+    switchTo(name);                       // wechselt und gleicht dabei ab
   }
 
   /* ---------------- Reiter „Profil“ ---------------- */

@@ -99,7 +99,16 @@ Punkte (16–17 = U18, 18–19 = U20, 20–22 = U23); die passenden Gerätegewic
 stehen schon beim Eintippen darunter.
 
 **Profil wechseln** – oben rechts auf den Namen tippen: ein Vollbild mit
-Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
+Kacheln, ein Tipp genügt. Danach kommt kurz das Abgleich-Fenster: Was auf
+diesem Gerät liegt, geht raus, der Stand der anderen kommt herein. So sieht
+man beim Wechseln sofort, was die anderen eingetragen haben.
+
+Das Abgleich-Fenster zeigt eine Form, die sich wandelt – Kugel, Dreieck,
+Stern, Sechseck, Quadrat, Tropfen und zurück. Alle sechs haben gleich viele
+Punkte auf denselben Winkeln; nur deshalb geht der Übergang weich statt
+sprunghaft. Die Punkte stammen aus einem kleinen Skript, nicht aus der
+Hand. Ist der Abgleich fertig, wächst die Form auf ein Vielfaches und
+verblasst. Über der Eingabe steht danach „Hallo
 <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit,
 zusammen mit den Einstellungen (Wertung, Farbe, Muster).
 

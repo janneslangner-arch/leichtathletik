@@ -574,27 +574,58 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   background:
     radial-gradient(900px 520px at 50% 0%, var(--bg-glow) 0%, transparent 60%),
     var(--bg);
-  transition: opacity .24s ease;
+  transition: opacity .5s ease .12s;
 }
 .syncscreen[hidden] { display: none; }
 .syncscreen.is-done { opacity: 0; pointer-events: none; }
 
 .sync-box { display: grid; justify-items: center; gap: 16px; text-align: center; }
-.sync-ring {
-  position: relative; display: grid; place-items: center;
-  width: 86px; height: 86px; border-radius: 50%;
-  border: 3px solid var(--line-soft);
-  border-top-color: var(--mint);
-  animation: sync-spin 1s linear infinite;
+
+/* Die Form wandelt sich: Kugel, Dreieck, Stern, Sechseck, Quadrat, Tropfen.
+   Alle sechs haben gleich viele Punkte an denselben Winkeln – nur so geht
+   der Übergang weich statt sprunghaft. Erzeugt mit einem kleinen Skript. */
+.sync-morph {
+  position: relative;
+  width: 104px; height: 104px;
+  display: grid; place-items: center;
+  animation: sync-morph 7.2s ease-in-out infinite,
+             sync-dreh 12s linear infinite;
+  background:
+    radial-gradient(120% 120% at 30% 20%,
+      color-mix(in srgb, var(--mint) 92%, white) 0%,
+      var(--mint) 42%,
+      var(--mint-dim) 100%);
+  box-shadow: 0 0 44px -6px var(--mint-glow);
+  transition: transform .62s cubic-bezier(.32, 0, .3, 1), opacity .62s ease;
 }
+/* Der Buchstabe dreht gegen, damit er aufrecht bleibt */
 .sync-mono {
-  font-size: 26px; font-weight: 700; color: var(--mint);
-  animation: sync-spin 1s linear infinite reverse;   /* Buchstabe bleibt aufrecht */
+  font-size: 30px; font-weight: 700; color: var(--ink);
+  animation: sync-dreh 12s linear infinite reverse;
 }
-@keyframes sync-spin { to { transform: rotate(360deg); } }
+@keyframes sync-dreh { to { transform: rotate(360deg); } }
+@keyframes sync-morph {
+  0% { clip-path: polygon(50.0% 0.0%, 57.8% 0.6%, 65.5% 2.4%, 72.7% 5.4%, 79.4% 9.5%, 85.4% 14.6%, 90.5% 20.6%, 94.6% 27.3%, 97.6% 34.5%, 99.4% 42.2%, 100.0% 50.0%, 99.4% 57.8%, 97.6% 65.5%, 94.6% 72.7%, 90.5% 79.4%, 85.4% 85.4%, 79.4% 90.5%, 72.7% 94.6%, 65.5% 97.6%, 57.8% 99.4%, 50.0% 100.0%, 42.2% 99.4%, 34.5% 97.6%, 27.3% 94.6%, 20.6% 90.5%, 14.6% 85.4%, 9.5% 79.4%, 5.4% 72.7%, 2.4% 65.5%, 0.6% 57.8%, 0.0% 50.0%, 0.6% 42.2%, 2.4% 34.5%, 5.4% 27.3%, 9.5% 20.6%, 14.6% 14.6%, 20.6% 9.5%, 27.3% 5.4%, 34.5% 2.4%, 42.2% 0.6%); }
+  17% { clip-path: polygon(50.0% 0.0%, 56.2% 10.8%, 60.4% 18.0%, 63.5% 23.4%, 66.1% 27.9%, 68.3% 31.7%, 70.3% 35.2%, 72.3% 38.6%, 74.3% 42.1%, 76.4% 45.8%, 78.9% 50.0%, 81.8% 55.0%, 85.5% 61.5%, 90.9% 70.8%, 84.4% 75.0%, 75.0% 75.0%, 68.2% 75.0%, 62.7% 75.0%, 58.1% 75.0%, 54.0% 75.0%, 50.0% 75.0%, 46.0% 75.0%, 41.9% 75.0%, 37.3% 75.0%, 31.8% 75.0%, 25.0% 75.0%, 15.6% 75.0%, 9.1% 70.8%, 14.5% 61.5%, 18.2% 55.0%, 21.1% 50.0%, 23.6% 45.8%, 25.7% 42.1%, 27.7% 38.6%, 29.7% 35.2%, 31.7% 31.7%, 33.9% 27.9%, 36.5% 23.4%, 39.6% 18.0%, 43.8% 10.8%); }
+  33% { clip-path: polygon(50.0% 0.0%, 57.0% 5.5%, 60.6% 17.4%, 62.1% 26.3%, 66.6% 27.1%, 76.9% 23.1%, 88.6% 22.0%, 94.0% 27.6%, 89.7% 37.1%, 80.6% 45.2%, 76.0% 50.0%, 80.6% 54.8%, 89.7% 62.9%, 94.0% 72.4%, 88.6% 78.0%, 76.9% 76.9%, 66.6% 72.9%, 62.1% 73.7%, 60.6% 82.6%, 57.0% 94.5%, 50.0% 100.0%, 43.0% 94.5%, 39.4% 82.6%, 37.9% 73.7%, 33.4% 72.9%, 23.1% 76.9%, 11.4% 78.0%, 6.0% 72.4%, 10.3% 62.9%, 19.4% 54.8%, 24.0% 50.0%, 19.4% 45.2%, 10.3% 37.1%, 6.0% 27.6%, 11.4% 22.0%, 23.1% 23.1%, 33.4% 27.1%, 37.9% 26.3%, 39.4% 17.4%, 43.0% 5.5%); }
+  50% { clip-path: polygon(50.0% 0.0%, 57.3% 4.2%, 63.7% 7.9%, 69.7% 11.4%, 75.6% 14.8%, 81.7% 18.3%, 88.3% 22.1%, 93.3% 27.9%, 93.3% 35.9%, 93.3% 43.1%, 93.3% 50.0%, 93.3% 56.9%, 93.3% 64.1%, 93.3% 72.1%, 88.3% 77.9%, 81.7% 81.7%, 75.6% 85.2%, 69.7% 88.6%, 63.7% 92.1%, 57.3% 95.8%, 50.0% 100.0%, 42.7% 95.8%, 36.3% 92.1%, 30.3% 88.6%, 24.4% 85.2%, 18.3% 81.7%, 11.7% 77.9%, 6.7% 72.1%, 6.7% 64.1%, 6.7% 56.9%, 6.7% 50.0%, 6.7% 43.1%, 6.7% 35.9%, 6.7% 27.9%, 11.7% 22.1%, 18.3% 18.3%, 24.4% 14.8%, 30.3% 11.4%, 36.3% 7.9%, 42.7% 4.2%); }
+  67% { clip-path: polygon(50.0% 0.0%, 56.8% 6.8%, 62.3% 12.3%, 66.9% 16.9%, 71.0% 21.0%, 75.0% 25.0%, 79.0% 29.0%, 83.1% 33.1%, 87.7% 37.7%, 93.2% 43.2%, 100.0% 50.0%, 93.2% 56.8%, 87.7% 62.3%, 83.1% 66.9%, 79.0% 71.0%, 75.0% 75.0%, 71.0% 79.0%, 66.9% 83.1%, 62.3% 87.7%, 56.8% 93.2%, 50.0% 100.0%, 43.2% 93.2%, 37.7% 87.7%, 33.1% 83.1%, 29.0% 79.0%, 25.0% 75.0%, 21.0% 71.0%, 16.9% 66.9%, 12.3% 62.3%, 6.8% 56.8%, 0.0% 50.0%, 6.8% 43.2%, 12.3% 37.7%, 16.9% 33.1%, 21.0% 29.0%, 25.0% 25.0%, 29.0% 21.0%, 33.1% 16.9%, 37.7% 12.3%, 43.2% 6.8%); }
+  83% { clip-path: polygon(50.0% 23.1%, 54.2% 23.3%, 58.5% 23.9%, 62.8% 24.9%, 67.1% 26.4%, 71.4% 28.6%, 75.6% 31.4%, 79.6% 34.9%, 83.2% 39.2%, 86.2% 44.3%, 88.5% 50.0%, 89.8% 56.3%, 90.0% 63.0%, 88.9% 69.8%, 86.6% 76.6%, 83.0% 83.0%, 78.1% 88.7%, 72.1% 93.4%, 65.3% 97.0%, 57.8% 99.2%, 50.0% 100.0%, 42.2% 99.2%, 34.7% 97.0%, 27.9% 93.4%, 21.9% 88.7%, 17.0% 83.0%, 13.4% 76.6%, 11.1% 69.8%, 10.0% 63.0%, 10.2% 56.3%, 11.5% 50.0%, 13.8% 44.3%, 16.8% 39.2%, 20.4% 34.9%, 24.4% 31.4%, 28.6% 28.6%, 32.9% 26.4%, 37.2% 24.9%, 41.5% 23.9%, 45.8% 23.3%); }
+  100% { clip-path: polygon(50.0% 0.0%, 57.8% 0.6%, 65.5% 2.4%, 72.7% 5.4%, 79.4% 9.5%, 85.4% 14.6%, 90.5% 20.6%, 94.6% 27.3%, 97.6% 34.5%, 99.4% 42.2%, 100.0% 50.0%, 99.4% 57.8%, 97.6% 65.5%, 94.6% 72.7%, 90.5% 79.4%, 85.4% 85.4%, 79.4% 90.5%, 72.7% 94.6%, 65.5% 97.6%, 57.8% 99.4%, 50.0% 100.0%, 42.2% 99.4%, 34.5% 97.6%, 27.3% 94.6%, 20.6% 90.5%, 14.6% 85.4%, 9.5% 79.4%, 5.4% 72.7%, 2.4% 65.5%, 0.6% 57.8%, 0.0% 50.0%, 0.6% 42.2%, 2.4% 34.5%, 5.4% 27.3%, 9.5% 20.6%, 14.6% 14.6%, 20.6% 9.5%, 27.3% 5.4%, 34.5% 2.4%, 42.2% 0.6%); }
+}
+
+/* Fertig: die Form wächst auf und verblasst */
+.syncscreen.is-done .sync-morph {
+  transform: scale(7);
+  opacity: 0;
+  animation-play-state: paused;
+}
+.syncscreen.is-done .sync-box > :not(.sync-morph) { opacity: 0; transition: opacity .2s ease; }
+
 @media (prefers-reduced-motion: reduce) {
-  .sync-ring, .sync-mono { animation: none; }
-  .sync-ring { border-color: var(--line-soft); border-top-color: var(--mint); }
+  .sync-morph { animation: none; clip-path: circle(50%); }
+  .sync-mono { animation: none; }
+  .syncscreen.is-done .sync-morph { transform: none; }
 }
 .sync-text { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
 .sync-sub { margin: -8px 0 0; font-size: 13px; color: var(--muted); }
