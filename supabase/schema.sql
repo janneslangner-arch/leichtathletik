@@ -34,6 +34,10 @@ create table if not exists werte (
   erfasst_am timestamptz not null default now()
 );
 
+-- Aussehen eines Profils (Farbe, Verlauf, Muster, eigene Farben). Steht hier
+-- und nicht nur im Browser, damit Levin auf jedem Gerät gleich aussieht.
+alter table profile add column if not exists aussehen jsonb not null default '{}'::jsonb;
+
 -- Nachträglich dazugekommen: die Uhrzeit der Messung als "HH:MM".
 -- Leer heißt: bei diesem Wert wurde keine Zeit erfasst.
 alter table werte add column if not exists zeit text not null default '';
@@ -100,7 +104,8 @@ begin
   v_code := gruppe_pruefen(p_code);
   return jsonb_build_object(
     'profile', coalesce((
-      select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name) order by p.erstellt_am)
+      select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'aussehen', p.aussehen)
+                       order by p.erstellt_am)
       from profile p where p.code = v_code), '[]'::jsonb),
     'werte', coalesce((
       select jsonb_agg(jsonb_build_object(
@@ -150,6 +155,27 @@ begin
   return daten_lesen(v_code);
 exception when unique_violation then
   raise exception 'Ein Profil mit diesem Namen gibt es schon';
+end;
+$$;
+
+-- Aussehen setzen. Der Inhalt ist absichtlich frei: die App legt fest, was
+-- drinsteht. Begrenzt wird nur die Größe, damit niemand die Tabelle vollmüllt.
+create or replace function profil_aussehen(p_code text, p_id uuid, p_aussehen jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_code text;
+begin
+  v_code := gruppe_pruefen(p_code);
+  perform profil_pruefen(v_code, p_id);
+  if length(coalesce(p_aussehen, '{}'::jsonb)::text) > 2000 then
+    raise exception 'Aussehen zu groß';
+  end if;
+  update profile set aussehen = coalesce(p_aussehen, '{}'::jsonb)
+  where id = p_id and code = v_code;
+  return daten_lesen(v_code);
 end;
 $$;
 
@@ -217,6 +243,7 @@ $$;
 grant execute on function daten_lesen(text)                                              to anon, authenticated;
 grant execute on function profil_anlegen(text, uuid, text)                               to anon, authenticated;
 grant execute on function profil_umbenennen(text, uuid, text)                            to anon, authenticated;
+grant execute on function profil_aussehen(text, uuid, jsonb)                            to anon, authenticated;
 grant execute on function profil_loeschen(text, uuid)                                    to anon, authenticated;
 grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text, text) to anon, authenticated;
 grant execute on function wert_loeschen(text, uuid)                                      to anon, authenticated;

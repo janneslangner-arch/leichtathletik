@@ -139,15 +139,20 @@ Karo, Waben, Konfetti, Höhenlinien, Strahlen), alle aus CSS-Verläufen in der
 jeweiligen Akzentfarbe – ohne Bilddateien. Muster liegen über dem Verlauf,
 beides lässt sich kombinieren.
 
-Farbe und Muster gehören zum **Profil**, nicht zum Gerät: beim Wechseln
-wechselt auch das Aussehen mit. Wer noch nichts gewählt hat, bekommt eine
-feste Farbe aus dem Namen – bewusst nicht die zuletzt benutzte, sonst käme
-Manu mit der Farbe von Levin daher, nur weil Levin vorher dran war. Diese
-Namensfarbe ist überall dieselbe: in der App, auf der Kachel und auf jedem
-Gerät.
+Farbe, Verlauf und Muster gehören zum **Profil**, nicht zum Gerät: beim
+Wechseln wechselt auch das Aussehen mit. **Und es gilt überall** – die
+Auswahl liegt in der Datenbank (Spalte `aussehen` an der Tabelle `profile`)
+und kommt bei jedem Abgleich mit. Stellt Levin auf seinem Handy Rot ein, ist
+er auch auf allen anderen Geräten rot; eigene Farben wandern mit.
 
-Die eigene Wahl liegt dagegen nur auf dem Gerät, auf dem sie getroffen
-wurde – die Datenbank speichert Werte, keine Vorlieben.
+Beim Anlegen wird ausgelost: eine Farbe und ein Verlauf. Farben, die andere
+Profile schon haben, werden dabei übersprungen, solange noch welche frei
+sind – so unterscheiden sich die Kacheln in der Auswahl von allein. Ändern
+lässt sich beides jederzeit.
+
+Läuft in der Datenbank noch das alte Schema ohne `aussehen`, merkt die App
+das am Fehler, hört auf zu fragen und behält die Wahl auf dem Gerät –
+Werte gehen davon nicht verloren.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.

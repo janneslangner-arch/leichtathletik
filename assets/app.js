@@ -95,6 +95,7 @@
   }
   function setzeEigeneFarben(profil, liste) {
     setzeEinstellungVon(profil, 'farbenEigen', JSON.stringify(liste.slice(0, MAX_EIGENE)));
+    sendeAussehen(profil);
   }
   // Alle Schemas, die für ein Profil gelten: die vorgegebenen plus seine eigenen
   function themenVon(profil) {
@@ -141,19 +142,19 @@
     Object.entries(themen[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', `hsl(${themen[key].hue} 26% 8%)`);
-    if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
+    if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); sendeAussehen(db.current); }
   }
   function applyPattern(key, merken) {
     if (!PATTERNS.some(pp => pp[0] === key)) key = 'keins';
     pattern = key;
     document.body.dataset.pattern = key;
-    if (merken) { merke('la-pattern', key); setzeEinstellung('muster', key); }
+    if (merken) { merke('la-pattern', key); setzeEinstellung('muster', key); sendeAussehen(db.current); }
   }
   function applyVerlauf(key, merken) {
     if (!VERLAEUFE.some(v => v[0] === key)) key = 'keins';
     verlauf = key;
     document.body.dataset.verlauf = key;
-    if (merken) { merke('la-verlauf', key); setzeEinstellung('verlauf', key); }
+    if (merken) { merke('la-verlauf', key); setzeEinstellung('verlauf', key); sendeAussehen(db.current); }
   }
   // Vor dem ersten Profil: das zuletzt auf diesem Gerät Gewählte
   function ladeTheme() {
@@ -347,6 +348,10 @@
     try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
     if (!res.ok) {
       const meldung = (data && (data.message || data.hint)) || ('Server-Fehler ' + res.status);
+      if (res.status === 404 && fn === 'profil_aussehen' && /could not find the function/i.test(meldung)) {
+        ohneAussehen = true;                   // Schema noch ohne Aussehen-Spalte
+        return null;
+      }
       if (res.status === 404 && args && 'p_zeit' in args && /could not find the function/i.test(meldung)) {
         ohneZeit = true;                       // Schema noch ohne Uhrzeit
         const kopie = Object.assign({}, args); delete kopie.p_zeit;
@@ -359,11 +364,43 @@
     return data;
   }
 
+  /* ---------------- Aussehen eines Profils ----------------
+     Farbe, Verlauf, Muster und die eigenen Farben gehören zum Profil, nicht
+     zum Gerät. Sie liegen deshalb in der Datenbank und kommen bei jedem
+     Abgleich mit. Ohne Datenbank bleibt alles wie vorher im Browser. */
+  const AUSSEHEN_FELDER = ['farbe', 'verlauf', 'muster', 'farbenEigen'];
+  let ohneAussehen = false;              // Datenbank noch ohne die Spalte
+
+  function aussehenVon(profil) {
+    const o = {};
+    AUSSEHEN_FELDER.forEach(f => {
+      const v = einstellungVon(profil, f, null);
+      if (v != null && v !== '') o[f] = v;
+    });
+    return o;
+  }
+  function uebernimmAussehen(profil, o) {
+    if (!o || typeof o !== 'object') return;
+    AUSSEHEN_FELDER.forEach(f => {
+      const v = o[f];
+      if (typeof v === 'string' && v) setzeEinstellungVon(profil, f, v);
+    });
+  }
+  // Nach jeder Änderung am Aussehen: ab damit zum Server
+  function sendeAussehen(profil) {
+    if (!usingDb() || ohneAussehen) return;
+    const id = db.profileIds && db.profileIds[profil];
+    if (!id) return;
+    enqueue('profil_aussehen', { p_code: cfg.code, p_id: id, p_aussehen: aussehenVon(profil) });
+  }
+
   // Serverstand in das Format der App bringen
   function applyServer(data) {
     const profile = (data && data.profile) || [], werte = (data && data.werte) || [];
     const nameById = {}, idByName = {};
     profile.forEach(p => { nameById[p.id] = p.name; idByName[p.name] = p.id; });
+    // Aussehen kommt vom Server: alle Geräte zeigen dasselbe Profil gleich.
+    profile.forEach(p => uebernimmAussehen(p.name, p.aussehen));
     const names = profile.map(p => p.name);
     const current = names.includes(db.current) ? db.current : (names[0] || db.current);
     db = {
@@ -411,7 +448,9 @@
         return;
       }
       queue.shift(); writeQueue();
-      if (!queue.length && data) { applyServer(data); renderAll(); syncProfileName(); }
+      if (!queue.length && data) {
+        applyServer(data); ladeThemeVomProfil(); renderAll(); syncProfileName();
+      }
     }
     flushing = false;
     lastPull = Date.now();
@@ -425,7 +464,9 @@
     try {
       const data = await rpc('daten_lesen', { p_code: cfg.code });
       lastPull = Date.now();
-      applyServer(data); renderAll(); syncProfileName(); setSync('db');
+      applyServer(data);
+      ladeThemeVomProfil();          // das Aussehen kam eben erst herein
+      renderAll(); syncProfileName(); setSync('db');
     } catch (e) { setSync('offline'); }
   }
 
@@ -1663,6 +1704,19 @@
       : 'Beides bestimmt die Punkte: die Tabelle die Beiwerte, das Geburtsjahr die Altersklasse und damit die Gerätegewichte.');
   }
 
+  /* Jedes neue Profil bekommt ein eigenes Aussehen zugelost: eine Farbe und
+     einen Verlauf. Farben, die andere Profile schon haben, werden dabei
+     übersprungen, solange noch welche frei sind – so sehen die Kacheln in
+     der Auswahl unterschiedlich aus. Ändern lässt sich beides jederzeit. */
+  function zufaelligesAussehen(name) {
+    const wuerfel = liste => liste[Math.floor(Math.random() * liste.length)];
+    const vergeben = new Set(db.athletes.filter(a => a !== name).map(a => farbeVon(a)));
+    const frei = THEME_DEFS.map(([key]) => key).filter(key => !vergeben.has(key));
+    const farben = frei.length ? frei : THEME_DEFS.map(([key]) => key);
+    const verlaeufe = VERLAEUFE.map(([key]) => key).filter(key => key !== 'keins');
+    return { farbe: wuerfel(farben), verlauf: wuerfel(verlaeufe) };
+  }
+
   function speichereNeuesProfil(ev) {
     ev.preventDefault();
     const name = $('#npName').value.trim();
@@ -1674,6 +1728,12 @@
       npHinweis(`Geburtsjahr zwischen 1950 und ${jetzt} eingeben.`); $('#npJahr').focus(); return;
     }
     Store.addProfile(name);
+    // Aussehen auslosen, bevor gewechselt wird – dann steht es schon,
+    // wenn das neue Profil zum ersten Mal gezeichnet wird.
+    const look = zufaelligesAussehen(name);
+    setzeEinstellungVon(name, 'farbe', look.farbe);
+    setzeEinstellungVon(name, 'verlauf', look.verlauf);
+    sendeAussehen(name);                  // auch das Zufallslos gilt für alle Geräte
     switchTo(name);                       // ab hier gelten die Einstellungen dem neuen Profil
     setzeEinstellung('geschlecht', npGeschlecht);
     if (jahr) setzeEinstellung('jahr', String(jahr));
