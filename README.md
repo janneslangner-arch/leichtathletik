@@ -109,9 +109,12 @@ aus 60 Strichen und zwei unterbrochene Bögen. Die Lagen drehen
 unterschiedlich schnell und teils gegenläufig; in der Mitte steht ruhig,
 worauf gewartet wird – beim Profilwechsel „Profil wechseln", darunter der
 Name. Alle Koordinaten stammen aus einem Skript, damit die Punkte exakt auf
-dem Kreis sitzen. Der Ring kommt klein und unscharf herein und wächst auf
+dem Kreis sitzen. Der Ring kommt klein und unscharf herein und wächst in 0,8 s auf
 Normalmaß; ist der Abgleich fertig, wächst er auf das Fünfeinhalbfache,
-wird unscharf und verschwimmt mit der Seite darunter.
+wird unscharf und verschwimmt mit der Seite darunter. Er bleibt mindestens
+eine Sekunde stehen, damit er nicht aufblitzt – insgesamt rund 2,1 s.
+Unter dem Ring steht beim Wechseln groß **Moin _Name_**: der Gruß in der
+Textfarbe, der Name in der Farbe des Profils.
 
 Damit beides nebeneinander funktioniert, läuft der Auftritt als Animation
 **ohne** `fill-mode` – sonst hielte sie den Endzustand fest und der Abgang

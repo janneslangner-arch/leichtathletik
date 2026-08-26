@@ -592,26 +592,26 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   /* Auftritt: klein und unscharf herein, dann auf Normalmaß.
      Bewusst ohne fill-mode – danach gilt wieder der Grundzustand,
      sonst käme der Übergang beim Abgang nicht mehr durch. */
-  animation: hud-auf .52s cubic-bezier(.22, 1.1, .36, 1);
-  transition: transform .72s cubic-bezier(.34, 0, .28, 1),
-              opacity .72s ease,
-              filter .72s ease;
+  animation: hud-auf .82s cubic-bezier(.16, .84, .3, 1);
+  transition: transform .75s cubic-bezier(.4, 0, .2, 1),
+              opacity .75s cubic-bezier(.4, 0, .5, 1),
+              filter .75s ease-in;
 }
 @keyframes hud-auf {
-  from { transform: scale(.42); opacity: 0; filter: blur(10px); }
-  60%  { opacity: 1; }
+  from { transform: scale(.5); opacity: 0; filter: blur(12px); }
+  55%  { opacity: 1; }
   to   { transform: scale(1); opacity: 1; filter: blur(0); }
 }
 .hud { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .hud circle, .hud line { transform-origin: 120px 120px; }
 .hud-punkte circle, .hud-punkte-fein circle { fill: var(--mint); }
-.hud-punkte { animation: hud-dreh 14s linear infinite; transform-origin: 120px 120px; }
+.hud-punkte { animation: hud-dreh 19s linear infinite; transform-origin: 120px 120px; }
 .hud-punkte-fein {
-  animation: hud-dreh 9s linear infinite reverse; transform-origin: 120px 120px;
+  animation: hud-dreh 13s linear infinite reverse; transform-origin: 120px 120px;
   opacity: .55;
 }
 .hud-striche {
-  animation: hud-dreh 22s linear infinite; transform-origin: 120px 120px;
+  animation: hud-dreh 30s linear infinite; transform-origin: 120px 120px;
   opacity: .4;
 }
 .hud-striche line { stroke: var(--mint); stroke-width: 1.6; }
@@ -620,11 +620,11 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 /* Umfang bei r=82 ist 515, bei r=74 ist 465 – daraus die Lücken */
 .hud-bogen-1 {
   stroke-width: 2.4; stroke-dasharray: 128 44 62 44 128 109;
-  animation: hud-dreh 5.5s linear infinite;
+  animation: hud-dreh 7.5s linear infinite;
 }
 .hud-bogen-2 {
   stroke-width: 1.4; stroke-dasharray: 26 18; opacity: .5;
-  animation: hud-dreh 8s linear infinite reverse;
+  animation: hud-dreh 11s linear infinite reverse;
 }
 .hud-ring {
   fill: none; stroke: var(--mint); stroke-width: 1; opacity: .28;
@@ -653,6 +653,14 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   color: var(--mint);
 }
 .sync-sub { margin: -4px 0 0; font-size: 13px; color: var(--muted); letter-spacing: .02em; }
+.sync-sub.ist-gruss {
+  margin-top: 2px;
+  font-size: clamp(26px, 8vw, 34px); font-weight: 700;
+  letter-spacing: -.02em; line-height: 1.15;
+  text-wrap: balance;
+}
+.sync-gruss { color: var(--text); }
+.sync-name { color: var(--mint); }
 
 
 /* ---------- Tiefe: leichte Wölbung statt flacher Flächen ---------- */

@@ -727,11 +727,21 @@
      solange gespeichert und geholt wird. */
   let syncSeit = 0, syncLaeuft = false, syncNotbremse = null;
 
-  function showSync(text, unter) {
+  // `name` gesetzt: die Zeile darunter wird zur Begrüßung – „Moin" in der
+  // Textfarbe, der Name in der Farbe des Profils.
+  function showSync(text, unter, name) {
     const box = $('#syncScreen');
     if (!box) return;
-    $('#syncScreenText').textContent = text || 'Werte werden abgeglichen …';
-    $('#syncScreenSub').textContent = unter || '';
+    $('#syncScreenText').textContent = text || 'Werte werden abgeglichen';
+    const sub = $('#syncScreenSub');
+    sub.textContent = '';
+    sub.classList.toggle('ist-gruss', !!name);
+    if (name) {
+      sub.append(el('span', 'sync-gruss', unter || 'Moin'), ' ',
+                 el('span', 'sync-name', name));
+    } else {
+      sub.textContent = unter || '';
+    }
     $('#syncScreenSkip').hidden = true;
     box.hidden = false;
     box.classList.remove('is-done');
@@ -744,7 +754,7 @@
     const box = $('#syncScreen');
     if (!box || box.hidden) return;
     clearTimeout(syncNotbremse);
-    const rest = Math.max(0, 500 - (Date.now() - syncSeit));   // kein Aufblitzen
+    const rest = Math.max(0, 1000 - (Date.now() - syncSeit));  // kein Aufblitzen
     setTimeout(() => {
       if (meldung) {
         // Im Ring bleibt es kurz, der ganze Satz steht darunter
@@ -762,24 +772,25 @@
     if (!box || box.hidden) return;
     box.classList.add('is-done');
     // So lange, wie die Form zum Aufwachsen und Verblassen braucht
-    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 760);
+    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 800);
   }
 
   // Bei jedem Aufruf: erst Offenes wegschicken, dann den Serverstand holen.
-  async function abgleichen(text, unter) {
+  async function abgleichen(text, unter, name) {
     if (syncLaeuft) return;
     syncLaeuft = true;
     try {
       if (!usingDb()) {
         // Ohne Datenbank gibt es nichts zu holen: nur beim Öffnen kurz zeigen,
         // beim Zurückwechseln stillschweigend weiterlaufen.
-        if (text) { showSync(text, unter || 'von diesem Gerät'); hideSync(); }
+        if (text) { showSync(text, unter || 'von diesem Gerät', name); hideSync(); }
         return;
       }
       showSync(text || 'Werte werden abgeglichen',
                unter || (queue.length
                  ? `${queue.length} ${queue.length === 1 ? 'Änderung wird' : 'Änderungen werden'} gesendet`
-                 : 'einen Moment'));
+                 : 'einen Moment'),
+               name);
       await flush();
       await pull(true);
       hideSync(sync === 'offline' ? 'Keine Verbindung – die Werte von diesem Gerät bleiben erhalten.' : null);
@@ -1620,7 +1631,7 @@
     // Kurzes Vollbild und dabei abgleichen: eigene Änderungen gehen raus,
     // fremde kommen herein. So sieht man beim Wechseln sofort den Stand
     // der anderen – und nichts bleibt auf dem Gerät liegen.
-    await abgleichen('Profil wechseln', 'Hallo ' + name);
+    await abgleichen('Profil wechseln', 'Moin', name);
   }
 
   // Monogramm: erste Buchstaben von bis zu zwei Namensteilen
