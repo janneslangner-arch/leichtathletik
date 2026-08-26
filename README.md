@@ -221,6 +221,18 @@ Damit Besucher nicht URL und Key eintippen müssen, legt der Knopf
 `id="appConfig"` in die Zwischenablage; die in `index.html` einsetzen und
 pushen. Der Klassen-Code bleibt außen vor.
 
+**Nach jeder Änderung: stempeln.** Browser halten `assets/app.js` und
+`assets/styles.css` sonst tagelang im Zwischenspeicher fest, und die
+Änderung kommt auf dem Handy schlicht nicht an. Deshalb vor dem Push:
+
+```
+python3 build.py --stamp
+```
+
+Das hängt einen Fingerabdruck des Inhalts an die Verweise
+(`assets/app.js?v=9aa2ce0e`). Ändert sich die Datei, ändert sich die
+Adresse – und der Browser holt sie neu.
+
 **Auf eigenem Webspace.** Genauso: `index.html`, `assets/` und
 `supabase/schema.sql` hochladen – oder die Einzeldatei aus `python3 build.py`.
 Diese Einzeldatei ist als Sicherung gedacht, nicht als zweite Adresse zum
