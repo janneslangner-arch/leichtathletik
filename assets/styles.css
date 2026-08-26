@@ -589,7 +589,18 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   position: relative;
   width: min(248px, 68vw); aspect-ratio: 1;
   display: grid; place-items: center;
-  transition: transform .62s cubic-bezier(.32, 0, .3, 1), opacity .62s ease;
+  /* Auftritt: klein und unscharf herein, dann auf Normalmaß.
+     Bewusst ohne fill-mode – danach gilt wieder der Grundzustand,
+     sonst käme der Übergang beim Abgang nicht mehr durch. */
+  animation: hud-auf .52s cubic-bezier(.22, 1.1, .36, 1);
+  transition: transform .72s cubic-bezier(.34, 0, .28, 1),
+              opacity .72s ease,
+              filter .72s ease;
+}
+@keyframes hud-auf {
+  from { transform: scale(.42); opacity: 0; filter: blur(10px); }
+  60%  { opacity: 1; }
+  to   { transform: scale(1); opacity: 1; filter: blur(0); }
 }
 .hud { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .hud circle, .hud line { transform-origin: 120px 120px; }
@@ -620,14 +631,20 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 }
 @keyframes hud-dreh { to { transform: rotate(360deg); } }
 
-/* Fertig: die Anzeige wächst auf und verblasst */
-.syncscreen.is-done .hud-feld { transform: scale(4.5); opacity: 0; }
+/* Fertig: die Anzeige wächst auf, wird unscharf und verschwimmt mit der Seite */
+.syncscreen.is-done .hud-feld {
+  transform: scale(5.5);
+  opacity: 0;
+  filter: blur(26px);
+  animation: none;
+}
 .syncscreen.is-done .sync-sub, .syncscreen.is-done .pscreen-link {
   opacity: 0; transition: opacity .2s ease;
 }
 @media (prefers-reduced-motion: reduce) {
   .hud-punkte, .hud-punkte-fein, .hud-striche, .hud-bogen { animation: none; }
-  .syncscreen.is-done .hud-feld { transform: none; }
+  .hud-feld { animation: none; }
+  .syncscreen.is-done .hud-feld { transform: none; filter: none; }
 }
 .sync-text {
   position: relative; margin: 0; max-width: 62%;

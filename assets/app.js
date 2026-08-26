@@ -762,7 +762,7 @@
     if (!box || box.hidden) return;
     box.classList.add('is-done');
     // So lange, wie die Form zum Aufwachsen und Verblassen braucht
-    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 640);
+    setTimeout(() => { box.hidden = true; box.classList.remove('is-done'); }, 760);
   }
 
   // Bei jedem Aufruf: erst Offenes wegschicken, dann den Serverstand holen.
@@ -779,7 +779,7 @@
       showSync(text || 'Werte werden abgeglichen',
                unter || (queue.length
                  ? `${queue.length} ${queue.length === 1 ? 'Änderung wird' : 'Änderungen werden'} gesendet`
-                 : 'mit eurer Datenbank'));
+                 : 'einen Moment'));
       await flush();
       await pull(true);
       hideSync(sync === 'offline' ? 'Keine Verbindung – die Werte von diesem Gerät bleiben erhalten.' : null);

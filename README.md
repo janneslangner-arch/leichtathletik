@@ -109,8 +109,13 @@ aus 60 Strichen und zwei unterbrochene Bögen. Die Lagen drehen
 unterschiedlich schnell und teils gegenläufig; in der Mitte steht ruhig,
 worauf gewartet wird – beim Profilwechsel „Profil wechseln", darunter der
 Name. Alle Koordinaten stammen aus einem Skript, damit die Punkte exakt auf
-dem Kreis sitzen. Ist der Abgleich fertig, wächst der Ring auf ein
-Vielfaches und verblasst. Über der Eingabe steht danach „Hallo
+dem Kreis sitzen. Der Ring kommt klein und unscharf herein und wächst auf
+Normalmaß; ist der Abgleich fertig, wächst er auf das Fünfeinhalbfache,
+wird unscharf und verschwimmt mit der Seite darunter.
+
+Damit beides nebeneinander funktioniert, läuft der Auftritt als Animation
+**ohne** `fill-mode` – sonst hielte sie den Endzustand fest und der Abgang
+(ein `transition`) käme nicht mehr durch. Über der Eingabe steht danach „Hallo
 <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit,
 zusammen mit den Einstellungen (Wertung, Farbe, Muster).
 
