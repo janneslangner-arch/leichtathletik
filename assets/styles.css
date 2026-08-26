@@ -1,4 +1,4 @@
-/* Leichtathletik Tracker – Mint auf Petrol, Urbanist
+/* Leichtathletik Tracker – Mint auf Petrol, San Francisco bzw. Urbanist
    Bewusst einfarbiges (dunkles) Design: alle Farben explizit gesetzt.
 
    Die Schrift liegt im Projekt statt bei Google: kein fremder Server, keine
@@ -41,7 +41,13 @@
   --bad:       #FF8A73;
   --r:  14px;
   --r-lg: 20px;
-  --font: Urbanist, "Helvetica Neue", Helvetica, Arial, "Liberation Sans", sans-serif;
+  /* San Francisco kommt vom Gerät: -apple-system liefert auf iPhone, iPad und
+     Mac genau die Systemschrift (SF Pro). Mitliefern dürfte man sie nicht –
+     Apple erlaubt nur die Nutzung auf den eigenen Geräten, nicht das
+     Verteilen der Dateien. Wo es sie nicht gibt (Android, Windows), greift
+     Urbanist aus dem Projekt, damit die App dort nicht beliebig aussieht. */
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+          Urbanist, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -176,9 +182,17 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .value-unit { align-self: flex-end; padding-bottom: 14px; font-size: 17px; color: var(--muted); font-weight: 600; }
 .save-btn {
   flex: none; align-self: flex-end; width: 64px; height: 58px;
+  display: grid; place-items: center;
   border: 0; border-radius: var(--r); cursor: pointer;
   background: var(--mint); color: var(--ink);
-  font-size: 27px; font-weight: 700; transition: .12s;
+  transition: .12s;
+}
+/* Haken als Zeichnung statt als Schriftzeichen: gleiche Strichstärke wie die
+   übrigen Symbole, und er sieht in jeder Schrift gleich aus. */
+.save-btn svg {
+  width: 30px; height: 30px;
+  fill: none; stroke: currentColor; stroke-width: 2.6;
+  stroke-linecap: round; stroke-linejoin: round;
 }
 .save-btn:hover { background: color-mix(in srgb, var(--mint) 82%, white); }
 .save-btn:active { transform: scale(.95); }

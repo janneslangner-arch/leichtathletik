@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=84dd54a4">
+<link rel="stylesheet" href="assets/styles.css?v=29dbfc38">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -46,7 +46,9 @@
         <input id="valueInput" class="value-input" type="text" inputmode="decimal"
                placeholder="0.00" aria-label="Wert" required>
         <span id="valueUnit" class="value-unit"></span>
-        <button type="submit" class="save-btn" title="Speichern (Enter)">✓</button>
+        <button type="submit" class="save-btn" title="Speichern (Enter)" aria-label="Speichern">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.6l5 5.2L19.5 6.4"/></svg>
+        </button>
       </div>
 
       <p id="parsePreview" class="parse-preview">&nbsp;</p>

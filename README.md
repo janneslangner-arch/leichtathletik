@@ -287,16 +287,20 @@ pushen. Der Klassen-Code bleibt außen vor.
 
 ## Schrift
 
-**Urbanist**, liegt als variable Schrift unter `assets/fonts/` im Projekt
-statt bei Google: kein fremder Server, keine Wartezeit beim Laden, und sie
-ist auch ohne Netz da. Zwei Dateien (lateinisch und erweitert lateinisch),
-zusammen 44 kB, decken alle Stärken von 400 bis 800 ab. `build.py` bettet
-sie für die Einzeldatei als data-URI ein, sonst fiele sie dort auf
-Helvetica zurück.
+Auf iPhone, iPad und Mac **San Francisco** – die Systemschrift, geholt über
+`-apple-system`. Mitliefern lässt sie sich nicht: Apples Lizenz erlaubt die
+Nutzung auf Apple-Geräten, nicht das Verteilen der Schriftdateien. Über den
+Systemverweis ist das erlaubt und kostet null Ladezeit.
+
+Wo es sie nicht gibt (Android, Windows), greift **Urbanist** aus
+`assets/fonts/` – zwei woff2-Dateien, zusammen 44 kB, als variable Schrift
+für alle Stärken von 400 bis 800. Sie liegt im Projekt statt bei Google:
+kein fremder Server und auch ohne Netz da. `build.py` bettet sie für die
+Einzeldatei als data-URI ein.
 
 Urbanist hat keine gleich breiten Ziffern (`tabular-nums` greift also
-nicht). In den Listen fällt das nicht auf, weil Zahlenspalten rechtsbündig
-stehen.
+nicht); San Francisco hat sie. In den Listen fällt es so oder so nicht auf,
+weil Zahlenspalten rechtsbündig stehen.
 
 **Nach jeder Änderung: stempeln.** Browser halten `assets/app.js` und
 `assets/styles.css` sonst tagelang im Zwischenspeicher fest, und die
