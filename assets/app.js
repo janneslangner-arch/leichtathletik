@@ -423,6 +423,14 @@
       }))
     };
     writeLocal();
+
+    // Steht in der Datenbank für ein Profil noch nichts, dieses Gerät hat aber
+    // eine Wahl gespeichert, dann stammt sie aus der Zeit vor dem Abgleich.
+    // Sie muss einmal hoch, sonst bliebe jedes Gerät ewig bei seinem Stand.
+    profile.forEach(p => {
+      const leer = !p.aussehen || typeof p.aussehen !== 'object' || !Object.keys(p.aussehen).length;
+      if (leer && Object.keys(profilEinstellungen(p.name)).length) sendeProfilEinstellungen(p.name);
+    });
   }
 
   function enqueue(fn, args) { queue.push({ fn, args }); writeQueue(); flush(); }
@@ -1374,9 +1382,18 @@
   async function pruefeVerbindung() {
     try {
       const data = await rpc('daten_lesen', { p_code: cfg.code });
-      const n = ((data || {}).werte || []).length, m = ((data || {}).profile || []).length;
-      return `Alles in Ordnung: Die Datenbank antwortet und kennt ${m} ${m === 1 ? 'Profil' : 'Profile'} `
+      const profile = (data || {}).profile || [], werte = (data || {}).werte || [];
+      const m = profile.length, n = werte.length;
+      let text = `Alles in Ordnung: Die Datenbank antwortet und kennt ${m} ${m === 1 ? 'Profil' : 'Profile'} `
         + `und ${n} ${n === 1 ? 'Wert' : 'Werte'} in der Gruppe „${cfg.code}“.`;
+      // Ist der Bauplan vollständig? Sonst gilt eine Farbwahl nur auf diesem Gerät.
+      if (m && !('aussehen' in profile[0]))
+        text += ' Allerdings fehlt der Datenbank noch die Spalte für die Profil-Einstellungen:'
+          + ' Farbe, Verlauf und Wertung gelten deshalb nur auf diesem Gerät.'
+          + ' Dafür muss supabase/schema.sql einmal im SQL-Editor laufen.';
+      else if (m && !werte.some(w => 'zeit' in w) && n)
+        text += ' Hinweis: Die Werte kommen ohne Uhrzeit zurück – dafür fehlt der Datenbank noch die Spalte „zeit".';
+      return text;
     } catch (err) {
       if (err.status) return 'Die Datenbank meldet: ' + err.message + (err.status === 404
         ? ' – ist das Schema aus supabase/schema.sql im SQL-Editor gelaufen?' : '');

@@ -156,9 +156,16 @@ Profile schon haben, werden dabei übersprungen, solange noch welche frei
 sind – so unterscheiden sich die Kacheln in der Auswahl von allein. Ändern
 lässt sich beides jederzeit.
 
+Steht für ein Profil in der Datenbank noch nichts, dieses Gerät hat aber
+eine Wahl gespeichert, schiebt die App sie beim nächsten Abgleich einmal
+hoch. Ohne das bliebe nach dem Anlegen der Spalte jedes Gerät bei seinem
+alten Stand, weil nur Änderungen gesendet werden. Öffnen mehrere Geräte
+gleichzeitig mit unterschiedlicher Wahl, gewinnt das letzte.
+
 Läuft in der Datenbank noch das alte Schema ohne `aussehen`, merkt die App
 das am Fehler, hört auf zu fragen und behält die Wahl auf dem Gerät –
-Werte gehen davon nicht verloren.
+Werte gehen davon nicht verloren. **Verbindung prüfen** sagt in dem Fall
+ausdrücklich, dass die Spalte fehlt.
 
 Geschrieben wird ausschließlich über `setzeEinstellung`; die eine Stelle
 schickt auch zum Server. Wer daran vorbei in den Speicher schreibt, baut
