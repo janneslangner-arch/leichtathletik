@@ -285,6 +285,19 @@ Damit Besucher nicht URL und Key eintippen müssen, legt der Knopf
 `id="appConfig"` in die Zwischenablage; die in `index.html` einsetzen und
 pushen. Der Klassen-Code bleibt außen vor.
 
+## Schrift
+
+**Urbanist**, liegt als variable Schrift unter `assets/fonts/` im Projekt
+statt bei Google: kein fremder Server, keine Wartezeit beim Laden, und sie
+ist auch ohne Netz da. Zwei Dateien (lateinisch und erweitert lateinisch),
+zusammen 44 kB, decken alle Stärken von 400 bis 800 ab. `build.py` bettet
+sie für die Einzeldatei als data-URI ein, sonst fiele sie dort auf
+Helvetica zurück.
+
+Urbanist hat keine gleich breiten Ziffern (`tabular-nums` greift also
+nicht). In den Listen fällt das nicht auf, weil Zahlenspalten rechtsbündig
+stehen.
+
 **Nach jeder Änderung: stempeln.** Browser halten `assets/app.js` und
 `assets/styles.css` sonst tagelang im Zwischenspeicher fest, und die
 Änderung kommt auf dem Handy schlicht nicht an. Deshalb vor dem Push:

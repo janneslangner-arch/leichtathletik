@@ -13,7 +13,7 @@ selbst mit den aktuellen Werten neu veröffentlichen.
               Claude-Seiten: Die dürfen keine Verbindung nach außen aufbauen,
               dort wäre die Verbindung nur eine Fehlerquelle.
 """
-import hashlib, pathlib, re, sys
+import base64, hashlib, pathlib, re, sys
 
 root = pathlib.Path(__file__).parent
 
@@ -52,6 +52,18 @@ html = (root / 'index.html').read_text(encoding='utf-8')
 css = (root / 'assets/styles.css').read_text(encoding='utf-8')
 js = (root / 'assets/app.js').read_text(encoding='utf-8')
 sql = (root / 'supabase/schema.sql').read_text(encoding='utf-8')
+
+# Die Schriftdateien mit in die Einzeldatei nehmen: sonst fiele sie dort auf
+# Helvetica zurück, weil der Verweis ins Leere zeigt.
+def schrift_einbetten(text):
+    for datei in sorted((root / 'assets/fonts').glob('*.woff2')):
+        roh = base64.b64encode(datei.read_bytes()).decode('ascii')
+        text = text.replace('url(fonts/' + datei.name + ')',
+                            'url(data:font/woff2;base64,' + roh + ')')
+    return text
+
+
+css = schrift_einbetten(css)
 
 html = re.sub(r'<link rel="stylesheet" href="assets/styles\.css(\?v=[0-9a-f]+)?">',
               lambda m: '<style id="appStyle">\n' + css + '\n</style>', html)
