@@ -95,7 +95,6 @@
   }
   function setzeEigeneFarben(profil, liste) {
     setzeEinstellungVon(profil, 'farbenEigen', JSON.stringify(liste.slice(0, MAX_EIGENE)));
-    sendeAussehen(profil);
   }
   // Alle Schemas, die für ein Profil gelten: die vorgegebenen plus seine eigenen
   function themenVon(profil) {
@@ -142,19 +141,19 @@
     Object.entries(themen[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', `hsl(${themen[key].hue} 26% 8%)`);
-    if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); sendeAussehen(db.current); }
+    if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
   }
   function applyPattern(key, merken) {
     if (!PATTERNS.some(pp => pp[0] === key)) key = 'keins';
     pattern = key;
     document.body.dataset.pattern = key;
-    if (merken) { merke('la-pattern', key); setzeEinstellung('muster', key); sendeAussehen(db.current); }
+    if (merken) { merke('la-pattern', key); setzeEinstellung('muster', key); }
   }
   function applyVerlauf(key, merken) {
     if (!VERLAEUFE.some(v => v[0] === key)) key = 'keins';
     verlauf = key;
     document.body.dataset.verlauf = key;
-    if (merken) { merke('la-verlauf', key); setzeEinstellung('verlauf', key); sendeAussehen(db.current); }
+    if (merken) { merke('la-verlauf', key); setzeEinstellung('verlauf', key); }
   }
   // Vor dem ersten Profil: das zuletzt auf diesem Gerät Gewählte
   function ladeTheme() {
@@ -368,30 +367,40 @@
      Farbe, Verlauf, Muster und die eigenen Farben gehören zum Profil, nicht
      zum Gerät. Sie liegen deshalb in der Datenbank und kommen bei jedem
      Abgleich mit. Ohne Datenbank bleibt alles wie vorher im Browser. */
-  const AUSSEHEN_FELDER = ['farbe', 'verlauf', 'muster', 'farbenEigen'];
+  /* Was zum Profil gehört und deshalb überall gleich sein muss: das Aussehen
+     und – wichtiger – die Wertung. Läuft ein Gerät mit anderer Tabelle oder
+     anderem Jahrgang, käme am Ende eine andere Note heraus. */
+  const PROFIL_FELDER = ['farbe', 'verlauf', 'muster', 'farbenEigen',
+                         'geschlecht', 'jahr', 'zeit', 'klasse'];
   let ohneAussehen = false;              // Datenbank noch ohne die Spalte
 
-  function aussehenVon(profil) {
+  function profilEinstellungen(profil) {
     const o = {};
-    AUSSEHEN_FELDER.forEach(f => {
+    PROFIL_FELDER.forEach(f => {
       const v = einstellungVon(profil, f, null);
-      if (v != null && v !== '') o[f] = v;
+      if (typeof v === 'string') o[f] = v;      // leer heißt „bewusst nichts"
     });
     return o;
   }
-  function uebernimmAussehen(profil, o) {
+  function uebernimmProfilEinstellungen(profil, o) {
     if (!o || typeof o !== 'object') return;
-    AUSSEHEN_FELDER.forEach(f => {
-      const v = o[f];
-      if (typeof v === 'string' && v) setzeEinstellungVon(profil, f, v);
+    PROFIL_FELDER.forEach(f => {
+      if (typeof o[f] === 'string') schreibeEinstellung(profil, f, o[f]);
     });
   }
-  // Nach jeder Änderung am Aussehen: ab damit zum Server
-  function sendeAussehen(profil) {
+  // Nach jeder Änderung: ab damit zum Server
+  function sendeProfilEinstellungen(profil) {
     if (!usingDb() || ohneAussehen) return;
     const id = db.profileIds && db.profileIds[profil];
     if (!id) return;
-    enqueue('profil_aussehen', { p_code: cfg.code, p_id: id, p_aussehen: aussehenVon(profil) });
+    // Wer dreimal hintereinander etwas umstellt, braucht nicht drei Sendungen:
+    // Es zählt ohnehin nur der letzte Stand. Während des Sendens nicht anfassen.
+    if (!flushing) {
+      const vorher = queue.length;
+      queue = queue.filter(op => !(op.fn === 'profil_aussehen' && op.args && op.args.p_id === id));
+      if (queue.length !== vorher) writeQueue();
+    }
+    enqueue('profil_aussehen', { p_code: cfg.code, p_id: id, p_aussehen: profilEinstellungen(profil) });
   }
 
   // Serverstand in das Format der App bringen
@@ -400,7 +409,7 @@
     const nameById = {}, idByName = {};
     profile.forEach(p => { nameById[p.id] = p.name; idByName[p.name] = p.id; });
     // Aussehen kommt vom Server: alle Geräte zeigen dasselbe Profil gleich.
-    profile.forEach(p => uebernimmAussehen(p.name, p.aussehen));
+    profile.forEach(p => uebernimmProfilEinstellungen(p.name, p.aussehen));
     const names = profile.map(p => p.name);
     const current = names.includes(db.current) ? db.current : (names[0] || db.current);
     db = {
@@ -1187,20 +1196,21 @@
       localStorage.setItem('la-wertung', JSON.stringify(alle));
     } catch (e) { /* egal */ }
   }
-  function setzeEinstellungVon(profil, name, wert) {
+  // Nur schreiben, ohne die Datenbank zu behelligen. Nötig, wenn die
+  // Einstellung gerade VOM Server kam – sonst schickte die App sie zurück.
+  function schreibeEinstellung(profil, name, wert) {
     try {
       const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
       alle[profil] = Object.assign({}, alle[profil], { [name]: wert });
       localStorage.setItem('la-wertung', JSON.stringify(alle));
     } catch (e) { /* egal */ }
   }
-  function setzeEinstellung(name, wert) {
-    try {
-      const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
-      alle[db.current] = Object.assign({}, alle[db.current], { [name]: wert });
-      localStorage.setItem('la-wertung', JSON.stringify(alle));
-    } catch (e) { /* egal */ }
+  function setzeEinstellungVon(profil, name, wert) {
+    schreibeEinstellung(profil, name, wert);
+    if (PROFIL_FELDER.includes(name)) sendeProfilEinstellungen(profil);
   }
+  // Genau ein Weg zum Schreiben, damit nichts an der Datenbank vorbeigeht
+  const setzeEinstellung = (name, wert) => setzeEinstellungVon(db.current, name, wert);
   const geschlechtVon = () => einstellung('geschlecht', 'm');
   // Altersklassen wie in der Vorlage: 16–17 = U18, 18–19 = U20, 20–22 = U23
   function altersklasse(jahr) {
@@ -1732,8 +1742,7 @@
     // wenn das neue Profil zum ersten Mal gezeichnet wird.
     const look = zufaelligesAussehen(name);
     setzeEinstellungVon(name, 'farbe', look.farbe);
-    setzeEinstellungVon(name, 'verlauf', look.verlauf);
-    sendeAussehen(name);                  // auch das Zufallslos gilt für alle Geräte
+    setzeEinstellungVon(name, 'verlauf', look.verlauf);   // gilt für alle Geräte
     switchTo(name);                       // ab hier gelten die Einstellungen dem neuen Profil
     setzeEinstellung('geschlecht', npGeschlecht);
     if (jahr) setzeEinstellung('jahr', String(jahr));

@@ -34,8 +34,11 @@ create table if not exists werte (
   erfasst_am timestamptz not null default now()
 );
 
--- Aussehen eines Profils (Farbe, Verlauf, Muster, eigene Farben). Steht hier
--- und nicht nur im Browser, damit Levin auf jedem Gerät gleich aussieht.
+-- Alles, was zum Profil gehört und auf jedem Gerät gleich sein muss:
+-- Aussehen (Farbe, Verlauf, Muster, eigene Farben) und die Wertung
+-- (Tabelle, Geburtsjahr, Zeitmessung, Altersklasse). Der Inhalt ist frei –
+-- die App bestimmt die Felder, hier wird nur die Größe begrenzt. Deshalb
+-- braucht ein neues Feld kein neues SQL.
 alter table profile add column if not exists aussehen jsonb not null default '{}'::jsonb;
 
 -- Nachträglich dazugekommen: die Uhrzeit der Messung als "HH:MM".

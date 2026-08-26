@@ -145,6 +145,12 @@ Auswahl liegt in der Datenbank (Spalte `aussehen` an der Tabelle `profile`)
 und kommt bei jedem Abgleich mit. Stellt Levin auf seinem Handy Rot ein, ist
 er auch auf allen anderen Geräten rot; eigene Farben wandern mit.
 
+In derselben Spalte steht die **Wertung**: Tabelle, Geburtsjahr,
+Zeitmessung und Altersklasse. Das ist der wichtigere Teil – liefe ein Gerät
+mit anderer Tabelle, käme für dieselben Leistungen eine andere Note heraus.
+Der Inhalt der Spalte ist freies JSON, ein weiteres Feld braucht deshalb
+kein neues SQL.
+
 Beim Anlegen wird ausgelost: eine Farbe und ein Verlauf. Farben, die andere
 Profile schon haben, werden dabei übersprungen, solange noch welche frei
 sind – so unterscheiden sich die Kacheln in der Auswahl von allein. Ändern
@@ -153,6 +159,10 @@ lässt sich beides jederzeit.
 Läuft in der Datenbank noch das alte Schema ohne `aussehen`, merkt die App
 das am Fehler, hört auf zu fragen und behält die Wahl auf dem Gerät –
 Werte gehen davon nicht verloren.
+
+Geschrieben wird ausschließlich über `setzeEinstellung`; die eine Stelle
+schickt auch zum Server. Wer daran vorbei in den Speicher schreibt, baut
+genau den Fehler wieder ein, den `wertungdbtest.js` fängt.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.
