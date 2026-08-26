@@ -94,10 +94,25 @@
     applyTheme(THEMES[t] ? t : 'mint');
     applyPattern(m || 'keins');
   }
-  // Sobald feststeht, wer eingetragen hat: dessen Farbe und Muster
+  // Wer noch keine Farbe gewählt hat, bekommt eine feste aus dem Namen.
+  // Wichtig: NICHT die zuletzt benutzte – sonst käme Manu mit der Farbe von
+  // Levin daher, nur weil Levin vorher dran war.
+  function standardFarbe(name) {
+    const t = String(name || '');
+    let h = 0;
+    for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) % 100003;
+    return THEME_DEFS[h % THEME_DEFS.length][0];
+  }
+  const farbeVon = name => {
+    const k = einstellungVon(name, 'farbe', null);
+    return THEMES[k] ? k : standardFarbe(name);
+  };
+
+  // Sobald feststeht, wer eingetragen hat: dessen Farbe und Muster.
+  // Beides kommt allein aus dem Profil, nichts wird vom vorigen übernommen.
   function ladeThemeVomProfil() {
-    applyTheme(einstellung('farbe', gemerkt('la-theme') || 'mint'));
-    applyPattern(einstellung('muster', gemerkt('la-pattern') || 'keins'));
+    applyTheme(farbeVon(db.current));
+    applyPattern(einstellung('muster', 'keins'));
   }
   const akzent = () => (getComputedStyle(document.documentElement)
     .getPropertyValue('--mint') || '#7BF29C').trim();
@@ -170,10 +185,18 @@
   let sync = 'local';            // local | saving | cloud | error | readonly | conflict
   let localOnly = [];            // Werte, die nur auf diesem Gerät liegen
 
+  // Uhrzeit als „HH:MM"; alles andere gilt als „keine Zeit erfasst".
+  const pruefeZeit = z => /^([01]\d|2[0-3]):[0-5]\d$/.test(String(z || '')) ? String(z) : '';
+  const jetztHHMM = () => {
+    const d = new Date();
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  };
+
   function normalize(o) {
     const d = Object.assign(blank(), o);
     d.profileIds = (o && o.profileIds) || {};
     d.entries = d.entries.filter(e => e && DISC[e.disc] && typeof e.value === 'number' && e.date);
+    d.entries.forEach(e => { e.zeit = pruefeZeit(e.zeit); });
     d.athletes = d.athletes.filter(a => typeof a === 'string' && a.trim()).slice(0, 60);
     d.entries.forEach(e => { if (!d.athletes.includes(e.athlete)) d.athletes.push(e.athlete); });
     if (!d.athletes.length) d.athletes = ['Ich'];
@@ -233,8 +256,15 @@
     catch (e) { return null; }
   }
 
+  // Läuft in der Datenbank noch das Schema ohne Uhrzeit, fehlt dort der
+  // Parameter p_zeit. Dann einmal ohne ihn senden und es sich merken.
+  let ohneZeit = false;
+
   async function rpc(fn, args, conf) {
     const c = conf || cfg;
+    if (ohneZeit && args && 'p_zeit' in args) {
+      args = Object.assign({}, args); delete args.p_zeit;
+    }
     const res = await fetch(c.url.replace(/\/+$/, '') + '/rest/v1/rpc/' + fn, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', apikey: c.key, Authorization: 'Bearer ' + c.key },
@@ -244,7 +274,13 @@
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch (e) { data = null; }
     if (!res.ok) {
-      const err = new Error((data && (data.message || data.hint)) || ('Server-Fehler ' + res.status));
+      const meldung = (data && (data.message || data.hint)) || ('Server-Fehler ' + res.status);
+      if (res.status === 404 && args && 'p_zeit' in args && /could not find the function/i.test(meldung)) {
+        ohneZeit = true;                       // Schema noch ohne Uhrzeit
+        const kopie = Object.assign({}, args); delete kopie.p_zeit;
+        return rpc(fn, kopie, conf);
+      }
+      const err = new Error(meldung);
       err.status = res.status;
       throw err;
     }
@@ -264,7 +300,8 @@
       profileIds: idByName,
       entries: werte.filter(w => DISC[w.disziplin] && nameById[w.profil_id]).map(w => ({
         id: w.id, athlete: nameById[w.profil_id], disc: w.disziplin,
-        value: Number(w.wert), date: String(w.datum).slice(0, 10), note: w.notiz || ''
+        value: Number(w.wert), date: String(w.datum).slice(0, 10),
+        zeit: pruefeZeit(w.zeit), note: w.notiz || ''
       }))
     };
     writeLocal();
@@ -341,7 +378,8 @@
       db.entries.push(e);
       if (usingDb()) enqueue('wert_anlegen', {
         p_code: cfg.code, p_id: e.id, p_profil: ensureProfileId(e.athlete),
-        p_disziplin: e.disc, p_wert: e.value, p_datum: e.date, p_notiz: e.note || ''
+        p_disziplin: e.disc, p_wert: e.value, p_datum: e.date,
+        p_zeit: e.zeit || '', p_notiz: e.note || ''
       });
       commit();
     },
@@ -361,7 +399,11 @@
       if (db.current === alt) db.current = neu;
       const id = db.profileIds && db.profileIds[alt];
       if (id) { delete db.profileIds[alt]; db.profileIds[neu] = id; }
+      const vorher = farbeVon(alt);
       verschiebeEinstellungen(alt, neu);
+      // Ohne eigene Wahl hängt die Farbe am Namen – die soll der Wechsel
+      // des Namens nicht heimlich verstellen.
+      if (farbeVon(neu) !== vorher) setzeEinstellungVon(neu, 'farbe', vorher);
       if (usingDb()) {
         if (id) enqueue('profil_umbenennen', { p_code: cfg.code, p_id: id, p_name: neu });
         else ensureProfileId(neu);
@@ -386,7 +428,8 @@
         ensureProfileId(name);
         removed.forEach(e => enqueue('wert_anlegen', {
           p_code: cfg.code, p_id: e.id, p_profil: db.profileIds[name],
-          p_disziplin: e.disc, p_wert: e.value, p_datum: e.date, p_notiz: e.note || ''
+          p_disziplin: e.disc, p_wert: e.value, p_datum: e.date,
+          p_zeit: e.zeit || '', p_notiz: e.note || ''
         }));
       }
       commit();
@@ -404,12 +447,14 @@
     entries.forEach(e => {
       if (bekannt.has(sig(e))) { doppelt++; return; }
       bekannt.add(sig(e));
-      const kopie = { id: newId(), athlete: e.athlete, disc: e.disc, value: e.value, date: e.date, note: e.note || '' };
+      const kopie = { id: newId(), athlete: e.athlete, disc: e.disc, value: e.value,
+                      date: e.date, zeit: e.zeit || '', note: e.note || '' };
       db.entries.push(kopie);
       neu++;
       enqueue('wert_anlegen', {
         p_code: cfg.code, p_id: kopie.id, p_profil: ensureProfileId(kopie.athlete),
-        p_disziplin: kopie.disc, p_wert: kopie.value, p_datum: kopie.date, p_notiz: kopie.note
+        p_disziplin: kopie.disc, p_wert: kopie.value, p_datum: kopie.date,
+        p_zeit: kopie.zeit, p_notiz: kopie.note
       });
     });
     commit(); renderAll();
@@ -425,7 +470,11 @@
 
   const entriesOf = key => db.entries
     .filter(e => e.athlete === db.current && e.disc === key)
-    .sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : String(a.id) < String(b.id) ? -1 : 1);
+    .sort((a, b) => {
+      const x = zeitpunkt(a), y = zeitpunkt(b);
+      return x < y ? -1 : x > y ? 1 : String(a.id) < String(b.id) ? -1 : 1;
+    });
+  const zeitpunkt = e => e.date + ' ' + (e.zeit || '99:99');
   const countOf = name => db.entries.filter(e => e.athlete === name).length;
   function best(key) {
     const list = entriesOf(key);
@@ -689,7 +738,10 @@
     const list = $('#recentList');
     list.textContent = '';
     const mine = db.entries.filter(e => e.athlete === db.current)
-      .sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : String(b.id) < String(a.id) ? -1 : 1)
+      .sort((a, b) => {
+        const x = zeitpunkt(a), y = zeitpunkt(b);
+        return x > y ? -1 : x < y ? 1 : String(b.id) < String(a.id) ? -1 : 1;
+      })
       .slice(0, 4);
     if (!mine.length) { list.append(el('li', 'empty', 'Noch keine Werte – Disziplin wählen, Zahl tippen, ✓.')); return; }
     mine.forEach(e => list.append(rowFor(e, { showDisc: true })));
@@ -707,7 +759,10 @@
     if (pb) { const bd = el('span', 'badge', 'Best'); bd.style.marginLeft = '8px'; val.append(bd); }
     main.append(val);
     if (e.note) main.append(el('div', 'nm', e.note));
-    li.append(main, el('span', 'meta', fmtDate(e.date)));
+    const meta = el('span', 'meta');
+    meta.append(el('span', 'meta-tag', fmtDate(e.date)));
+    if (e.zeit) meta.append(el('span', 'meta-zeit', e.zeit + ' Uhr'));
+    li.append(main, meta);
     li.append(btn('del', '✕', () => removeEntry(e), 'Wert löschen'));
     return li;
   }
@@ -732,9 +787,11 @@
       id: newId(),
       athlete: db.current, disc: selDisc, value: v,
       date: $('#dateInput').value || todayISO(),
+      zeit: pruefeZeit($('#timeInput').value) || jetztHHMM(),
       note: $('#noteInput').value.trim()
     });
     $('#valueInput').value = ''; $('#noteInput').value = '';
+    $('#timeInput').value = jetztHHMM();       // der nächste Wert ist ein neuer Zeitpunkt
     preview(); renderAll(); $('#valueInput').focus();
     toast(b && isBetter(selDisc, v, b.value) ? `Bestleistung! ${fmt(selDisc, v)}` : `Gespeichert: ${fmt(selDisc, v)}`);
   }
@@ -991,6 +1048,13 @@
       if (!alle[alt]) return;
       if (neu) alle[neu] = alle[alt];
       delete alle[alt];
+      localStorage.setItem('la-wertung', JSON.stringify(alle));
+    } catch (e) { /* egal */ }
+  }
+  function setzeEinstellungVon(profil, name, wert) {
+    try {
+      const alle = JSON.parse(localStorage.getItem('la-wertung') || '{}');
+      alle[profil] = Object.assign({}, alle[profil], { [name]: wert });
       localStorage.setItem('la-wertung', JSON.stringify(alle));
     } catch (e) { /* egal */ }
   }
@@ -1397,12 +1461,7 @@
   // Sonst der Farbton des aktuellen Schemas, leicht gestreut, damit sich die
   // Kacheln trotzdem auseinanderhalten lassen.
   function tint(name) {
-    const gewaehlt = einstellungVon(name, 'farbe', null);
-    if (gewaehlt && THEMES[gewaehlt]) return THEMES[gewaehlt].hue;
-    let h = 0;
-    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
-    const basis = THEMES[theme].hue;
-    return (basis - 26 + (h % 52) + 360) % 360;
+    return THEMES[farbeVon(name)].hue;
   }
   function paintAvatar(span, name) {
     const h = tint(name);
@@ -1729,9 +1788,10 @@
       toast('Datei gespeichert');
   }
   async function exportCSV() {
-    const rows = [['Profil', 'Disziplin', 'Wert', 'Einheit', 'Datum', 'Notiz']];
-    db.entries.slice().sort((a, b) => a.date < b.date ? -1 : 1).forEach(e => {
-      rows.push([e.athlete, DISC[e.disc].name, fmt(e.disc, e.value, false), DISC[e.disc].unit, e.date, e.note || '']);
+    const rows = [['Profil', 'Disziplin', 'Wert', 'Einheit', 'Datum', 'Uhrzeit', 'Notiz']];
+    db.entries.slice().sort((a, b) => zeitpunkt(a) < zeitpunkt(b) ? -1 : 1).forEach(e => {
+      rows.push([e.athlete, DISC[e.disc].name, fmt(e.disc, e.value, false), DISC[e.disc].unit,
+                 e.date, e.zeit || '', e.note || '']);
     });
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
     if (await download(`leichtathletik-${todayISO()}.csv`, '﻿' + csv, 'text/csv')) toast('CSV gespeichert');
@@ -1841,6 +1901,7 @@
     const festerCode = !!(readEmbeddedCfg() || {}).code;
     renderAll();
     $('#dateInput').value = todayISO();
+    $('#timeInput').value = jetztHHMM();
     restoreUi();
 
     $('#entryForm').addEventListener('submit', addEntry);

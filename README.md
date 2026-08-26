@@ -23,7 +23,9 @@ beide erlaubt.
 ## Bedienung
 
 **Erfassen** – Disziplin antippen, Zahl tippen, Enter (oder ✓). Fertig.
-Das Datum steht auf heute, die zuletzt gewählte Disziplin bleibt gemerkt.
+Datum und **Uhrzeit** stehen auf jetzt, die zuletzt gewählte Disziplin bleibt
+gemerkt. Beides steht danach an der Zeile, damit sich mehrere Versuche
+desselben Tages auseinanderhalten lassen; sortiert wird entsprechend.
 Unter der Eingabe steht sofort, wie der Wert gelesen wurde und ob es eine
 neue Bestleistung ist. Datum und Notiz lassen sich bei Bedarf aufklappen.
 
@@ -100,9 +102,10 @@ Kacheln, ein Tipp genügt. Über der Eingabe steht danach „Hallo
 <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit,
 zusammen mit den Einstellungen (Wertung, Farbe, Muster).
 
-Die Kacheln stehen **alphabetisch** und tragen die Farbe, die das jeweilige
-Profil eingestellt hat – so erkennt man sich schon am Farbfleck. Wer noch
-keine gewählt hat, bekommt einen Ton rund um die gerade aktive Farbe.
+Die Kacheln stehen **alphabetisch** und tragen die Farbe des jeweiligen
+Profils – so erkennt man sich schon am Farbfleck. Der Grund dahinter ist
+bewusst neutral (fast schwarz) und folgt nicht dem Farbschema, damit die
+Kacheln herausstechen.
 
 **Profil löschen** – bewusst versteckt: nur in den Einstellungen des
 Profils, das gelöscht werden soll, ganz unten in einem zugeklappten
@@ -120,8 +123,14 @@ Karo, Waben, Konfetti, Höhenlinien, Strahlen), alle aus CSS-Verläufen in der
 jeweiligen Akzentfarbe – ohne Bilddateien.
 
 Farbe und Muster gehören zum **Profil**, nicht zum Gerät: beim Wechseln
-wechselt auch das Aussehen mit. Ein neues Profil startet mit dem, was auf
-dem Gerät zuletzt gewählt war.
+wechselt auch das Aussehen mit. Wer noch nichts gewählt hat, bekommt eine
+feste Farbe aus dem Namen – bewusst nicht die zuletzt benutzte, sonst käme
+Manu mit der Farbe von Levin daher, nur weil Levin vorher dran war. Diese
+Namensfarbe ist überall dieselbe: in der App, auf der Kachel und auf jedem
+Gerät.
+
+Die eigene Wahl liegt dagegen nur auf dem Gerät, auf dem sie getroffen
+wurde – die Datenbank speichert Werte, keine Vorlieben.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.
@@ -174,6 +183,12 @@ Einstellungen gibt es dann weder „Verbindung ändern" noch „Trennen", nur
 „Jetzt abgleichen" und „Verbindung prüfen". Letzteres fragt die Datenbank
 einmal wirklich an und sagt im Klartext, was zurückkommt – Serverfehler,
 blockierte Anfrage oder pausiertes Projekt.
+
+Kommt eine Spalte dazu – etwa `zeit` für die Uhrzeit – genügt es, das
+Skript im SQL-Editor erneut laufen zu lassen; es ist so geschrieben, dass
+das gefahrlos geht (`add column if not exists`). Solange das nicht passiert
+ist, merkt die App am Fehler der Datenbank, dass die Spalte fehlt, und
+schickt die Werte ohne Uhrzeit weiter – gespeichert wird also in jedem Fall.
 
 ### Wie der Zugriff geschützt ist
 

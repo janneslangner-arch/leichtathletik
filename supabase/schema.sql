@@ -34,6 +34,10 @@ create table if not exists werte (
   erfasst_am timestamptz not null default now()
 );
 
+-- Nachträglich dazugekommen: die Uhrzeit der Messung als "HH:MM".
+-- Leer heißt: bei diesem Wert wurde keine Zeit erfasst.
+alter table werte add column if not exists zeit text not null default '';
+
 create index if not exists werte_code_idx on werte (code);
 create index if not exists werte_profil_idx on werte (profil_id);
 create index if not exists profile_code_idx on profile (code);
@@ -101,7 +105,8 @@ begin
     'werte', coalesce((
       select jsonb_agg(jsonb_build_object(
                'id', w.id, 'profil_id', w.profil_id, 'disziplin', w.disziplin,
-               'wert', w.wert, 'datum', w.datum, 'notiz', w.notiz) order by w.datum, w.erfasst_am)
+               'wert', w.wert, 'datum', w.datum, 'zeit', w.zeit, 'notiz', w.notiz)
+               order by w.datum, w.zeit, w.erfasst_am)
       from werte w where w.code = v_code), '[]'::jsonb)
   );
 end;
@@ -163,9 +168,14 @@ end;
 $$;
 
 -- ---------------------------------------------------------------- Werte
+-- Die alte Fassung ohne Uhrzeit weicht, sonst gäbe es zwei Funktionen
+-- gleichen Namens und PostgREST müsste raten.
+drop function if exists wert_anlegen(text, uuid, uuid, text, double precision, date, text);
+
 create or replace function wert_anlegen(
   p_code text, p_id uuid, p_profil uuid, p_disziplin text,
-  p_wert double precision, p_datum date, p_notiz text default '')
+  p_wert double precision, p_datum date, p_notiz text default '',
+  p_zeit text default '')
 returns jsonb
 language plpgsql
 security definer
@@ -180,8 +190,9 @@ begin
   end if;
   if p_wert is null or p_wert <= 0 then raise exception 'Wert muss größer als 0 sein'; end if;
 
-  insert into werte (id, code, profil_id, disziplin, wert, datum, notiz)
-  values (p_id, v_code, p_profil, p_disziplin, p_wert, p_datum, left(coalesce(p_notiz, ''), 200))
+  insert into werte (id, code, profil_id, disziplin, wert, datum, notiz, zeit)
+  values (p_id, v_code, p_profil, p_disziplin, p_wert, p_datum, left(coalesce(p_notiz, ''), 200),
+          case when coalesce(p_zeit, '') ~ '^[0-2][0-9]:[0-5][0-9]$' then p_zeit else '' end)
   on conflict (id) do nothing;                       -- doppeltes Senden ist harmlos
   return daten_lesen(v_code);
 end;
@@ -207,7 +218,7 @@ grant execute on function daten_lesen(text)                                     
 grant execute on function profil_anlegen(text, uuid, text)                               to anon, authenticated;
 grant execute on function profil_umbenennen(text, uuid, text)                            to anon, authenticated;
 grant execute on function profil_loeschen(text, uuid)                                    to anon, authenticated;
-grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text) to anon, authenticated;
+grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text, text) to anon, authenticated;
 grant execute on function wert_loeschen(text, uuid)                                      to anon, authenticated;
 
 revoke execute on function gruppe_pruefen(text) from anon, authenticated;

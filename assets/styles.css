@@ -273,6 +273,14 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .klapp-body > .section-title:first-child { margin-top: 4px; }
 .klapp-body .hint-text { margin-top: 10px; }
 
+.feld-paar { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
+.feld-paar .field input { width: 100%; }
+.feld-paar .field:last-child input { min-width: 116px; }
+
+/* Datum und Uhrzeit in den Listen: untereinander, rechtsbündig */
+.row .meta { display: grid; justify-items: end; gap: 1px; line-height: 1.25; }
+.meta-zeit { font-size: 10.5px; opacity: .75; }
+
 .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn {
   background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
@@ -463,11 +471,22 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   justify-content: safe center;   /* zu hoher Inhalt wird oben nicht abgeschnitten */
   padding: 28px 18px calc(28px + env(safe-area-inset-bottom));
   overflow-y: auto;
+  /* Bewusst neutral, fast schwarz: die Kacheln tragen die Farben, der Grund
+     hält sich raus. Nicht aus dem Farbschema, sondern fest. */
   background:
-    radial-gradient(900px 520px at 50% 0%, var(--bg-glow) 0%, transparent 60%),
-    var(--bg);
+    radial-gradient(900px 520px at 50% 0%, #14161A 0%, transparent 62%),
+    #0A0B0D;
   animation: pscreen-in .22s ease both;
 }
+.pscreen .pscreen-title { color: #F2F5F4; }
+.pscreen .pscreen-hint, .pscreen .p-sub { color: #93999B; }
+.pscreen .p-label { color: #E9EDEC; }
+.pscreen .p-tile.is-current .p-label { color: var(--mint); }
+.pscreen .pscreen-close { background: #15171A; border-color: #2B3034; color: #9AA0A3; }
+.pscreen .pscreen-close:hover { color: #F2F5F4; border-color: var(--mint); }
+.pscreen .pscreen-link { color: #9AA0A3; border-color: #2B3034; }
+.pscreen .pscreen-link:hover { color: var(--mint); border-color: var(--mint); }
+.pscreen .p-avatar-add { background: #15171A; border-color: #33383C; }
 .pscreen[hidden] { display: none; }
 /* Nur die Deckkraft animieren: eine Animation auf transform macht das
    Vollbild zum Bezugsrahmen, und der fixierte Schließen-Knopf scrollt mit. */
