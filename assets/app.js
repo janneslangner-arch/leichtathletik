@@ -170,6 +170,9 @@
   const isBetter = (key, a, b) => DISC[key].better === 'high' ? a > b : a < b;
 
   const fmtDate = iso => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y.slice(2)}`; };
+  const fmtDateLang = iso => { const [y, m, d] = iso.split('-'); return `${d}.${m}.${y}`; };
+  // Datum und Uhrzeit in einer Zeile: „26.08.2026 – 10:34"
+  const fmtWann = e => fmtDateLang(e.date) + (e.zeit ? ' – ' + e.zeit : '');
   const todayISO = () => {
     const t = new Date(), p = n => String(n).padStart(2, '0');
     return `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
@@ -759,10 +762,7 @@
     if (pb) { const bd = el('span', 'badge', 'Best'); bd.style.marginLeft = '8px'; val.append(bd); }
     main.append(val);
     if (e.note) main.append(el('div', 'nm', e.note));
-    const meta = el('span', 'meta');
-    meta.append(el('span', 'meta-tag', fmtDate(e.date)));
-    if (e.zeit) meta.append(el('span', 'meta-zeit', e.zeit + ' Uhr'));
-    li.append(main, meta);
+    li.append(main, el('span', 'meta', fmtWann(e)));
     li.append(btn('del', '✕', () => removeEntry(e), 'Wert löschen'));
     return li;
   }

@@ -277,9 +277,8 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .feld-paar .field input { width: 100%; }
 .feld-paar .field:last-child input { min-width: 116px; }
 
-/* Datum und Uhrzeit in den Listen: untereinander, rechtsbündig */
-.row .meta { display: grid; justify-items: end; gap: 1px; line-height: 1.25; }
-.meta-zeit { font-size: 10.5px; opacity: .75; }
+/* Datum und Uhrzeit in einer Zeile: „26.08.2026 – 10:34" */
+.row .meta { text-align: right; line-height: 1.3; white-space: nowrap; }
 
 .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn {

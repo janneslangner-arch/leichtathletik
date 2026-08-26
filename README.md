@@ -24,8 +24,9 @@ beide erlaubt.
 
 **Erfassen** – Disziplin antippen, Zahl tippen, Enter (oder ✓). Fertig.
 Datum und **Uhrzeit** stehen auf jetzt, die zuletzt gewählte Disziplin bleibt
-gemerkt. Beides steht danach an der Zeile, damit sich mehrere Versuche
-desselben Tages auseinanderhalten lassen; sortiert wird entsprechend.
+gemerkt. Beides steht danach an der Zeile als „02.06.2026 – 10:34", damit sich
+mehrere Versuche desselben Tages auseinanderhalten lassen; sortiert wird
+entsprechend.
 Unter der Eingabe steht sofort, wie der Wert gelesen wurde und ob es eine
 neue Bestleistung ist. Datum und Notiz lassen sich bei Bedarf aufklappen.
 
