@@ -747,10 +747,11 @@
     const rest = Math.max(0, 500 - (Date.now() - syncSeit));   // kein Aufblitzen
     setTimeout(() => {
       if (meldung) {
-        $('#syncScreenText').textContent = meldung;
-        $('#syncScreenSub').textContent = '';
+        // Im Ring bleibt es kurz, der ganze Satz steht darunter
+        $('#syncScreenText').textContent = 'Keine Verbindung';
+        $('#syncScreenSub').textContent = meldung;
         $('#syncScreenSkip').hidden = false;
-        setTimeout(() => schliesseSync(), 2200);
+        setTimeout(() => schliesseSync(), 2600);
         return;
       }
       schliesseSync();
@@ -765,18 +766,20 @@
   }
 
   // Bei jedem Aufruf: erst Offenes wegschicken, dann den Serverstand holen.
-  async function abgleichen(text) {
+  async function abgleichen(text, unter) {
     if (syncLaeuft) return;
     syncLaeuft = true;
     try {
       if (!usingDb()) {
         // Ohne Datenbank gibt es nichts zu holen: nur beim Öffnen kurz zeigen,
         // beim Zurückwechseln stillschweigend weiterlaufen.
-        if (text) { showSync(text, 'von diesem Gerät'); hideSync(); }
+        if (text) { showSync(text, unter || 'von diesem Gerät'); hideSync(); }
         return;
       }
-      showSync(text || 'Werte werden abgeglichen …',
-               queue.length ? `${queue.length} ${queue.length === 1 ? 'Änderung wird' : 'Änderungen werden'} gesendet` : 'mit eurer Datenbank');
+      showSync(text || 'Werte werden abgeglichen',
+               unter || (queue.length
+                 ? `${queue.length} ${queue.length === 1 ? 'Änderung wird' : 'Änderungen werden'} gesendet`
+                 : 'mit eurer Datenbank'));
       await flush();
       await pull(true);
       hideSync(sync === 'offline' ? 'Keine Verbindung – die Werte von diesem Gerät bleiben erhalten.' : null);
@@ -1617,7 +1620,7 @@
     // Kurzes Vollbild und dabei abgleichen: eigene Änderungen gehen raus,
     // fremde kommen herein. So sieht man beim Wechseln sofort den Stand
     // der anderen – und nichts bleibt auf dem Gerät liegen.
-    await abgleichen('Hallo ' + name);
+    await abgleichen('Profil wechseln', 'Hallo ' + name);
   }
 
   // Monogramm: erste Buchstaben von bis zu zwei Namensteilen
@@ -2233,12 +2236,12 @@
     });
     window.addEventListener('pageshow', ev => { if (ev.persisted) abgleichen(); });
     window.addEventListener('pagehide', () => { flushSave(); if (usingDb()) flush(); });
-    window.addEventListener('online', () => abgleichen('Verbindung wieder da – wird abgeglichen …'));
+    window.addEventListener('online', () => abgleichen('Verbindung wieder da', 'wird abgeglichen'));
     $('#syncScreenSkip').addEventListener('click', schliesseSync);
 
     $('#valueInput').focus();
 
-    await abgleichen(usingDb() ? 'Werte werden abgeglichen …' : 'Werte werden geladen …');
+    await abgleichen(usingDb() ? 'Werte werden abgeglichen' : 'Werte werden geladen');
     if (readEmbeddedCfg() && !cloud && !usingDb() && !festerCode) openDbDialog();
     else starteProfilwahl();
   }

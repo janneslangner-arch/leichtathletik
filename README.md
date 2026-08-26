@@ -103,12 +103,14 @@ Kacheln, ein Tipp genügt. Danach kommt kurz das Abgleich-Fenster: Was auf
 diesem Gerät liegt, geht raus, der Stand der anderen kommt herein. So sieht
 man beim Wechseln sofort, was die anderen eingetragen haben.
 
-Das Abgleich-Fenster zeigt eine Form, die sich wandelt – Kugel, Dreieck,
-Stern, Sechseck, Quadrat, Tropfen und zurück. Alle sechs haben gleich viele
-Punkte auf denselben Winkeln; nur deshalb geht der Übergang weich statt
-sprunghaft. Die Punkte stammen aus einem kleinen Skript, nicht aus der
-Hand. Ist der Abgleich fertig, wächst die Form auf ein Vielfaches und
-verblasst. Über der Eingabe steht danach „Hallo
+Das Abgleich-Fenster zeigt einen Ring aus mehreren Lagen: außen ein
+Halbton-Kranz aus 40 Punkten, darin ein feinerer aus 56, ein Strichkranz
+aus 60 Strichen und zwei unterbrochene Bögen. Die Lagen drehen
+unterschiedlich schnell und teils gegenläufig; in der Mitte steht ruhig,
+worauf gewartet wird – beim Profilwechsel „Profil wechseln", darunter der
+Name. Alle Koordinaten stammen aus einem Skript, damit die Punkte exakt auf
+dem Kreis sitzen. Ist der Abgleich fertig, wächst der Ring auf ein
+Vielfaches und verblasst. Über der Eingabe steht danach „Hallo
 <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit,
 zusammen mit den Einstellungen (Wertung, Farbe, Muster).
 
