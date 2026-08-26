@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=d8b029cd">
+<link rel="stylesheet" href="assets/styles.css?v=0c94fc56">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -14,6 +14,7 @@
      aus dem die App beim Speichern in der Cloud die neue Seite bauen kann. -->
 <template id="appShell">
 
+<div id="bgverlauf" aria-hidden="true"></div>
 <div id="bgfx" aria-hidden="true"></div>
 
 <header class="topbar">
@@ -49,6 +50,14 @@
       </div>
 
       <p id="parsePreview" class="parse-preview">&nbsp;</p>
+
+      <div id="dopplung" class="warnung" hidden>
+        <p id="dopplungText" class="warnung-text"></p>
+        <div class="warnung-knoepfe">
+          <button type="button" id="dopplungJa" class="btn btn-sm btn-warnung">Trotzdem eintragen</button>
+          <button type="button" id="dopplungNein" class="btn btn-sm">Abbrechen</button>
+        </div>
+      </div>
 
       <details class="extras">
         <summary>Datum &amp; Notiz</summary>
@@ -221,6 +230,18 @@
       <div class="klapp-body">
         <h3 class="section-title">Farbe</h3>
         <div id="themeGrid" class="theme-grid"></div>
+
+        <h3 class="section-title">Eigene Farbe <span id="eigenZahl" class="section-zahl"></span></h3>
+        <form id="eigenForm" class="eigen-form" autocomplete="off">
+          <input id="eigenWert" type="color" value="#7BF29C" aria-label="Farbe wählen">
+          <input id="eigenName" type="text" maxlength="14" placeholder="Name, z.&nbsp;B. Türkis" aria-label="Name der Farbe">
+          <button type="submit" class="btn btn-mint btn-sm">Hinzufügen</button>
+        </form>
+        <p id="eigenHinweis" class="hint-text"></p>
+
+        <h3 class="section-title">Verlauf</h3>
+        <div id="gradientGrid" class="theme-grid"></div>
+
         <h3 class="section-title">Hintergrund</h3>
         <div id="patternGrid" class="theme-grid"></div>
       </div>
@@ -386,6 +407,6 @@
 <script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "q2sp2026"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
-<script id="appScript" src="assets/app.js?v=9aa2ce0e"></script>
+<script id="appScript" src="assets/app.js?v=e7d56e6a"></script>
 </body>
 </html>

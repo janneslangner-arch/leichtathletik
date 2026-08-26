@@ -560,7 +560,10 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .theme-swatch {
   width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line);
 }
-.theme-name { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.15; }
+.theme-name {
+  font-size: 11px; font-weight: 600; text-align: center; line-height: 1.15;
+  max-width: 100%; overflow-wrap: anywhere; hyphens: auto;
+}
 .theme-card.is-active .theme-name { color: var(--mint); }
 
 /* ---------- Abgleich-Fenster ---------- */
@@ -615,6 +618,94 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .tabbar { box-shadow: 0 -12px 26px -26px rgba(0,0,0,1); }
 .toast { box-shadow: 0 14px 34px -16px rgba(0,0,0,.6); }
 
+/* ---------- Farbverläufe ----------
+   Eigene Ebene unter dem Muster. Alles aus --mint und --bg-glow, damit jeder
+   Verlauf zur gewählten Farbe passt – auch zu selbst angelegten. */
+#bgverlauf {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  --a: color-mix(in srgb, var(--mint) 26%, transparent);
+  --a2: color-mix(in srgb, var(--mint) 13%, transparent);
+  --g: var(--bg-glow);
+}
+/* Sonnenaufgang: Licht steigt vom unteren Rand */
+body[data-verlauf="sonne"] #bgverlauf {
+  background-image:
+    radial-gradient(120% 55% at 50% 108%, var(--a) 0%, transparent 62%),
+    linear-gradient(180deg, transparent 45%, var(--a2) 100%);
+}
+/* Nordlicht: zwei versetzte Schleier */
+body[data-verlauf="nordlicht"] #bgverlauf {
+  background-image:
+    radial-gradient(70% 42% at 18% 8%, var(--a) 0%, transparent 60%),
+    radial-gradient(60% 38% at 88% 26%, color-mix(in srgb, var(--mint) 16%, transparent) 0%, transparent 62%),
+    radial-gradient(90% 50% at 50% 100%, var(--g) 0%, transparent 70%);
+}
+/* Tiefe: heller Kern, dunkle Ränder */
+body[data-verlauf="tiefe"] #bgverlauf {
+  background-image:
+    radial-gradient(75% 45% at 50% 32%, var(--a2) 0%, transparent 70%),
+    radial-gradient(140% 110% at 50% 50%, transparent 40%, rgba(0, 0, 0, .55) 100%);
+}
+/* Bahnkurve: schräger Streifen wie eine angeschnittene Laufbahn */
+body[data-verlauf="bahn"] #bgverlauf {
+  background-image:
+    linear-gradient(104deg, transparent 22%, var(--a) 47%, var(--a2) 53%, transparent 78%),
+    radial-gradient(90% 60% at 50% 0%, var(--g) 0%, transparent 68%);
+}
+/* Zweiklang: Akzent oben, Gegenfarbe unten */
+body[data-verlauf="zweiklang"] #bgverlauf {
+  background-image:
+    linear-gradient(160deg,
+      color-mix(in srgb, var(--mint) 20%, transparent) 0%,
+      transparent 42%,
+      color-mix(in srgb, hsl(from var(--mint) calc(h + 150) s l) 16%, transparent) 100%);
+}
+/* Falls hsl(from …) fehlt: dieselbe Idee mit der Grundfarbe */
+@supports not (color: hsl(from red h s l)) {
+  body[data-verlauf="zweiklang"] #bgverlauf {
+    background-image:
+      linear-gradient(160deg, var(--a) 0%, transparent 44%, var(--g) 100%);
+  }
+}
+/* Höhensonne: weiches Licht von oben, wie ein Stadionflutlicht */
+body[data-verlauf="flutlicht"] #bgverlauf {
+  background-image:
+    conic-gradient(from 200deg at 50% -14%, transparent 0deg, var(--a) 26deg, transparent 52deg),
+    radial-gradient(80% 45% at 50% 0%, var(--a2) 0%, transparent 66%);
+}
+
+/* Vorschaukacheln: dieselben Verläufe auf kleiner Fläche */
+.verlauf-probe {
+  width: 34px; height: 34px; border-radius: 10px;
+  border: 1px solid var(--line); background-color: var(--bg);
+  --a: color-mix(in srgb, var(--mint) 55%, transparent);
+  --a2: color-mix(in srgb, var(--mint) 28%, transparent);
+  --g: var(--bg-glow);
+}
+.verlauf-probe[data-verlauf="sonne"] {
+  background-image: radial-gradient(120% 55% at 50% 108%, var(--a) 0%, transparent 62%),
+                    linear-gradient(180deg, transparent 45%, var(--a2) 100%);
+}
+.verlauf-probe[data-verlauf="nordlicht"] {
+  background-image: radial-gradient(70% 42% at 18% 8%, var(--a) 0%, transparent 60%),
+                    radial-gradient(60% 38% at 88% 26%, var(--a2) 0%, transparent 62%),
+                    radial-gradient(90% 50% at 50% 100%, var(--g) 0%, transparent 70%);
+}
+.verlauf-probe[data-verlauf="tiefe"] {
+  background-image: radial-gradient(75% 45% at 50% 32%, var(--a) 0%, transparent 70%),
+                    radial-gradient(140% 110% at 50% 50%, transparent 34%, rgba(0, 0, 0, .6) 100%);
+}
+.verlauf-probe[data-verlauf="bahn"] {
+  background-image: linear-gradient(104deg, transparent 18%, var(--a) 47%, var(--a2) 55%, transparent 82%);
+}
+.verlauf-probe[data-verlauf="zweiklang"] {
+  background-image: linear-gradient(160deg, var(--a) 0%, transparent 48%, var(--g) 100%);
+}
+.verlauf-probe[data-verlauf="flutlicht"] {
+  background-image: conic-gradient(from 200deg at 50% -14%, transparent 0deg, var(--a) 26deg, transparent 52deg),
+                    radial-gradient(80% 45% at 50% 0%, var(--a2) 0%, transparent 66%);
+}
+
 /* ---------- Hintergrundmuster ---------- */
 #bgfx {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
@@ -626,6 +717,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 /* Über dem Muster liegen, ohne die Leisten anzufassen: die Kopfzeile ist
    sticky, die Tableiste fixed – beide dürfen hier nicht auf relative
    zurückfallen, sonst scrollen sie mit weg. Ihre z-index stehen oben. */
+#bgfx { z-index: 0; }
 main { position: relative; z-index: 1; }
 .pattern-swatch[data-pattern="konfetti"] { --s: .18; }
 .pattern-swatch[data-pattern="hoehen"] { --s: .5; }
@@ -809,6 +901,62 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .klapp-gefahr > summary::after { color: var(--bad); }
 .klapp-gefahr > summary:hover { color: var(--bad); }
 .klapp-gefahr[open] { border-color: color-mix(in srgb, var(--bad) 45%, var(--line-soft)); }
+
+/* Eigene Farben: Formular und Löschzeichen auf der Kachel */
+.section-zahl {
+  font-size: 10.5px; font-weight: 600; letter-spacing: .06em;
+  color: var(--mint-dim); text-transform: none; margin-left: 6px;
+}
+.eigen-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.eigen-form[hidden] { display: none; }
+.eigen-form input[type="color"] {
+  flex: none; width: 46px; height: 40px; padding: 3px;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+}
+.eigen-form input[type="text"] {
+  flex: 1 1 130px; min-width: 0;
+  background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
+  border-radius: 10px; padding: 10px 11px; font-size: 14px;
+}
+.eigen-form input[type="text"]:focus { outline: none; border-color: var(--mint); }
+.theme-card { position: relative; }
+.theme-weg {
+  position: absolute; top: -5px; right: -5px;
+  width: 21px; height: 21px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+  font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
+}
+.theme-weg:hover { color: var(--bad); border-color: var(--bad); }
+
+/* Warnung vor Dopplungen: schwarz-rot, damit sie im Fluss auffällt */
+.warnung {
+  margin-top: 12px;
+  padding: 13px 14px;
+  border: 1px solid var(--bad);
+  border-left-width: 4px;
+  border-radius: 12px;
+  background: #0A0405;
+  background-image: linear-gradient(180deg, color-mix(in srgb, var(--bad) 12%, transparent), transparent 70%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 18%, transparent),
+              0 14px 30px -20px rgba(0, 0, 0, .95);
+  animation: warnung-auf .16s ease both;
+}
+.warnung[hidden] { display: none; }
+@keyframes warnung-auf { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.warnung-text {
+  margin: 0 0 11px; font-size: 13.5px; line-height: 1.45; color: #F6E9E7;
+}
+.warnung-text::before {
+  content: "Achtung"; display: block;
+  font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--bad); margin-bottom: 4px;
+}
+.warnung-knoepfe { display: flex; flex-wrap: wrap; gap: 8px; }
+.warnung-knoepfe .btn { background: #150A0C; border-color: color-mix(in srgb, var(--bad) 40%, #2A1418); }
+.warnung-knoepfe .btn:hover { border-color: var(--bad); color: var(--bad); }
+.btn-warnung { background: var(--bad) !important; border-color: var(--bad) !important; color: #1A0407 !important; font-weight: 700; }
+.btn-warnung:hover { filter: brightness(1.07); }
 
 /* Befund der Verbindungsprüfung */
 .db-befund {

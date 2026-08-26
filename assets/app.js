@@ -55,13 +55,70 @@
   const THEMES = {};
   THEME_DEFS.forEach(([key, name, hue]) => { THEMES[key] = { name, hue, vars: themeVars(hue) }; });
 
+  /* ---- Eigene Farben: bis zu fünf je Profil ---------------------------
+     Gespeichert wird nur der Farbton (0–359). Daraus baut themeVars das
+     ganze Schema, genau wie bei den vorgegebenen Farben – so bleibt der
+     Text lesbar, egal wie dunkel jemand tippt. */
+  const MAX_EIGENE = 5;
+
+  function hexZuHue(hex) {
+    const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+    if (!m) return null;
+    const n = parseInt(m[1], 16);
+    const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    if (!d) return 0;
+    let h;
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    return Math.round(((h * 60) % 360 + 360) % 360);
+  }
+  const hueZuHex = h => {
+    // hsl(h 94% 66%) als #rrggbb, für das Farbfeld im Formular
+    const s = 0.94, l = 0.66, c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
+      : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+  };
+
+  // Liste der eigenen Farben eines Profils: [{ key, name, hue }]
+  function eigeneFarben(profil) {
+    let liste = [];
+    try { liste = JSON.parse(einstellungVon(profil, 'farbenEigen', '[]')); } catch (e) { liste = []; }
+    if (!Array.isArray(liste)) liste = [];
+    return liste
+      .filter(f => f && typeof f.key === 'string' && Number.isFinite(Number(f.hue)))
+      .slice(0, MAX_EIGENE)
+      .map(f => ({ key: f.key, name: f.name || 'Eigene', hue: ((Number(f.hue) % 360) + 360) % 360 }));
+  }
+  function setzeEigeneFarben(profil, liste) {
+    setzeEinstellungVon(profil, 'farbenEigen', JSON.stringify(liste.slice(0, MAX_EIGENE)));
+  }
+  // Alle Schemas, die für ein Profil gelten: die vorgegebenen plus seine eigenen
+  function themenVon(profil) {
+    const alle = Object.assign({}, THEMES);
+    eigeneFarben(profil).forEach(f => {
+      alle[f.key] = { name: f.name, hue: f.hue, vars: themeVars(f.hue), eigen: true };
+    });
+    return alle;
+  }
+  const themaHolen = (key, profil) => themenVon(profil || db.current)[key] || null;
+
   const PATTERNS = [
     ['keins',    'Schlicht'],   ['raster',  'Raster'],    ['punkte',  'Punkte'],
     ['bahn',     'Laufbahn'],   ['wellen',  'Wellen'],    ['karo',    'Karo'],
     ['waben',    'Waben'],      ['konfetti','Konfetti'],  ['hoehen',  'Höhenlinien'],
     ['strahlen', 'Strahlen']
   ];
-  let theme = 'mint', pattern = 'keins';
+  const VERLAEUFE = [
+    ['keins',      'Keiner'],      ['sonne',     'Sonnenlicht'],
+    ['nordlicht',  'Nordlicht'],   ['tiefe',     'Tiefe'],
+    ['bahn',       'Bahnkurve'],   ['zweiklang', 'Zweiklang'],
+    ['flutlicht',  'Flutlicht']
+  ];
+  let theme = 'mint', pattern = 'keins', verlauf = 'keins';
 
   // Farbe und Muster gehören zum Profil. Was zuletzt gewählt wurde, steht
   // zusätzlich auf dem Gerät: damit ist beim Laden schon vor dem ersten
@@ -73,13 +130,17 @@
     try { return localStorage.getItem(schluessel); } catch (e) { return null; }
   };
 
+  // Vor dem ersten Profil gibt es nur die vorgegebenen Farben.
+  const alleThemen = () => (typeof db !== 'undefined' && db && db.current) ? themenVon(db.current) : THEMES;
+
   function applyTheme(key, merken) {
-    if (!THEMES[key]) key = 'mint';
+    const themen = alleThemen();
+    if (!themen[key]) key = 'mint';
     theme = key;
     const wurzel = document.documentElement;
-    Object.entries(THEMES[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
+    Object.entries(themen[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', `hsl(${THEMES[key].hue} 26% 8%)`);
+    if (meta) meta.setAttribute('content', `hsl(${themen[key].hue} 26% 8%)`);
     if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
   }
   function applyPattern(key, merken) {
@@ -88,11 +149,18 @@
     document.body.dataset.pattern = key;
     if (merken) { merke('la-pattern', key); setzeEinstellung('muster', key); }
   }
+  function applyVerlauf(key, merken) {
+    if (!VERLAEUFE.some(v => v[0] === key)) key = 'keins';
+    verlauf = key;
+    document.body.dataset.verlauf = key;
+    if (merken) { merke('la-verlauf', key); setzeEinstellung('verlauf', key); }
+  }
   // Vor dem ersten Profil: das zuletzt auf diesem Gerät Gewählte
   function ladeTheme() {
     const t = gemerkt('la-theme'), m = gemerkt('la-pattern');
     applyTheme(THEMES[t] ? t : 'mint');
     applyPattern(m || 'keins');
+    applyVerlauf(gemerkt('la-verlauf') || 'keins');
   }
   // Wer noch keine Farbe gewählt hat, bekommt eine feste aus dem Namen.
   // Wichtig: NICHT die zuletzt benutzte – sonst käme Manu mit der Farbe von
@@ -105,7 +173,7 @@
   }
   const farbeVon = name => {
     const k = einstellungVon(name, 'farbe', null);
-    return THEMES[k] ? k : standardFarbe(name);
+    return themenVon(name)[k] ? k : standardFarbe(name);
   };
 
   // Sobald feststeht, wer eingetragen hat: dessen Farbe und Muster.
@@ -113,6 +181,7 @@
   function ladeThemeVomProfil() {
     applyTheme(farbeVon(db.current));
     applyPattern(einstellung('muster', 'keins'));
+    applyVerlauf(einstellung('verlauf', 'keins'));
   }
   const akzent = () => (getComputedStyle(document.documentElement)
     .getPropertyValue('--mint') || '#7BF29C').trim();
@@ -707,7 +776,7 @@
       card.addEventListener('click', () => {
         selDisc = key;
         try { localStorage.setItem('la-last-disc', key); } catch (e) { /* egal */ }
-        renderDiscGrid(); syncEntryHead();
+        renderDiscGrid(); syncEntryHead(); versteckeDopplung();
         $('#valueInput').value = ''; preview(); $('#valueInput').focus();
       });
       grid.append(card);
@@ -777,11 +846,37 @@
     });
   }
 
+  // Warnung vor Dopplungen: derselbe Wert, dieselbe Disziplin, derselbe Tag,
+  // dasselbe Profil. Zwei Leute tragen denselben Sprung ein, ohne es zu merken.
+  let dopplungOk = null;                 // Kennung des bereits bestätigten Werts
+
+  function zeigeDopplung(vorhanden, wert) {
+    const d = DISC[selDisc];
+    $('#dopplungText').textContent =
+      `${fmt(selDisc, wert)} in ${d.name} steht für ${db.current} an diesem Tag schon drin`
+      + (vorhanden.zeit ? ` – eingetragen um ${vorhanden.zeit} Uhr.` : '.')
+      + ' Hat das jemand anderes schon eingetippt, oder war das ein zweiter Versuch?';
+    $('#dopplung').hidden = false;
+  }
+  const versteckeDopplung = () => { $('#dopplung').hidden = true; };
+
   function addEntry(ev) {
     ev.preventDefault();
     const raw = $('#valueInput').value.trim();
     const v = parseValue(selDisc, raw);
     if (v == null) { toast('Wert nicht lesbar: ' + DISC[selDisc].hint, { warn: true }); return; }
+
+    const datum = $('#dateInput').value || todayISO();
+    const merkmal = [db.current, selDisc, datum, v.toFixed(3)].join('|');
+    if (dopplungOk !== merkmal) {
+      const schon = db.entries.find(e =>
+        e.athlete === db.current && e.disc === selDisc && e.date === datum &&
+        Math.abs(e.value - v) < 1e-9);
+      if (schon) { zeigeDopplung(schon, v); return; }
+    }
+    dopplungOk = null;
+    versteckeDopplung();
+
     const b = best(selDisc);
     Store.addEntry({
       id: newId(),
@@ -1461,7 +1556,8 @@
   // Sonst der Farbton des aktuellen Schemas, leicht gestreut, damit sich die
   // Kacheln trotzdem auseinanderhalten lassen.
   function tint(name) {
-    return THEMES[farbeVon(name)].hue;
+    const t = themenVon(name);
+    return (t[farbeVon(name)] || THEMES.mint).hue;
   }
   function paintAvatar(span, name) {
     const h = tint(name);
@@ -1622,7 +1718,8 @@
     $('#einstellungenFuer').textContent = 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
     $('#wertungKurz').textContent =
       `· ${g === 'w' ? 'Mädchen' : 'Jungen'} · ${zeit === 'hand' ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
-    $('#designKurz').textContent = '· ' + THEMES[theme].name + ' · ' + musterName(pattern);
+    $('#designKurz').textContent = '· ' + (alleThemen()[theme] || THEMES.mint).name
+      + ' · ' + verlaufName(verlauf) + ' · ' + musterName(pattern);
     $('#speicherKurz').textContent = '· ' + speicherName();
     $('#wertungHinweis').textContent =
       `${g === 'w' ? 'Mädchen' : 'Jungen'}, ${zeit === 'hand' ? 'Handzeit (Zuschlag 0,24 s bis 300 m)' : 'elektronische Zeit'}, `
@@ -1634,13 +1731,15 @@
   }
 
   const musterName = key => (PATTERNS.find(([k]) => k === key) || [null, 'Schlicht'])[1];
+  const verlaufName = key => (VERLAEUFE.find(([k]) => k === key) || [null, 'Keiner'])[1];
   const speicherName = () => usingDb() ? 'Datenbank' : cloud ? 'Cloud' : 'dieses Gerät';
 
   function renderThemes() {
     const grid = $('#themeGrid');
+    const themen = alleThemen();
     if (grid) {
       grid.textContent = '';
-      Object.entries(THEMES).forEach(([key, t]) => {
+      Object.entries(themen).forEach(([key, t]) => {
         const b = btn('theme-card' + (key === theme ? ' is-active' : ''), null, () => {
           applyTheme(key, true);
           renderAll(); renderProfil(); renderEinstellungen();
@@ -1652,7 +1751,33 @@
           `linear-gradient(150deg, ${t.vars['--surface-2']}, ${t.vars['--bg']})`;
         probe.style.borderColor = t.vars['--line'];
         b.append(probe, el('span', 'theme-name', t.name));
+        if (t.eigen) {
+          b.classList.add('theme-eigen');
+          // Eigene Farbe wieder loswerden – ohne die Kachel selbst auszulösen
+          const weg = btn('theme-weg', '✕', ev => {
+            ev.stopPropagation();
+            loescheEigeneFarbe(key, t.name);
+          }, 'Farbe „' + t.name + '" löschen');
+          b.append(weg);
+        }
         grid.append(b);
+      });
+    }
+    renderEigenForm();
+
+    const vgrid = $('#gradientGrid');
+    if (vgrid) {
+      vgrid.textContent = '';
+      VERLAEUFE.forEach(([key, name]) => {
+        const b = btn('theme-card' + (key === verlauf ? ' is-active' : ''), null, () => {
+          applyVerlauf(key, true);
+          renderProfil(); renderEinstellungen();
+          toast('Verlauf: ' + name);
+        }, 'Verlauf ' + name);
+        const probe = el('span', 'verlauf-probe');
+        probe.dataset.verlauf = key;
+        b.append(probe, el('span', 'theme-name', name));
+        vgrid.append(b);
       });
     }
 
@@ -1670,6 +1795,49 @@
       b.append(probe, el('span', 'theme-name', name));
       pgrid.append(b);
     });
+  }
+
+  // Formular für eigene Farben: fünf sind das Höchste
+  function renderEigenForm() {
+    const zahl = document.getElementById('eigenZahl');
+    const form = document.getElementById('eigenForm');
+    const hinweis = document.getElementById('eigenHinweis');
+    if (!zahl || !form || !hinweis) return;
+    const eigene = eigeneFarben(db.current);
+    const voll = eigene.length >= MAX_EIGENE;
+    zahl.textContent = eigene.length + ' von ' + MAX_EIGENE;
+    form.hidden = voll;
+    hinweis.textContent = voll
+      ? `Mehr als ${MAX_EIGENE} eigene Farben gehen nicht. Lösche erst eine über das ✕ auf ihrer Kachel.`
+      : `Gilt nur für ${db.current}. Aus der gewählten Farbe wird das ganze Schema berechnet, damit die Schrift lesbar bleibt.`;
+  }
+
+  function neueEigeneFarbe(ev) {
+    ev.preventDefault();
+    const hinweis = document.getElementById('eigenHinweis');
+    const eigene = eigeneFarben(db.current);
+    if (eigene.length >= MAX_EIGENE) { renderEigenForm(); return; }
+    const hue = hexZuHue($('#eigenWert').value);
+    if (hue == null) { hinweis.textContent = 'Diese Farbe konnte ich nicht lesen.'; return; }
+    const name = ($('#eigenName').value || '').trim().slice(0, 14) || 'Eigene ' + (eigene.length + 1);
+    if (Object.values(alleThemen()).some(t => t.name.toLowerCase() === name.toLowerCase())) {
+      hinweis.textContent = `„${name}" gibt es schon – nimm einen anderen Namen.`;
+      return;
+    }
+    const key = 'eigen-' + Date.now().toString(36);
+    setzeEigeneFarben(db.current, eigene.concat([{ key, name, hue }]));
+    $('#eigenName').value = '';
+    applyTheme(key, true);                 // die neue Farbe gleich zeigen
+    renderAll(); renderProfil(); renderEinstellungen();
+    toast('Farbe angelegt: ' + name);
+  }
+
+  function loescheEigeneFarbe(key, name) {
+    const rest = eigeneFarben(db.current).filter(f => f.key !== key);
+    setzeEigeneFarben(db.current, rest);
+    if (theme === key) applyTheme(standardFarbe(db.current), true);
+    renderAll(); renderProfil(); renderEinstellungen();
+    toast(`Farbe „${name}" gelöscht`);
   }
 
   // Kompatibel halten: beide Ansichten aktualisieren
@@ -1905,7 +2073,18 @@
     restoreUi();
 
     $('#entryForm').addEventListener('submit', addEntry);
-    $('#valueInput').addEventListener('input', preview);
+    $('#dopplungJa').addEventListener('click', () => {
+      const v = parseValue(selDisc, $('#valueInput').value.trim());
+      if (v == null) { versteckeDopplung(); return; }
+      dopplungOk = [db.current, selDisc, $('#dateInput').value || todayISO(), v.toFixed(3)].join('|');
+      versteckeDopplung();
+      $('#entryForm').requestSubmit();
+    });
+    $('#dopplungNein').addEventListener('click', () => {
+      versteckeDopplung();
+      $('#valueInput').value = ''; preview(); $('#valueInput').focus();
+    });
+    $('#valueInput').addEventListener('input', () => { versteckeDopplung(); preview(); });
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
       flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
     }));
@@ -1944,6 +2123,7 @@
       else if (!$('#profileScreen').hidden) closePicker();
     });
 
+    $('#eigenForm').addEventListener('submit', neueEigeneFarbe);
     $('#exportBtn').addEventListener('click', exportJSON);
     $('#csvBtn').addEventListener('click', exportCSV);
     $('#importBtn').addEventListener('click', () => $('#importFile').click());

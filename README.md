@@ -119,9 +119,25 @@ Magenta, Koralle, Orange, Gold). Jedes Schema wird aus einem Farbton
 berechnet: Grund, Flächen, Linien, Text und Akzent kommen aus derselben
 Quelle, deshalb bleibt keine Farbe zurück.
 
+**Eigene Farbe** – bis zu **fünf je Profil**, jederzeit wieder löschbar über
+das ✕ auf der Kachel. Gespeichert wird nur der Farbton; Grund, Flächen,
+Linien und Text rechnet dieselbe Funktion daraus wie bei den vorgegebenen
+Farben. Deshalb bleibt die Schrift lesbar, auch wenn jemand ein sehr dunkles
+Blau wählt. Das Limit hält die gespeicherte Datenmenge klein.
+
+**Verlauf** – sieben Farbverläufe über dem Grund: Keiner, Sonnenlicht
+(Licht steigt vom unteren Rand), Nordlicht (zwei versetzte Schleier), Tiefe
+(heller Kern, dunkle Ränder), Bahnkurve (schräger Streifen), Zweiklang
+(Akzent oben, Gegenfarbe unten) und Flutlicht (Lichtkegel von oben). Alle
+sind aus `--mint` und `--bg-glow` gebaut, passen sich also jeder Farbe an –
+auch einer selbst angelegten. Zweiklang holt sich die Gegenfarbe über
+`hsl(from …)`; wo der Browser das nicht kann, greift eine schlichtere
+Fassung.
+
 **Hintergrund** – zehn Muster (Schlicht, Raster, Punkte, Laufbahn, Wellen,
 Karo, Waben, Konfetti, Höhenlinien, Strahlen), alle aus CSS-Verläufen in der
-jeweiligen Akzentfarbe – ohne Bilddateien.
+jeweiligen Akzentfarbe – ohne Bilddateien. Muster liegen über dem Verlauf,
+beides lässt sich kombinieren.
 
 Farbe und Muster gehören zum **Profil**, nicht zum Gerät: beim Wechseln
 wechselt auch das Aussehen mit. Wer noch nichts gewählt hat, bekommt eine
@@ -163,6 +179,13 @@ erst gehen offene Änderungen raus, dann kommt der Stand der anderen herein.
 **Keine Dopplungen:** Ein Wert gilt als derselbe, wenn Profil, Disziplin,
 Datum und Leistung übereinstimmen; beim Übertragen und beim Laden einer
 Datei wird danach abgeglichen.
+
+**Warnung beim Eintippen:** Steht derselbe Wert für dasselbe Profil am
+selben Tag schon drin, fragt die App vor dem Speichern nach – schwarz-rot,
+mit der Uhrzeit des vorhandenen Werts („eingetragen um 14:20 Uhr"). Zwei
+Leute, die denselben Sprung eintragen, merken das dadurch sofort. Zwei
+echte Versuche mit demselben Ergebnis gehen über „Trotzdem eintragen"
+weiterhin durch; die Bestätigung gilt nur für diesen einen Wert.
 
 ## Datenbank einrichten (Supabase, kostenlos)
 
