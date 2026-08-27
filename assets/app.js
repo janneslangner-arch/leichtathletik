@@ -57,9 +57,10 @@
     const ll = v => (Math.round(v * gl * 10) / 10) + '%';
     const aL = akzentL == null ? 66 : grenze(akzentL, AKZENT_MIN, AKZENT_MAX);
     const dL = Math.max(36, aL - 14);
-    // Schrift auf dem Akzent: je heller der Akzent, desto tiefer das
-    // Schwarz. Bei reinem Weiß ist es echtes Schwarz (0 %).
-    const inkL = Math.round(7 * g * (1 - grenze((aL - 80) / 20, 0, 1)) * 10) / 10;
+    // Nur bei genau #ffffff: reines Weiß mit reinem Schwarz darauf.
+    // Alles andere behält die dunkle, leicht getönte Schrift.
+    const reinWeiss = k === 0 && akzentL === 100;
+    const inkL = reinWeiss ? 0 : Math.round(7 * g * 10) / 10;
     const badH = (h >= 330 || h <= 45) ? 350 : 5;     // Warnfarbe bleibt unterscheidbar
     return {
       '--bg':        `hsl(${h} ${s(26)} ${l(8)})`,
