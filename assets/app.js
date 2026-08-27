@@ -34,26 +34,40 @@
     ['magenta', 'Magenta', 315], ['koralle', 'Koralle', 8],   ['orange',  'Orange',  28],
     ['gold',    'Gold',    46]
   ];
-  function themeVars(h) {
+  const AKZENT_MIN = 56, AKZENT_MAX = 90;   // damit der Akzent sichtbar bleibt
+  const grenze = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  /* `kraft` (0–1) ist die Buntheit der gewählten Farbe: 1 = voll bunt,
+     0 = Grau. Damit werden alle Sättigungen skaliert – wer Weiß oder
+     Schwarz wählt, bekommt wirklich ein graues Schema und kein rotes.
+     `akzentL` ist die Helligkeit der gewählten Farbe. */
+  function themeVars(h, kraft, akzentL) {
+    const k = kraft == null ? 1 : grenze(kraft, 0, 1);
+    const s = v => (Math.round(v * k * 10) / 10) + '%';
+    const aL = akzentL == null ? 66 : grenze(akzentL, AKZENT_MIN, AKZENT_MAX);
+    const dL = Math.max(38, aL - 14);
     const badH = (h >= 330 || h <= 45) ? 350 : 5;     // Warnfarbe bleibt unterscheidbar
     return {
-      '--bg':        `hsl(${h} 26% 8%)`,
-      '--bg-glow':   `hsl(${h} 34% 15%)`,
-      '--surface':   `hsl(${h} 22% 12.5%)`,
-      '--surface-2': `hsl(${h} 20% 17.5%)`,
-      '--line':      `hsl(${h} 20% 31%)`,
-      '--line-soft': `hsl(${h} 20% 22%)`,
-      '--text':      `hsl(${h} 32% 96%)`,
-      '--muted':     `hsl(${h} 15% 68%)`,
-      '--mint':      `hsl(${h} 94% 66%)`,
-      '--mint-dim':  `hsl(${h} 58% 52%)`,
-      '--mint-glow': `hsla(${h} 94% 66% / .22)`,
-      '--ink':       `hsl(${h} 48% 7%)`,
+      '--bg':        `hsl(${h} ${s(26)} 8%)`,
+      '--bg-glow':   `hsl(${h} ${s(34)} 15%)`,
+      '--surface':   `hsl(${h} ${s(22)} 12.5%)`,
+      '--surface-2': `hsl(${h} ${s(20)} 17.5%)`,
+      '--line':      `hsl(${h} ${s(20)} 31%)`,
+      '--line-soft': `hsl(${h} ${s(20)} 22%)`,
+      '--text':      `hsl(${h} ${s(32)} 96%)`,
+      '--muted':     `hsl(${h} ${s(15)} 68%)`,
+      '--mint':      `hsl(${h} ${s(94)} ${aL}%)`,
+      '--mint-dim':  `hsl(${h} ${s(58)} ${dL}%)`,
+      '--mint-glow': `hsla(${h} ${s(94)} ${aL}% / .22)`,
+      '--ink':       `hsl(${h} ${s(48)} 7%)`,
+      // Rot bleibt Rot, auch im grauen Schema – sonst sieht man Warnungen nicht
       '--bad':       `hsl(${badH} 88% 70%)`
     };
   }
   const THEMES = {};
-  THEME_DEFS.forEach(([key, name, hue]) => { THEMES[key] = { name, hue, vars: themeVars(hue) }; });
+  THEME_DEFS.forEach(([key, name, hue]) => {
+    THEMES[key] = { name, hue, kraft: 1, akzent: 66, vars: themeVars(hue) };
+  });
 
   /* ---- Eigene Farben: bis zu fünf je Profil ---------------------------
      Gespeichert wird nur der Farbton (0–359). Daraus baut themeVars das
@@ -61,27 +75,26 @@
      Text lesbar, egal wie dunkel jemand tippt. */
   const MAX_EIGENE = 5;
 
-  function hexZuHue(hex) {
+  // #rrggbb -> { hue, sat, hell } in Grad und Prozent. Wichtig ist `sat`:
+  // Weiß, Schwarz und Grau haben Sättigung 0 – ohne diesen Wert wäre
+  // jede unbunte Farbe der Farbton 0 und damit Rot.
+  function hexZuHsl(hex) {
     const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
     if (!m) return null;
     const n = parseInt(m[1], 16);
     const r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
     const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
-    if (!d) return 0;
-    let h;
-    if (max === r) h = ((g - b) / d) % 6;
-    else if (max === g) h = (b - r) / d + 2;
-    else h = (r - g) / d + 4;
-    return Math.round(((h * 60) % 360 + 360) % 360);
+    const l = (max + min) / 2;
+    const sat = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    let h = 0;
+    if (d) {
+      if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h = ((h * 60) % 360 + 360) % 360;
+    }
+    return { hue: Math.round(h), sat: Math.round(sat * 100), hell: Math.round(l * 100) };
   }
-  const hueZuHex = h => {
-    // hsl(h 94% 66%) als #rrggbb, für das Farbfeld im Formular
-    const s = 0.94, l = 0.66, c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1));
-    const m = l - c / 2;
-    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
-      : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
-    return '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
-  };
 
   // Liste der eigenen Farben eines Profils: [{ key, name, hue }]
   function eigeneFarben(profil) {
@@ -91,7 +104,14 @@
     return liste
       .filter(f => f && typeof f.key === 'string' && Number.isFinite(Number(f.hue)))
       .slice(0, MAX_EIGENE)
-      .map(f => ({ key: f.key, name: f.name || 'Eigene', hue: ((Number(f.hue) % 360) + 360) % 360 }));
+      .map(f => ({
+        key: f.key,
+        name: f.name || 'Eigene',
+        hue: ((Number(f.hue) % 360) + 360) % 360,
+        // Ältere Einträge kennen nur den Farbton: die bleiben wie bisher
+        sat:  Number.isFinite(Number(f.sat))  ? grenze(Number(f.sat), 0, 100)  : 94,
+        hell: Number.isFinite(Number(f.hell)) ? grenze(Number(f.hell), 0, 100) : 66
+      }));
   }
   function setzeEigeneFarben(profil, liste) {
     setzeEinstellungVon(profil, 'farbenEigen', JSON.stringify(liste.slice(0, MAX_EIGENE)));
@@ -100,7 +120,12 @@
   function themenVon(profil) {
     const alle = Object.assign({}, THEMES);
     eigeneFarben(profil).forEach(f => {
-      alle[f.key] = { name: f.name, hue: f.hue, vars: themeVars(f.hue), eigen: true };
+      const kraft = f.sat / 100;
+      const akzent = grenze(f.hell, AKZENT_MIN, AKZENT_MAX);
+      alle[f.key] = {
+        name: f.name, hue: f.hue, kraft, akzent,
+        vars: themeVars(f.hue, kraft, f.hell), eigen: true
+      };
     });
     return alle;
   }
@@ -140,7 +165,7 @@
     const wurzel = document.documentElement;
     Object.entries(themen[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', `hsl(${themen[key].hue} 26% 8%)`);
+    if (meta) meta.setAttribute('content', themen[key].vars['--bg']);
     if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
   }
   function applyPattern(key, merken) {
@@ -1643,14 +1668,19 @@
   // Kacheln trotzdem auseinanderhalten lassen.
   function tint(name) {
     const t = themenVon(name);
-    return (t[farbeVon(name)] || THEMES.mint).hue;
+    return t[farbeVon(name)] || THEMES.mint;
   }
   function paintAvatar(span, name) {
-    const h = tint(name);
+    const t = tint(name);
+    const h = t.hue, k = t.kraft == null ? 1 : t.kraft;
+    const s = v => (Math.round(v * k * 10) / 10) + '%';
+    // Die Schrift auf der Kachel ist der Akzent des Schemas – bei Weiß also
+    // wirklich Weiß, bei Schwarz ein helles Grau, nie Rot.
+    const schrift = Math.max(60, t.akzent == null ? 74 : t.akzent + 8);
     span.textContent = monogram(name);
     span.dataset.hue = h;
-    span.style.background = `linear-gradient(155deg, hsl(${h} 44% 27%), hsl(${h} 46% 16%))`;
-    span.style.color = `hsl(${h} 72% 74%)`;
+    span.style.background = `linear-gradient(155deg, hsl(${h} ${s(44)} 27%), hsl(${h} ${s(46)} 16%))`;
+    span.style.color = `hsl(${h} ${s(72)} ${schrift}%)`;
   }
 
   // Wer wird aktiv, wenn das aktuelle Profil verschwindet? Nicht das leere
@@ -1912,7 +1942,7 @@
     form.hidden = voll;
     hinweis.textContent = voll
       ? `Mehr als ${MAX_EIGENE} eigene Farben gehen nicht. Lösche erst eine über das ✕ auf ihrer Kachel.`
-      : `Gilt nur für ${db.current}. Aus der gewählten Farbe wird das ganze Schema berechnet, damit die Schrift lesbar bleibt.`;
+      : `Gilt nur für ${db.current}. Aus der gewählten Farbe wird das ganze Schema berechnet – auch aus Grau, Weiß oder Schwarz. Die Schrift bleibt dabei lesbar.`;
   }
 
   function neueEigeneFarbe(ev) {
@@ -1920,15 +1950,17 @@
     const hinweis = document.getElementById('eigenHinweis');
     const eigene = eigeneFarben(db.current);
     if (eigene.length >= MAX_EIGENE) { renderEigenForm(); return; }
-    const hue = hexZuHue($('#eigenWert').value);
-    if (hue == null) { hinweis.textContent = 'Diese Farbe konnte ich nicht lesen.'; return; }
+    const farbe = hexZuHsl($('#eigenWert').value);
+    if (!farbe) { hinweis.textContent = 'Diese Farbe konnte ich nicht lesen.'; return; }
     const name = ($('#eigenName').value || '').trim().slice(0, 14) || 'Eigene ' + (eigene.length + 1);
     if (Object.values(alleThemen()).some(t => t.name.toLowerCase() === name.toLowerCase())) {
       hinweis.textContent = `„${name}" gibt es schon – nimm einen anderen Namen.`;
       return;
     }
     const key = 'eigen-' + Date.now().toString(36);
-    setzeEigeneFarben(db.current, eigene.concat([{ key, name, hue }]));
+    setzeEigeneFarben(db.current, eigene.concat([
+      { key, name, hue: farbe.hue, sat: farbe.sat, hell: farbe.hell }
+    ]));
     $('#eigenName').value = '';
     applyTheme(key, true);                 // die neue Farbe gleich zeigen
     renderAll(); renderProfil(); renderEinstellungen();
