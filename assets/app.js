@@ -589,14 +589,18 @@
       }
       commit();
     },
-    removeProfile(name) {
+    // schonGeloescht: der Server hat das Profil bereits weggenommen (mit
+    // Löschcode). Dann darf es nicht noch einmal in die Warteschlange.
+    removeProfile(name, schonGeloescht) {
       const removed = db.entries.filter(e => e.athlete === name);
       const id = db.profileIds && db.profileIds[name];
       db.athletes = db.athletes.filter(a => a !== name);
       db.entries = db.entries.filter(e => e.athlete !== name);
       if (db.profileIds) delete db.profileIds[name];
       if (db.current === name) db.current = nachfolger();
-      if (usingDb() && id) enqueue('profil_loeschen', { p_code: cfg.code, p_id: id });
+      if (usingDb() && id && !schonGeloescht) {
+        enqueue('profil_loeschen', { p_code: cfg.code, p_id: id });
+      }
       commit();
       return removed;
     },
@@ -2096,37 +2100,157 @@
 
   // Profil löschen: nur in den eigenen Einstellungen, zugeklappt, und erst
   // nach einer Rückfrage. Danach lässt es sich einmal rückgängig machen.
+  // Wo im Löschvorgang wir gerade sind: null = nichts angefangen,
+  // 'frage' = Rückfrage, 'code' = der Zahlencode wird verlangt.
+  let loeschStand = null;
+
   function renderLoeschen() {
     const box = document.getElementById('loeschBereich');
     if (!box) return;
     box.textContent = '';
     const name = db.current, n = countOf(name);
-    const hinweis = t => { const e = el('p', 'hint-text', t); e.style.marginTop = '0'; box.append(e); };
+    const werte = `${n} ${n === 1 ? 'Wert' : 'Werten'}`;
+    const hinweis = (t, klasse) => {
+      const e = el('p', 'hint-text' + (klasse ? ' ' + klasse : ''), t);
+      e.style.marginTop = '0'; box.append(e); return e;
+    };
+    // Profil gewechselt? Dann fängt das Löschen von vorne an.
+    if (loeschStand && loeschStand.name !== name) loeschStand = null;
 
     if (db.athletes.length < 2) {
+      loeschStand = null;
       hinweis(`„${name}“ ist das einzige Profil und kann deshalb nicht gelöscht werden. `
         + 'Lege erst ein weiteres an.');
       return;
     }
-    hinweis(`Löscht „${name}“ mit ${n} ${n === 1 ? 'Wert' : 'Werten'}`
-      + (usingDb() ? ' – auch aus der Klassen-Datenbank, also für alle.' : '.')
-      + ' Danach ist die Sache über „Rückgängig" noch einmal umkehrbar.');
+    // Mit Klassen-Datenbank braucht es den Zahlencode. Ohne Datenbank hängen
+    // die Werte nur an diesem Gerät – da gibt es nichts zu schützen.
+    const id = db.profileIds && db.profileIds[name];
+    const mitCode = usingDb() && !!id;
 
-    const takt = el('div', 'data-actions');
-    takt.append(btn('btn btn-danger', 'Profil „' + name + '" löschen', () => {
-      box.textContent = '';
-      hinweis(`„${name}“ mit ${n} ${n === 1 ? 'Wert' : 'Werten'} wirklich löschen?`);
+    if (!loeschStand) {
+      hinweis(`Löscht „${name}“ mit ${werte}`
+        + (usingDb() ? ' – auch aus der Klassen-Datenbank, also für alle.' : '.')
+        + (mitCode
+            ? ' Dafür schickt die Datenbank einen Zahlencode per E-Mail an den Besitzer der Klasse.'
+            : ' Danach ist die Sache über „Rückgängig" noch einmal umkehrbar.'));
+      const takt = el('div', 'data-actions');
+      takt.append(btn('btn btn-danger', 'Profil „' + name + '" löschen',
+        () => { loeschStand = { phase: 'frage', name }; renderLoeschen(); }));
+      box.append(takt);
+      return;
+    }
+
+    if (loeschStand.phase === 'frage') {
+      hinweis(`„${name}“ mit ${werte} wirklich löschen?`);
+      if (loeschStand.fehler) hinweis(loeschStand.fehler, 'hint-warn');
       const frage = el('div', 'data-actions');
-      frage.append(
-        btn('btn btn-danger', 'Ja, löschen', () => loescheProfil(name)),
-        btn('btn', 'Abbrechen', renderLoeschen));
+      frage.append(mitCode
+        ? btn('btn btn-danger', 'Ja – Löschcode anfordern', fordereLoeschcode)
+        : btn('btn btn-danger', 'Ja, löschen', () => { loeschStand = null; loescheProfil(name); }));
+      frage.append(btn('btn', 'Abbrechen', () => { loeschStand = null; renderLoeschen(); }));
       box.append(frage);
-    }));
+      return;
+    }
+
+    // Der Code ist unterwegs – jetzt fehlt nur noch er selbst
+    hinweis(loeschStand.info || '');
+    if (loeschStand.laeuft) return;
+
+    const feld = el('input', 'feld-eingabe');
+    feld.type = 'text'; feld.inputMode = 'numeric'; feld.autocomplete = 'off';
+    feld.placeholder = '123-456'; feld.maxLength = 7;
+    feld.value = loeschStand.pin || '';
+    feld.setAttribute('aria-label', 'Löschcode');
+    feld.addEventListener('input', () => {
+      const z = feld.value.replace(/\D/g, '').slice(0, 6);
+      feld.value = z.length > 3 ? z.slice(0, 3) + '-' + z.slice(3) : z;
+      loeschStand.pin = feld.value;
+    });
+    feld.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter') { ev.preventDefault(); pruefeLoeschcode(); }
+    });
+    box.append(feld);
+    if (loeschStand.fehler) hinweis(loeschStand.fehler, 'hint-warn');
+    const takt = el('div', 'data-actions');
+    takt.append(
+      btn('btn btn-danger', 'Löschen', pruefeLoeschcode),
+      btn('btn', 'Neuer Code', fordereLoeschcode),
+      btn('btn', 'Abbrechen', () => { loeschStand = null; renderLoeschen(); }));
     box.append(takt);
+    if (loeschStand.fokus) { loeschStand.fokus = false; setTimeout(() => feld.focus(), 0); }
   }
 
-  function loescheProfil(name) {
-    const removed = Store.removeProfile(name);
+  // Der Code entsteht in der Datenbank und geht von dort per Mail raus.
+  // Dieses Gerät bekommt ihn nicht zu sehen – sonst wäre die Sperre sinnlos.
+  async function fordereLoeschcode() {
+    const name = db.current;
+    const id = db.profileIds && db.profileIds[name];
+    if (!usingDb() || !id) {
+      toast('Dafür braucht es die Verbindung zur Klassen-Datenbank', { warn: true });
+      return;
+    }
+    loeschStand = { phase: 'code', name, pin: '', laeuft: true, info: 'Code wird angefordert …' };
+    renderLoeschen();
+    try {
+      await flush();
+      const res = await rpc('loeschcode_anfordern', { p_code: cfg.code, p_id: id, p_wer: name });
+      const an = (res && res.an) || 'den Besitzer der Klasse';
+      const min = (res && res.minuten) || 10;
+      loeschStand = {
+        phase: 'code', name, pin: '', fokus: true,
+        info: `Ein Zahlencode ging an ${an} und gilt ${min} Minuten. `
+            + 'Frag nach dem Code und trage ihn hier ein – fünf Fehlversuche, dann ist er verbraucht.'
+      };
+    } catch (err) {
+      loeschStand = { phase: 'frage', name, fehler: loeschFehler(err) };
+    }
+    renderLoeschen();
+  }
+
+  // Fehler aus der Datenbank in Klartext übersetzen
+  function loeschFehler(err) {
+    const m = (err && err.message) || 'Unbekannter Fehler';
+    if (err && err.status === 404) {
+      return 'Diese Datenbank kennt den Löschschutz noch nicht – das neue SQL muss erst eingespielt werden.';
+    }
+    return m;
+  }
+
+  async function pruefeLoeschcode() {
+    if (!loeschStand || loeschStand.phase !== 'code') return;
+    const name = loeschStand.name;
+    const id = db.profileIds && db.profileIds[name];
+    const pin = (loeschStand.pin || '').trim();
+    if (!id) return;
+    if (pin.replace(/\D/g, '').length !== 6) {
+      loeschStand.fehler = 'Der Code besteht aus sechs Ziffern, zum Beispiel 123-456';
+      renderLoeschen(); return;
+    }
+    loeschStand.fehler = ''; loeschStand.laeuft = true;
+    loeschStand.info = 'Code wird geprüft …';
+    renderLoeschen();
+    let res;
+    try {
+      res = await rpc('profil_loeschen', { p_code: cfg.code, p_id: id, p_pin: pin });
+    } catch (err) {
+      loeschStand = { phase: 'code', name, pin, fokus: true, fehler: loeschFehler(err),
+        info: 'Trage den Code ein, den du bekommen hast.' };
+      renderLoeschen(); return;
+    }
+    if (!res || res.ok !== true) {
+      loeschStand = { phase: 'code', name, pin: '', fokus: true,
+        fehler: (res && res.meldung) || 'Der Code stimmt nicht',
+        info: 'Trage den Code ein, den du bekommen hast.' };
+      renderLoeschen(); return;
+    }
+    loeschStand = null;
+    loescheProfil(name, res.daten);
+  }
+
+  function loescheProfil(name, serverStand) {
+    const removed = Store.removeProfile(name, !!serverStand);
+    if (serverStand) applyServer(serverStand);
     merke('la-profil-gewaehlt', db.current);
     ladeThemeVomProfil();               // das nächste Profil bringt seine Farbe mit
     renderAll(); syncProfileName(); renderProfiles();

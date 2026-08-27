@@ -1046,6 +1046,9 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .theme-card.ist-arbeit { border-color: var(--mint); }
 .theme-card.ist-arbeit .theme-aendern { color: var(--mint); border-color: var(--mint); }
 
+/* Absagen beim Löschcode */
+.hint-warn { color: var(--bad); }
+
 /* Warnung vor Dopplungen: schwarz-rot, damit sie im Fluss auffällt */
 .warnung {
   margin-top: 12px;

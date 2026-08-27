@@ -9,6 +9,16 @@
 
 create extension if not exists pgcrypto;
 
+-- Für den Mailversand des Löschcodes. Fehlt die Erweiterung, läuft alles
+-- andere trotzdem – nur das Löschen von Profilen ist dann nicht möglich.
+do $ext$
+begin
+  create extension if not exists pg_net;
+exception when others then
+  raise notice 'pg_net nicht verfügbar (%) – Löschcodes können nicht verschickt werden', sqlerrm;
+end
+$ext$;
+
 -- ---------------------------------------------------------------- Tabellen
 create table if not exists gruppen (
   code        text primary key,
@@ -45,16 +55,41 @@ alter table profile add column if not exists aussehen jsonb not null default '{}
 -- Leer heißt: bei diesem Wert wurde keine Zeit erfasst.
 alter table werte add column if not exists zeit text not null default '';
 
+-- Zugangsdaten für den Mailversand. Steht bewusst NICHT in der Webseite:
+-- die kann jeder öffnen und mitlesen. Auf diese Tabelle kommt nur der
+-- Server selbst, über die Funktionen weiter unten.
+create table if not exists geheim (
+  schluessel text primary key,
+  wert       text not null
+);
+
+-- Ein Löschcode gilt für genau ein Profil, zehn Minuten lang und einmal.
+-- Der Code selbst wird nur als Prüfsumme gespeichert.
+create table if not exists loesch_codes (
+  id          uuid primary key default gen_random_uuid(),
+  code        text not null references gruppen(code) on delete cascade,
+  profil_id   uuid not null references profile(id) on delete cascade,
+  pin_hash    text not null,
+  wer         text not null default '',
+  erstellt_am timestamptz not null default now(),
+  gueltig_bis timestamptz not null,
+  versuche    int not null default 0,
+  benutzt_am  timestamptz
+);
+
+create index if not exists loesch_codes_profil_idx on loesch_codes (profil_id, gueltig_bis);
 create index if not exists werte_code_idx on werte (code);
 create index if not exists werte_profil_idx on werte (profil_id);
 create index if not exists profile_code_idx on profile (code);
 
 -- Direktzugriff dicht machen: RLS an, keine einzige Policy.
-alter table gruppen enable row level security;
-alter table profile enable row level security;
-alter table werte   enable row level security;
+alter table gruppen      enable row level security;
+alter table profile      enable row level security;
+alter table werte        enable row level security;
+alter table geheim       enable row level security;
+alter table loesch_codes enable row level security;
 
-revoke all on table gruppen, profile, werte from anon, authenticated;
+revoke all on table gruppen, profile, werte, geheim, loesch_codes from anon, authenticated;
 
 -- ---------------------------------------------------------------- Bausteine
 -- Prüft den Klassen-Code und legt die Gruppe beim ersten Mal an.
@@ -182,17 +217,137 @@ begin
 end;
 $$;
 
-create or replace function profil_loeschen(p_code text, p_id uuid)
+-- ------------------------------------------------------- Löschen mit Code
+-- Ein Profil zu löschen nimmt der ganzen Klasse die Werte weg. Deshalb geht
+-- das nur noch mit einem Zahlencode, der hier im Server entsteht und per
+-- E-Mail rausgeht. Die App bekommt ihn nie zu sehen – wer löschen will, muss
+-- fragen.
+
+-- Die alte Fassung ohne Code muss weg, sonst wäre die Sperre in einer Zeile
+-- zu umgehen: Die Adresse der Funktion steht in der Webseite.
+drop function if exists profil_loeschen(text, uuid);
+
+create or replace function loeschcode_anfordern(p_code text, p_id uuid, p_wer text default '')
 returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
-declare v_code text;
+declare
+  v_code text; v_name text; v_wer text;
+  v_key text; v_an text; v_von text;
+  v_bytes bytea; v_zahl bigint; v_ziffern text; v_pin text;
+  v_offen int;
 begin
   v_code := gruppe_pruefen(p_code);
+  perform profil_pruefen(v_code, p_id);
+  select name into v_name from profile where id = p_id;
+  v_wer := left(btrim(coalesce(p_wer, '')), 40);
+
+  select wert into v_key from geheim where schluessel = 'mail_key';
+  select wert into v_an  from geheim where schluessel = 'mail_an';
+  select wert into v_von from geheim where schluessel = 'mail_von';
+  if v_key is null or v_an is null then
+    raise exception 'Der Mailversand ist noch nicht eingerichtet – ohne ihn lässt sich kein Profil löschen';
+  end if;
+  v_von := coalesce(v_von, 'Leichtathletik <onboarding@resend.dev>');
+
+  -- Bremse 1: nicht im Minutentakt Mails auslösen
+  if exists (select 1 from loesch_codes
+             where profil_id = p_id and benutzt_am is null
+               and erstellt_am > now() - interval '60 seconds') then
+    raise exception 'Gerade eben wurde schon ein Code angefordert – schau in die Mail';
+  end if;
+  -- Bremse 2: höchstens zehn Anforderungen je Klasse und Stunde
+  select count(*) into v_offen from loesch_codes
+   where code = v_code and erstellt_am > now() - interval '1 hour';
+  if v_offen >= 10 then
+    raise exception 'Zu viele Löschversuche in dieser Klasse – probiere es in einer Stunde wieder';
+  end if;
+
+  -- Alte, noch offene Codes für dieses Profil verfallen lassen
+  update loesch_codes set gueltig_bis = now()
+   where profil_id = p_id and benutzt_am is null and gueltig_bis > now();
+
+  v_bytes  := gen_random_bytes(3);
+  v_zahl   := ((get_byte(v_bytes, 0)::bigint * 65536)
+             + (get_byte(v_bytes, 1)::bigint * 256)
+             +  get_byte(v_bytes, 2)::bigint) % 1000000;
+  v_ziffern := to_char(v_zahl, 'FM000000');
+  v_pin     := substr(v_ziffern, 1, 3) || '-' || substr(v_ziffern, 4, 3);
+
+  insert into loesch_codes (code, profil_id, pin_hash, wer, gueltig_bis)
+  values (v_code, p_id, crypt(v_ziffern, gen_salt('bf', 8)), v_wer,
+          now() + interval '10 minutes');
+
+  perform net.http_post(
+    url     := 'https://api.resend.com/emails',
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                  'Authorization', 'Bearer ' || v_key),
+    body    := jsonb_build_object(
+      'from', v_von,
+      'to', jsonb_build_array(v_an),
+      'subject', 'Löschcode ' || v_pin || ' für Profil ' || v_name,
+      'text', 'Jemand möchte das Profil "' || v_name || '" löschen'
+              || case when v_wer = '' then '' else ' (Gerät nutzt gerade "' || v_wer || '")' end
+              || '.' || chr(10) || chr(10)
+              || 'Code: ' || v_pin || chr(10)
+              || 'Gültig: 10 Minuten, einmal verwendbar.' || chr(10) || chr(10)
+              || 'Mit dem Profil verschwinden auch alle seine Werte – für alle in der Klasse.'
+              || ' Willst du das nicht, gib den Code einfach nicht weiter.')
+  );
+
+  return jsonb_build_object(
+    'gesendet', true,
+    'an', regexp_replace(v_an, '^(.).*(@.*)$', '\1***\2'),
+    'minuten', 10,
+    'profil', v_name);
+end;
+$$;
+
+create or replace function profil_loeschen(p_code text, p_id uuid, p_pin text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+-- Wichtig: Ein falscher Code darf hier KEINE Exception werfen. Die würde
+-- die Transaktion zurückdrehen und damit auch den Fehlversuchs-Zähler –
+-- man könnte endlos raten. Deshalb kommt die Absage als normale Antwort
+-- zurück: { "ok": false, "meldung": "..." }.
+declare v_code text; v_ziffern text; v_zeile loesch_codes%rowtype; v_offen int;
+begin
+  v_code   := gruppe_pruefen(p_code);
+  perform profil_pruefen(v_code, p_id);
+  v_ziffern := regexp_replace(coalesce(p_pin, ''), '[^0-9]', '', 'g');
+  if length(v_ziffern) <> 6 then
+    return jsonb_build_object('ok', false,
+      'meldung', 'Der Code besteht aus sechs Ziffern, zum Beispiel 123-456');
+  end if;
+
+  select * into v_zeile from loesch_codes
+   where profil_id = p_id and benutzt_am is null and gueltig_bis > now()
+   order by erstellt_am desc limit 1;
+  if v_zeile.id is null then
+    return jsonb_build_object('ok', false,
+      'meldung', 'Für dieses Profil ist gerade kein Code offen – fordere einen neuen an');
+  end if;
+
+  if v_zeile.pin_hash <> crypt(v_ziffern, v_zeile.pin_hash) then
+    v_offen := v_zeile.versuche + 1;
+    update loesch_codes
+       set versuche = v_offen,
+           gueltig_bis = case when v_offen >= 5 then now() else gueltig_bis end
+     where id = v_zeile.id;
+    return jsonb_build_object('ok', false, 'meldung', case when v_offen >= 5
+      then 'Fünfmal falsch – dieser Code gilt nicht mehr. Fordere einen neuen an.'
+      else format('Der Code stimmt nicht (%s von 5 Versuchen verbraucht)', v_offen) end);
+  end if;
+
+  update loesch_codes set benutzt_am = now() where id = v_zeile.id;
   delete from profile where id = p_id and code = v_code;   -- Werte gehen mit
-  return daten_lesen(v_code);
+  delete from loesch_codes where gueltig_bis < now() - interval '1 day';
+  return jsonb_build_object('ok', true, 'daten', daten_lesen(v_code));
 end;
 $$;
 
@@ -247,9 +402,34 @@ grant execute on function daten_lesen(text)                                     
 grant execute on function profil_anlegen(text, uuid, text)                               to anon, authenticated;
 grant execute on function profil_umbenennen(text, uuid, text)                            to anon, authenticated;
 grant execute on function profil_aussehen(text, uuid, jsonb)                            to anon, authenticated;
-grant execute on function profil_loeschen(text, uuid)                                    to anon, authenticated;
+grant execute on function loeschcode_anfordern(text, uuid, text)                          to anon, authenticated;
+grant execute on function profil_loeschen(text, uuid, text)                              to anon, authenticated;
 grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text, text) to anon, authenticated;
 grant execute on function wert_loeschen(text, uuid)                                      to anon, authenticated;
 
 revoke execute on function gruppe_pruefen(text) from anon, authenticated;
 revoke execute on function profil_pruefen(text, uuid) from anon, authenticated;
+
+-- ------------------------------------------------- Mailversand einrichten
+-- Ohne diese zwei Zeilen lässt sich kein Profil mehr löschen: Die App
+-- fordert dann einen Code an, der Server hat aber keinen Weg, ihn zu
+-- verschicken, und bricht mit einer Meldung ab.
+--
+-- 1. Bei resend.com mit derselben Adresse anmelden, an die die Codes gehen
+--    sollen (kostenlos). Unter "API Keys" einen Schlüssel anlegen; der
+--    beginnt mit re_.
+-- 2. In Supabase unter Database -> Extensions "pg_net" einschalten
+--    (dieses Skript versucht das oben schon selbst).
+-- 3. Die folgenden zwei Zeilen mit deinen Werten einmal ausführen:
+--
+-- insert into geheim (schluessel, wert) values
+--   ('mail_key', 're_DEIN_SCHLUESSEL'),
+--   ('mail_an',  'deine@adresse.de')
+-- on conflict (schluessel) do update set wert = excluded.wert;
+--
+-- Ohne eigene Domain verschickt Resend nur an die Adresse des eigenen
+-- Kontos - für "Code an mich selbst" reicht das genau. Wer eine Domain hat,
+-- trägt zusätzlich ('mail_von', 'Name <post@meine-domain.de>') ein.
+--
+-- Kontrolle, ob etwas rausging (zeigt nie den Code, nur den Status):
+--   select created, status_code from net._http_response order by created desc limit 5;
