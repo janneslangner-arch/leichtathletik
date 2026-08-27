@@ -34,8 +34,15 @@
     ['magenta', 'Magenta', 315], ['koralle', 'Koralle', 8],   ['orange',  'Orange',  28],
     ['gold',    'Gold',    46]
   ];
-  const AKZENT_MIN = 56, AKZENT_MAX = 90;   // damit der Akzent sichtbar bleibt
+  const AKZENT_MIN = 54, AKZENT_MAX = 97;   // damit der Akzent sichtbar bleibt
   const grenze = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  /* Wie tief der Grund wird. Eine dunkle Farbe soll auch einen wirklich
+     dunklen Hintergrund geben (Schwarz = fast reines Schwarz), eine helle
+     einen etwas helleren Grund. Die App bleibt dabei dunkel – die Schrift
+     ist hell und muss lesbar bleiben. */
+  const grundFaktor = hell => hell == null ? 1
+    : hell <= 50 ? 0.4 + hell * 0.012 : 1 + (hell - 50) * 0.006;
 
   /* `kraft` (0–1) ist die Buntheit der gewählten Farbe: 1 = voll bunt,
      0 = Grau. Damit werden alle Sättigungen skaliert – wer Weiß oder
@@ -44,29 +51,33 @@
   function themeVars(h, kraft, akzentL) {
     const k = kraft == null ? 1 : grenze(kraft, 0, 1);
     const s = v => (Math.round(v * k * 10) / 10) + '%';
+    const g = grundFaktor(akzentL);
+    const gl = (1 + g) / 2;                 // Linien folgen nur halb, sonst
+    const l = v => (Math.round(v * g * 10) / 10) + '%';   // verschwinden sie
+    const ll = v => (Math.round(v * gl * 10) / 10) + '%';
     const aL = akzentL == null ? 66 : grenze(akzentL, AKZENT_MIN, AKZENT_MAX);
-    const dL = Math.max(38, aL - 14);
+    const dL = Math.max(36, aL - 14);
     const badH = (h >= 330 || h <= 45) ? 350 : 5;     // Warnfarbe bleibt unterscheidbar
     return {
-      '--bg':        `hsl(${h} ${s(26)} 8%)`,
-      '--bg-glow':   `hsl(${h} ${s(34)} 15%)`,
-      '--surface':   `hsl(${h} ${s(22)} 12.5%)`,
-      '--surface-2': `hsl(${h} ${s(20)} 17.5%)`,
-      '--line':      `hsl(${h} ${s(20)} 31%)`,
-      '--line-soft': `hsl(${h} ${s(20)} 22%)`,
+      '--bg':        `hsl(${h} ${s(26)} ${l(8)})`,
+      '--bg-glow':   `hsl(${h} ${s(34)} ${l(15)})`,
+      '--surface':   `hsl(${h} ${s(22)} ${l(12.5)})`,
+      '--surface-2': `hsl(${h} ${s(20)} ${l(17.5)})`,
+      '--line':      `hsl(${h} ${s(20)} ${ll(31)})`,
+      '--line-soft': `hsl(${h} ${s(20)} ${ll(22)})`,
       '--text':      `hsl(${h} ${s(32)} 96%)`,
       '--muted':     `hsl(${h} ${s(15)} 68%)`,
       '--mint':      `hsl(${h} ${s(94)} ${aL}%)`,
       '--mint-dim':  `hsl(${h} ${s(58)} ${dL}%)`,
       '--mint-glow': `hsla(${h} ${s(94)} ${aL}% / .22)`,
-      '--ink':       `hsl(${h} ${s(48)} 7%)`,
+      '--ink':       `hsl(${h} ${s(48)} ${l(7)})`,
       // Rot bleibt Rot, auch im grauen Schema – sonst sieht man Warnungen nicht
       '--bad':       `hsl(${badH} 88% 70%)`
     };
   }
   const THEMES = {};
   THEME_DEFS.forEach(([key, name, hue]) => {
-    THEMES[key] = { name, hue, kraft: 1, akzent: 66, vars: themeVars(hue) };
+    THEMES[key] = { name, hue, kraft: 1, akzent: 66, grund: 1, vars: themeVars(hue) };
   });
 
   /* ---- Eigene Farben: bis zu fünf je Profil ---------------------------
@@ -123,7 +134,7 @@
       const kraft = f.sat / 100;
       const akzent = grenze(f.hell, AKZENT_MIN, AKZENT_MAX);
       alle[f.key] = {
-        name: f.name, hue: f.hue, kraft, akzent,
+        name: f.name, hue: f.hue, kraft, akzent, grund: grundFaktor(f.hell),
         vars: themeVars(f.hue, kraft, f.hell), eigen: true
       };
     });
@@ -1672,14 +1683,15 @@
   }
   function paintAvatar(span, name) {
     const t = tint(name);
-    const h = t.hue, k = t.kraft == null ? 1 : t.kraft;
+    const h = t.hue, k = t.kraft == null ? 1 : t.kraft, g = t.grund == null ? 1 : t.grund;
     const s = v => (Math.round(v * k * 10) / 10) + '%';
+    const l = v => (Math.round(v * g * 10) / 10) + '%';
     // Die Schrift auf der Kachel ist der Akzent des Schemas – bei Weiß also
     // wirklich Weiß, bei Schwarz ein helles Grau, nie Rot.
-    const schrift = Math.max(60, t.akzent == null ? 74 : t.akzent + 8);
+    const schrift = grenze(t.akzent == null ? 74 : t.akzent + 8, 58, AKZENT_MAX);
     span.textContent = monogram(name);
     span.dataset.hue = h;
-    span.style.background = `linear-gradient(155deg, hsl(${h} ${s(44)} 27%), hsl(${h} ${s(46)} 16%))`;
+    span.style.background = `linear-gradient(155deg, hsl(${h} ${s(44)} ${l(27)}), hsl(${h} ${s(46)} ${l(16)}))`;
     span.style.color = `hsl(${h} ${s(72)} ${schrift}%)`;
   }
 
