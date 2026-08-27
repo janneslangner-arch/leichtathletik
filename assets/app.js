@@ -34,7 +34,7 @@
     ['magenta', 'Magenta', 315], ['koralle', 'Koralle', 8],   ['orange',  'Orange',  28],
     ['gold',    'Gold',    46]
   ];
-  const AKZENT_MIN = 54, AKZENT_MAX = 97;   // damit der Akzent sichtbar bleibt
+  const AKZENT_MIN = 54, AKZENT_MAX = 100;  // nach unten begrenzt, damit der Akzent sichtbar bleibt
   const grenze = (v, min, max) => Math.max(min, Math.min(max, v));
 
   /* Wie tief der Grund wird. Eine dunkle Farbe soll auch einen wirklich
@@ -57,6 +57,9 @@
     const ll = v => (Math.round(v * gl * 10) / 10) + '%';
     const aL = akzentL == null ? 66 : grenze(akzentL, AKZENT_MIN, AKZENT_MAX);
     const dL = Math.max(36, aL - 14);
+    // Schrift auf dem Akzent: je heller der Akzent, desto tiefer das
+    // Schwarz. Bei reinem Weiß ist es echtes Schwarz (0 %).
+    const inkL = Math.round(7 * g * (1 - grenze((aL - 80) / 20, 0, 1)) * 10) / 10;
     const badH = (h >= 330 || h <= 45) ? 350 : 5;     // Warnfarbe bleibt unterscheidbar
     return {
       '--bg':        `hsl(${h} ${s(26)} ${l(8)})`,
@@ -70,7 +73,7 @@
       '--mint':      `hsl(${h} ${s(94)} ${aL}%)`,
       '--mint-dim':  `hsl(${h} ${s(58)} ${dL}%)`,
       '--mint-glow': `hsla(${h} ${s(94)} ${aL}% / .22)`,
-      '--ink':       `hsl(${h} ${s(48)} ${l(7)})`,
+      '--ink':       `hsl(${h} ${s(48)} ${inkL}%)`,
       // Rot bleibt Rot, auch im grauen Schema – sonst sieht man Warnungen nicht
       '--bad':       `hsl(${badH} 88% 70%)`
     };
