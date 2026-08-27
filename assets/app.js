@@ -111,7 +111,16 @@
     return { hue: Math.round(h), sat: Math.round(sat * 100), hell: Math.round(l * 100) };
   }
 
-  // Liste der eigenen Farben eines Profils: [{ key, name, hue }]
+  // Rückweg für das Farbfeld im Formular: hsl(...) als #rrggbb
+  function hslZuHex(h, sat, hell) {
+    const s = grenze(sat, 0, 100) / 100, l = grenze(hell, 0, 100) / 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
+      : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return '#' + [r, g, b].map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0')).join('');
+  }
+
+  // Liste der eigenen Farben eines Profils: [{ key, name, hue, sat, hell }]
   function eigeneFarben(profil) {
     let liste = [];
     try { liste = JSON.parse(einstellungVon(profil, 'farbenEigen', '[]')); } catch (e) { liste = []; }
@@ -123,8 +132,8 @@
         key: f.key,
         name: f.name || 'Eigene',
         hue: ((Number(f.hue) % 360) + 360) % 360,
-        // Ältere Einträge kennen nur den Farbton: die bleiben wie bisher
-        sat:  Number.isFinite(Number(f.sat))  ? grenze(Number(f.sat), 0, 100)  : 94,
+        // Ältere Einträge kennen nur den Farbton: die sehen aus wie bisher
+        sat:  Number.isFinite(Number(f.sat))  ? grenze(Number(f.sat), 0, 100)  : 100,
         hell: Number.isFinite(Number(f.hell)) ? grenze(Number(f.hell), 0, 100) : 66
       }));
   }
@@ -1902,12 +1911,22 @@
         b.append(probe, el('span', 'theme-name', t.name));
         if (t.eigen) {
           b.classList.add('theme-eigen');
-          // Eigene Farbe wieder loswerden – ohne die Kachel selbst auszulösen
+          if (key === bearbeiteFarbe) b.classList.add('ist-arbeit');
+          // Farbe nachträglich ändern – ohne die Kachel selbst auszulösen
+          const aendern = btn('theme-aendern', null, ev => {
+            ev.stopPropagation();
+            starteAendern(key);
+          }, 'Farbe „' + t.name + '" ändern');
+          aendern.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            + '<path d="M4 20l4.2-1.1L19 8.1l-3.1-3.1L5.1 15.8 4 20z"/>'
+            + '<path d="M14.6 6.3l3.1 3.1"/></svg>';
+          aendern.setAttribute('aria-label', 'Farbe „' + t.name + '" ändern');
+          // Eigene Farbe wieder loswerden
           const weg = btn('theme-weg', '✕', ev => {
             ev.stopPropagation();
             loescheEigeneFarbe(key, t.name);
           }, 'Farbe „' + t.name + '" löschen');
-          b.append(weg);
+          b.append(aendern, weg);
         }
         grid.append(b);
       });
@@ -1946,6 +1965,29 @@
     });
   }
 
+  // Welche eigene Farbe gerade geändert wird (null = eine neue anlegen)
+  let bearbeiteFarbe = null;
+
+  // Eine vorhandene Farbe ins Formular holen. Nötig für alles, was vor der
+  // Umstellung angelegt wurde: damals wurde nur der Farbton gespeichert,
+  // Weiß und Schwarz kamen deshalb als Rot zurück.
+  function starteAendern(key) {
+    const f = eigeneFarben(db.current).find(x => x.key === key);
+    if (!f) return;
+    bearbeiteFarbe = key;
+    const feld = document.getElementById('eigenWert');
+    const name = document.getElementById('eigenName');
+    if (feld) feld.value = hslZuHex(f.hue, f.sat, f.hell);
+    if (name) name.value = f.name;
+    renderEinstellungen();
+  }
+  function brichAendernAb() {
+    bearbeiteFarbe = null;
+    const name = document.getElementById('eigenName');
+    if (name) name.value = '';
+    renderEinstellungen();
+  }
+
   // Formular für eigene Farben: fünf sind das Höchste
   function renderEigenForm() {
     const zahl = document.getElementById('eigenZahl');
@@ -1953,37 +1995,54 @@
     const hinweis = document.getElementById('eigenHinweis');
     if (!zahl || !form || !hinweis) return;
     const eigene = eigeneFarben(db.current);
+    const inArbeit = eigene.find(f => f.key === bearbeiteFarbe) || null;
+    if (bearbeiteFarbe && !inArbeit) bearbeiteFarbe = null;
     const voll = eigene.length >= MAX_EIGENE;
     zahl.textContent = eigene.length + ' von ' + MAX_EIGENE;
-    form.hidden = voll;
-    hinweis.textContent = voll
-      ? `Mehr als ${MAX_EIGENE} eigene Farben gehen nicht. Lösche erst eine über das ✕ auf ihrer Kachel.`
-      : `Gilt nur für ${db.current}. Aus der gewählten Farbe wird das ganze Schema berechnet – auch aus Grau, Weiß oder Schwarz. Die Schrift bleibt dabei lesbar.`;
+    // Beim Ändern bleibt das Formular offen, auch wenn schon fünf da sind
+    form.hidden = voll && !inArbeit;
+    const knopf = form.querySelector('button[type="submit"]');
+    if (knopf) knopf.textContent = inArbeit ? 'Ändern' : 'Hinzufügen';
+    const abbruch = document.getElementById('eigenAbbruch');
+    if (abbruch) abbruch.hidden = !inArbeit;
+    hinweis.textContent = inArbeit
+      ? `„${inArbeit.name}" wird geändert: neue Farbe wählen und auf Ändern tippen.`
+      : voll
+      ? `Mehr als ${MAX_EIGENE} eigene Farben gehen nicht. Lösche erst eine über das ✕ auf ihrer Kachel – oder ändere eine über den Stift.`
+      : `Gilt nur für ${db.current}. Aus der gewählten Farbe wird das ganze Schema berechnet – auch aus Grau, Weiß oder Schwarz. Über den Stift auf einer Kachel lässt sie sich später ändern.`;
   }
 
   function neueEigeneFarbe(ev) {
     ev.preventDefault();
     const hinweis = document.getElementById('eigenHinweis');
     const eigene = eigeneFarben(db.current);
-    if (eigene.length >= MAX_EIGENE) { renderEigenForm(); return; }
+    const alt = bearbeiteFarbe ? eigene.find(f => f.key === bearbeiteFarbe) : null;
+    if (!alt && eigene.length >= MAX_EIGENE) { renderEigenForm(); return; }
     const farbe = hexZuHsl($('#eigenWert').value);
     if (!farbe) { hinweis.textContent = 'Diese Farbe konnte ich nicht lesen.'; return; }
-    const name = ($('#eigenName').value || '').trim().slice(0, 14) || 'Eigene ' + (eigene.length + 1);
-    if (Object.values(alleThemen()).some(t => t.name.toLowerCase() === name.toLowerCase())) {
+    const name = ($('#eigenName').value || '').trim().slice(0, 14)
+      || (alt ? alt.name : 'Eigene ' + (eigene.length + 1));
+    // Der eigene Name zählt beim Ändern natürlich nicht als Dopplung
+    const belegt = Object.entries(alleThemen())
+      .some(([k, t]) => (!alt || k !== alt.key) && t.name.toLowerCase() === name.toLowerCase());
+    if (belegt) {
       hinweis.textContent = `„${name}" gibt es schon – nimm einen anderen Namen.`;
       return;
     }
-    const key = 'eigen-' + Date.now().toString(36);
-    setzeEigeneFarben(db.current, eigene.concat([
-      { key, name, hue: farbe.hue, sat: farbe.sat, hell: farbe.hell }
-    ]));
+    const key = alt ? alt.key : 'eigen-' + Date.now().toString(36);
+    const neu = { key, name, hue: farbe.hue, sat: farbe.sat, hell: farbe.hell };
+    setzeEigeneFarben(db.current, alt
+      ? eigene.map(f => (f.key === key ? neu : f))
+      : eigene.concat([neu]));
+    bearbeiteFarbe = null;
     $('#eigenName').value = '';
     applyTheme(key, true);                 // die neue Farbe gleich zeigen
     renderAll(); renderProfil(); renderEinstellungen();
-    toast('Farbe angelegt: ' + name);
+    toast(alt ? 'Farbe geändert: ' + name : 'Farbe angelegt: ' + name);
   }
 
   function loescheEigeneFarbe(key, name) {
+    if (bearbeiteFarbe === key) bearbeiteFarbe = null;
     const rest = eigeneFarben(db.current).filter(f => f.key !== key);
     setzeEigeneFarben(db.current, rest);
     if (theme === key) applyTheme(standardFarbe(db.current), true);
@@ -2275,6 +2334,7 @@
     });
 
     $('#eigenForm').addEventListener('submit', neueEigeneFarbe);
+    $('#eigenAbbruch').addEventListener('click', brichAendernAb);
     $('#exportBtn').addEventListener('click', exportJSON);
     $('#csvBtn').addEventListener('click', exportCSV);
     $('#importBtn').addEventListener('click', () => $('#importFile').click());

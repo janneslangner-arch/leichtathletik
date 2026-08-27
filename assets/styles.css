@@ -1030,6 +1030,21 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
 }
 .theme-weg:hover { color: var(--bad); border-color: var(--bad); }
+.theme-aendern {
+  position: absolute; top: -5px; left: -5px;
+  width: 21px; height: 21px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
+  font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
+}
+.theme-aendern svg {
+  width: 12px; height: 12px; fill: none; stroke: currentColor;
+  stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round;
+}
+.theme-aendern:hover { color: var(--mint); border-color: var(--mint); }
+/* Die Kachel, die gerade im Formular liegt */
+.theme-card.ist-arbeit { border-color: var(--mint); }
+.theme-card.ist-arbeit .theme-aendern { color: var(--mint); border-color: var(--mint); }
 
 /* Warnung vor Dopplungen: schwarz-rot, damit sie im Fluss auffällt */
 .warnung {
