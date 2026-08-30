@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=00a85285">
+<link rel="stylesheet" href="assets/styles.css?v=a9dc0142">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -220,8 +220,15 @@
           </div>
         </div>
         <div class="feld-zeile">
-          <span class="feld-name">Geburtsjahr</span>
-          <input id="jahrInput" type="number" inputmode="numeric" min="1950" max="2035" placeholder="2008" class="feld-eingabe">
+          <span class="feld-name">Geburtstag</span>
+          <span class="feld-verdeckt">
+            <button type="button" id="geburtZeigen" class="btn btn-sm">Anzeigen</button>
+            <input id="geburtInput" type="date" min="1950-01-01" class="feld-eingabe" hidden>
+          </span>
+        </div>
+        <div class="feld-zeile">
+          <span class="feld-name">Sport-Abi</span>
+          <input id="pruefungInput" type="month" min="2024-01" max="2035-12" class="feld-eingabe">
         </div>
         <p id="wertungHinweis" class="hint-text"></p>
       </div>
@@ -485,6 +492,51 @@
   </div>
 </div>
 
+<div id="startScreen" class="pscreen startscreen" hidden>
+  <div class="pscreen-inner start-inner">
+
+    <div id="startCookies" class="start-schritt">
+      <h2 class="pscreen-title">Kurz vorweg</h2>
+      <p class="start-text">Diese Seite legt Sachen auf deinem Gerät ab. Nichts davon geht an
+        Werbefirmen, es gibt keine Auswertung und kein Verfolgen über andere Seiten.</p>
+      <div class="keks-liste">
+        <div class="keks-punkt">
+          <div class="keks-kopf">
+            <strong>Notwendig</strong>
+            <span class="keks-fest">immer an</span>
+          </div>
+          <p>Deine Werte, die Profile und die Verbindung zur Klassen-Datenbank. Ohne das ist die App leer.</p>
+        </div>
+        <label class="keks-punkt keks-wahl">
+          <div class="keks-kopf">
+            <strong>Komfort</strong>
+            <input type="checkbox" id="keksKomfort" checked>
+          </div>
+          <p>Merkt sich auf diesem Gerät, wer zuletzt eingetragen hat, welche Disziplin offen war
+             und welches Design eingestellt ist. Ohne das fängt die App jedes Mal bei der Profilauswahl an.</p>
+        </label>
+      </div>
+      <div class="start-knoepfe">
+        <button type="button" id="keksAlle" class="btn btn-mint btn-gross">Alle annehmen</button>
+        <button type="button" id="keksAuswahl" class="btn">Auswahl speichern</button>
+        <button type="button" id="keksKeine" class="btn btn-leise">Alle ablehnen</button>
+      </div>
+    </div>
+
+    <div id="startRolle" class="start-schritt" hidden>
+      <h2 class="pscreen-title">Wer bist du?</h2>
+      <p class="start-text">Das wird einmal gefragt und bleibt auf diesem Gerät. Es ändert nur,
+        wie viel angezeigt wird – gesperrt ist nichts.</p>
+      <button type="button" id="rolleSchueler" class="btn btn-mint btn-gross rolle-schueler">
+        Weiter als Schüler
+      </button>
+      <p class="start-fein">Du trägst deine eigenen Werte ein und siehst deine Punkte.</p>
+      <button type="button" id="rolleLehrer" class="rolle-lehrer">Weiter als Lehrer</button>
+    </div>
+
+  </div>
+</div>
+
 <div id="profilScreen" class="pscreen" hidden>
   <button type="button" id="npClose" class="pscreen-close" aria-label="Schließen">✕</button>
   <div class="pscreen-inner">
@@ -495,8 +547,12 @@
         <input id="npName" type="text" maxlength="24" placeholder="z.&nbsp;B. Lena" aria-label="Name">
       </label>
       <label class="field">
-        <span>Geburtsjahr</span>
-        <input id="npJahr" type="number" inputmode="numeric" min="1950" max="2035" placeholder="2008" aria-label="Geburtsjahr">
+        <span>Geburtstag</span>
+        <input id="npGeburt" type="date" min="1950-01-01" aria-label="Geburtstag">
+      </label>
+      <label class="field">
+        <span>Sport-Abi ungefähr</span>
+        <input id="npPruefung" type="month" min="2024-01" max="2035-12" aria-label="Monat des Sport-Abiturs">
       </label>
       <div class="field">
         <span>Wertungstabelle</span>
@@ -505,7 +561,8 @@
           <button type="button" class="seg-btn" data-wert="w">Mädchen</button>
         </div>
       </div>
-      <p id="npHinweis" class="pscreen-hint">Beides bestimmt die Punkte: die Tabelle die Beiwerte, das Geburtsjahr die Altersklasse und damit die Gerätegewichte.</p>
+      <p id="npHinweis" class="pscreen-hint">Das bestimmt die Punkte: die Tabelle die Beiwerte, Geburtstag und Prüfungstermin die Altersklasse und damit die Gerätegewichte.</p>
+      <p class="pscreen-fein">Der Geburtstag bleibt verborgen – in der App steht nur die Altersklasse.</p>
       <div class="np-actions">
         <button type="submit" class="btn btn-mint">Profil anlegen</button>
         <button type="button" id="npAbbrechen" class="btn">Abbrechen</button>
@@ -579,6 +636,6 @@
 <script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "q2sp2026"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
-<script id="appScript" src="assets/app.js?v=23cd8621"></script>
+<script id="appScript" src="assets/app.js?v=3e7a11e6"></script>
 </body>
 </html>

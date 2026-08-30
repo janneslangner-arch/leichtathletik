@@ -172,12 +172,48 @@
   // Farbe und Muster gehören zum Profil. Was zuletzt gewählt wurde, steht
   // zusätzlich auf dem Gerät: damit ist beim Laden schon vor dem ersten
   // Profil etwas Vernünftiges da und neue Profile starten damit.
+  /* ---------------- Cookies, Zustimmung, Rolle ----------------
+     Zustimmung und Rolle stehen in echten Cookies. Wo die nicht gehen
+     (Datei geöffnet statt aufgerufen), springt der Speicher des Browsers
+     ein – sonst würde die Frage bei jedem Öffnen neu kommen. */
+  const KEKS_TAGE = 365;
+  function keksSetzen(name, wert) {
+    try {
+      const bis = new Date(Date.now() + KEKS_TAGE * 86400000).toUTCString();
+      document.cookie = name + '=' + encodeURIComponent(wert)
+        + '; expires=' + bis + '; path=/; SameSite=Lax';
+    } catch (e) { /* egal */ }
+    try { localStorage.setItem(name, wert); } catch (e) { /* egal */ }
+  }
+  function keksLesen(name) {
+    try {
+      const teile = ('; ' + document.cookie).split('; ' + name + '=');
+      if (teile.length === 2) return decodeURIComponent(teile.pop().split(';').shift());
+    } catch (e) { /* egal */ }
+    try { return localStorage.getItem(name); } catch (e) { return null; }
+  }
+
+  // Diese Schlüssel sind reiner Komfort: Ohne sie läuft die App, sie merkt
+  // sich nur nichts von diesem Gerät. Genau darüber wird beim Start gefragt.
+  const KOMFORT_SCHLUESSEL = ['la-theme', 'la-pattern', 'la-verlauf',
+                              'la-profil-gewaehlt', 'la-last-disc'];
+  const komfortErlaubt = () => keksLesen('la-zustimmung') !== 'noetig';
+  const rolleVon = () => keksLesen('la-rolle') || 'schueler';
+  const istLehrer = () => rolleVon() === 'lehrer';
+
   const merke = (schluessel, wert) => {
+    if (!komfortErlaubt() && KOMFORT_SCHLUESSEL.includes(schluessel)) return;
     try { localStorage.setItem(schluessel, wert); } catch (e) { /* egal */ }
   };
   const gemerkt = schluessel => {
+    if (!komfortErlaubt() && KOMFORT_SCHLUESSEL.includes(schluessel)) return null;
     try { return localStorage.getItem(schluessel); } catch (e) { return null; }
   };
+  function komfortAufraeumen() {
+    KOMFORT_SCHLUESSEL.forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) { /* egal */ }
+    });
+  }
 
   // Vor dem ersten Profil gibt es nur die vorgegebenen Farben.
   const alleThemen = () => (typeof db !== 'undefined' && db && db.current) ? themenVon(db.current) : THEMES;
@@ -420,7 +456,7 @@
      und – wichtiger – die Wertung. Läuft ein Gerät mit anderer Tabelle oder
      anderem Jahrgang, käme am Ende eine andere Note heraus. */
   const PROFIL_FELDER = ['farbe', 'verlauf', 'muster', 'farbenEigen',
-                         'geschlecht', 'jahr', 'zeit', 'klasse'];
+                         'geschlecht', 'jahr', 'geburt', 'pruefung', 'zeit', 'klasse'];
   let ohneAussehen = false;              // Datenbank noch ohne die Spalte
 
   function profilEinstellungen(profil) {
@@ -901,7 +937,7 @@
                   el('span', 'pb', b ? fmt(key, b.value) : '–'));
       card.addEventListener('click', () => {
         selDisc = key;
-        try { localStorage.setItem('la-last-disc', key); } catch (e) { /* egal */ }
+        merke('la-last-disc', key);
         renderDiscGrid(); syncEntryHead(); versteckeDopplung();
         $('#valueInput').value = ''; preview(); $('#valueInput').focus();
       });
@@ -1288,17 +1324,60 @@
   // Genau ein Weg zum Schreiben, damit nichts an der Datenbank vorbeigeht
   const setzeEinstellung = (name, wert) => setzeEinstellungVon(db.current, name, wert);
   const geschlechtVon = () => einstellung('geschlecht', 'm');
-  // Altersklassen wie in der Vorlage: 16–17 = U18, 18–19 = U20, 20–22 = U23
-  function altersklasse(jahr) {
+  /* ---------------- Alter und Altersklasse ----------------
+     Die Altersklasse richtet sich nach dem Jahrgang, nicht nach dem Tag:
+     Wer im Jahr des Wettkampfs 18 oder 19 wird, startet in der U20. Maßgeblich
+     ist deshalb das Jahr der PRÜFUNG, nicht das heutige. Wer im April 2027
+     antritt, wird jetzt schon in der Klasse gewertet, die dann gilt. */
+  function altersklasse(jahr, stichtag) {
     if (!jahr) return null;
-    const alter = new Date().getFullYear() - jahr;
-    if (alter < 16) return 'U18';
+    const alter = (stichtag || new Date()).getFullYear() - jahr;
     if (alter <= 17) return 'U18';
     if (alter <= 19) return 'U20';
     return 'U23';
   }
-  const zeitmessungVon = () => einstellung('zeit', geschlechtVon() === 'w' ? 'hand' : 'elektro');
-  const klasseVon = () => einstellung('klasse', altersklasse(Number(einstellung('jahr', 0))) || 'U20');
+  // '2027-04' -> Mitte April 2027. Ohne Angabe zählt der heutige Tag.
+  function pruefungDatum(wert) {
+    const m = /^(\d{4})-(\d{2})$/.exec(String(wert || '').trim());
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, 15) : null;
+  }
+  const pruefungVon = (profil) => pruefungDatum(einstellungVon(profil || db.current, 'pruefung', ''));
+  const stichtagVon = (profil) => pruefungVon(profil) || new Date();
+
+  // Geburtstag als 'JJJJ-MM-TT'. Alte Profile kennen nur den Jahrgang.
+  function geburtVon(profil) {
+    const g = einstellungVon(profil || db.current, 'geburt', '');
+    return /^\d{4}-\d{2}-\d{2}$/.test(g) ? g : '';
+  }
+  function jahrgangVon(profil) {
+    const g = geburtVon(profil);
+    return g ? Number(g.slice(0, 4)) : Number(einstellungVon(profil || db.current, 'jahr', 0));
+  }
+  // Volle Jahre am Stichtag – dafür ist der genaue Geburtstag da.
+  function alterAm(geburt, stichtag) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(geburt || '')) return null;
+    const [j, m, t] = geburt.split('-').map(Number);
+    let jahre = stichtag.getFullYear() - j;
+    const vorGeburtstag = (stichtag.getMonth() + 1) < m
+      || ((stichtag.getMonth() + 1) === m && stichtag.getDate() < t);
+    if (vorGeburtstag) jahre--;
+    return jahre;
+  }
+  const datumDeutsch = iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? `${m[3]}.${m[2]}.${m[1]}` : '';
+  };
+  const monatDeutsch = wert => {
+    const M = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli',
+               'August', 'September', 'Oktober', 'November', 'Dezember'];
+    const m = /^(\d{4})-(\d{2})$/.exec(String(wert || '').trim());
+    return m ? `${M[Number(m[2]) - 1]} ${m[1]}` : '';
+  };
+
+  // Handzeit ist der Normalfall im Schulsport – damit fängt jedes Profil an.
+  const zeitmessungVon = () => einstellung('zeit', 'hand');
+  const klasseVon = () => einstellung('klasse',
+    altersklasse(jahrgangVon(), stichtagVon()) || 'U20');
 
   // Name der Disziplin, bei den Läufen mit der Strecke, die tatsächlich zählt
   const strecke = (key, g) => {
@@ -1309,8 +1388,10 @@
   function renderPunkte() {
     const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
     const hand = zeit === 'hand';
+    const terminP = einstellung('pruefung', '');
     $('#wertungInfo').textContent =
-      `${g === 'w' ? 'Mädchen' : 'Jungen'} · ${hand ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
+      `${g === 'w' ? 'Mädchen' : 'Jungen'} · ${hand ? 'Handzeit' : 'elektronisch'} · ${klasse}`
+      + (terminP ? ` · gerechnet auf ${monatDeutsch(terminP)}` : '');
 
     const punkte = {}, bestwerte = {};
     KEYS.forEach(key => {
@@ -1770,8 +1851,7 @@
 
   // Auf einem neuen Gerät steht noch nicht fest, wer eintragt: direkt fragen.
   function starteProfilwahl() {
-    let gewaehlt = null;
-    try { gewaehlt = localStorage.getItem('la-profil-gewaehlt'); } catch (e) { /* egal */ }
+    const gewaehlt = gemerkt('la-profil-gewaehlt');
     if (gewaehlt && db.athletes.includes(gewaehlt)) return;
     if (!db.athletes.length || (db.athletes.length === 1 && db.athletes[0] === 'Ich' && !countOf('Ich')))
       openNeuesProfil();
@@ -1786,7 +1866,10 @@
     closePicker();
     npGeschlecht = 'm';
     $('#npName').value = '';
-    $('#npJahr').value = '';
+    $('#npGeburt').value = '';
+    // Der Termin ist für die ganze Klasse derselbe: was schon jemand
+    // eingetragen hat, steht beim nächsten Profil gleich drin.
+    $('#npPruefung').value = pruefungAusKlasse();
     document.querySelectorAll('#npGeschlecht .seg-btn').forEach(b =>
       b.classList.toggle('is-active', b.dataset.wert === 'm'));
     npHinweis();
@@ -1800,12 +1883,31 @@
     $('#profilScreen').hidden = true;
     document.body.style.overflow = '';
   }
+  // Was in der Klasse schon als Prüfungstermin steht – der Termin gilt für alle.
+  function pruefungAusKlasse() {
+    for (const name of db.athletes) {
+      const w = einstellungVon(name, 'pruefung', '');
+      if (/^\d{4}-\d{2}$/.test(w)) return w;
+    }
+    return '';
+  }
+
   function npHinweis(text) {
-    const jahr = Number($('#npJahr').value);
-    const klasse = altersklasse(jahr);
-    $('#npHinweis').textContent = text || (klasse
-      ? `Jahrgang ${jahr} · Altersklasse ${klasse} · ${GERAETE[npGeschlecht + '|' + klasse]}`
-      : 'Beides bestimmt die Punkte: die Tabelle die Beiwerte, das Geburtsjahr die Altersklasse und damit die Gerätegewichte.');
+    const geburt = $('#npGeburt').value;
+    const termin = pruefungDatum($('#npPruefung').value);
+    const jahr = /^\d{4}-\d{2}-\d{2}$/.test(geburt) ? Number(geburt.slice(0, 4)) : 0;
+    const klasse = altersklasse(jahr, termin || new Date());
+    if (text) { $('#npHinweis').textContent = text; return; }
+    if (!klasse) {
+      $('#npHinweis').textContent = 'Das bestimmt die Punkte: die Tabelle die Beiwerte, '
+        + 'Geburtstag und Prüfungstermin die Altersklasse und damit die Gerätegewichte.';
+      return;
+    }
+    const alter = termin ? alterAm(geburt, termin) : null;
+    $('#npHinweis').textContent =
+      (termin ? `Beim Sport-Abi im ${monatDeutsch($('#npPruefung').value)} ` : 'Heute ')
+      + (alter != null ? `${alter} Jahre alt · ` : '')
+      + `Altersklasse ${klasse} · ${GERAETE[npGeschlecht + '|' + klasse]}`;
   }
 
   /* Jedes neue Profil bekommt ein eigenes Aussehen zugelost: eine Farbe und
@@ -1824,12 +1926,20 @@
   function speichereNeuesProfil(ev) {
     ev.preventDefault();
     const name = $('#npName').value.trim();
-    const jahr = Number($('#npJahr').value);
+    const geburt = $('#npGeburt').value;
+    const pruefung = $('#npPruefung').value;
     if (!name) { npHinweis('Bitte einen Namen eingeben.'); $('#npName').focus(); return; }
     if (db.athletes.includes(name)) { npHinweis(`„${name}“ gibt es schon.`); return; }
     const jetzt = new Date().getFullYear();
-    if ($('#npJahr').value && (jahr < 1950 || jahr > jetzt)) {
-      npHinweis(`Geburtsjahr zwischen 1950 und ${jetzt} eingeben.`); $('#npJahr').focus(); return;
+    if (geburt) {
+      const jahr = Number(geburt.slice(0, 4));
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(geburt) || jahr < 1950 || jahr > jetzt) {
+        npHinweis('Bitte einen Geburtstag zwischen 1950 und heute wählen.');
+        $('#npGeburt').focus(); return;
+      }
+    }
+    if (pruefung && !/^\d{4}-\d{2}$/.test(pruefung)) {
+      npHinweis('Bitte Monat und Jahr des Sport-Abiturs wählen.'); $('#npPruefung').focus(); return;
     }
     Store.addProfile(name);
     // Aussehen auslosen, bevor gewechselt wird – dann steht es schon,
@@ -1838,7 +1948,12 @@
     setzeEinstellungVon(name, 'farbe', look.farbe);
     setzeEinstellungVon(name, 'verlauf', look.verlauf);   // gilt für alle Geräte
     setzeEinstellungVon(name, 'geschlecht', npGeschlecht);
-    if (jahr) setzeEinstellungVon(name, 'jahr', String(jahr));
+    setzeEinstellungVon(name, 'zeit', 'hand');            // Schulsport misst von Hand
+    if (geburt) {
+      setzeEinstellungVon(name, 'geburt', geburt);
+      setzeEinstellungVon(name, 'jahr', geburt.slice(0, 4));   // für ältere Geräte
+    }
+    if (pruefung) setzeEinstellungVon(name, 'pruefung', pruefung);
     closeNeuesProfil();
     toast('Profil angelegt: ' + name);
     switchTo(name);                       // wechselt und gleicht dabei ab
@@ -1849,11 +1964,14 @@
     paintAvatar($('#profilAvatar'), db.current);
     $('#profilName').textContent = db.current;
     const n = countOf(db.current);
-    const jahr = Number(einstellung('jahr', 0));
+    // Bewusst ohne Jahrgang: Das Alter geht niemanden etwas an, der nur
+    // aufs Handy schaut. Die Altersklasse reicht, um die Punkte zu verstehen.
+    const termin = einstellung('pruefung', '');
     $('#profilWerte').textContent =
       (n ? `${n} ${n === 1 ? 'Wert' : 'Werte'}` : 'noch keine Werte')
       + ` · ${geschlechtVon() === 'w' ? 'Mädchen' : 'Jungen'}`
-      + (jahr ? ` · Jahrgang ${jahr}` : '') + ` · ${klasseVon()}`;
+      + ` · ${klasseVon()}`
+      + (termin ? ` · Abi ${monatDeutsch(termin)}` : '');
     const anzahl = sichtbareProfile().length;
     $('#profileAnzahl').textContent = `${anzahl} ${anzahl === 1 ? 'Profil' : 'Profile'} · anlegen, umbenennen, löschen`;
   }
@@ -1869,6 +1987,9 @@
     $('#profileHint').textContent = 'Umbenennen ändert nichts an den Werten – sie wandern mit.';
   }
 
+  // Solange die Seite offen ist, bleibt der einmal aufgedeckte Geburtstag da.
+  let geburtOffen = false;
+
   function renderEinstellungen() {
     const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
     const setzeAktiv = (id, wert) => document.querySelectorAll(id + ' .seg-btn').forEach(b =>
@@ -1876,17 +1997,34 @@
     setzeAktiv('#genderSeg', g);
     setzeAktiv('#zeitSeg', zeit);
     setzeAktiv('#klasseSeg', klasse);
-    $('#jahrInput').value = einstellung('jahr', '');
+    // Der Geburtstag liegt hinter „Anzeigen“. Lehrer sehen ihn gleich –
+    // sie brauchen ihn, um die Altersklasse zu prüfen.
+    const geburt = geburtVon();
+    const feld = $('#geburtInput'), zeigen = $('#geburtZeigen');
+    feld.value = geburt;
+    const offen = istLehrer() || geburtOffen;
+    feld.hidden = !offen;
+    zeigen.hidden = offen;
+    zeigen.textContent = geburt ? 'Anzeigen' : 'Eintragen';
+    $('#pruefungInput').value = einstellung('pruefung', '');
     $('#einstellungenFuer').textContent = 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
     $('#wertungKurz').textContent =
       `· ${g === 'w' ? 'Mädchen' : 'Jungen'} · ${zeit === 'hand' ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
     $('#designKurz').textContent = '· ' + (alleThemen()[theme] || THEMES.mint).name
       + ' · ' + verlaufName(verlauf) + ' · ' + musterName(pattern);
     $('#speicherKurz').textContent = '· ' + speicherName();
+    const termin = einstellung('pruefung', '');
+    const alterDann = termin ? alterAm(geburt, pruefungDatum(termin)) : null;
     $('#wertungHinweis').textContent =
       `${g === 'w' ? 'Mädchen' : 'Jungen'}, ${zeit === 'hand' ? 'Handzeit (Zuschlag 0,24 s bis 300 m)' : 'elektronische Zeit'}, `
       + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`
-      + (g === 'w' ? ' Mädchen laufen 800 m statt 1500 m und 2000 m statt 5000 m.' : '');
+      + (g === 'w' ? ' Mädchen laufen 800 m statt 1500 m und 2000 m statt 5000 m.' : '')
+      + (termin
+          ? ` Gerechnet wird auf ${monatDeutsch(termin)}`
+            + (alterDann != null ? `, dann ${alterDann} Jahre alt` : '') + '.'
+            + ' Die Altersklasse richtet sich dabei nach dem Jahrgang im Prüfungsjahr,'
+            + ' nicht nach dem Tag – wer 2027 achtzehn wird, läuft dort das ganze Jahr U20.'
+          : ' Ohne Prüfungstermin zählt das heutige Jahr – trag den Termin ein, sonst stimmt die Klasse im Prüfungsjahr nicht.');
     renderThemes();
     renderStorageInfo();
     renderLoeschen();
@@ -2354,6 +2492,57 @@
     if ($('#view-profil').classList.contains('is-active')) renderProfil();
   }
 
+  /* ---------------- Startfenster ----------------
+     Beim allerersten Öffnen: erst die Frage nach den Cookies, dann die nach
+     der Rolle. Beides wird in Cookies festgehalten und danach nie wieder
+     gefragt. Wer nichts entscheidet, kommt nicht weiter – deshalb wartet
+     der Start hier, bis geklickt wurde. */
+  function startTor() {
+    const box = document.getElementById('startScreen');
+    if (!box) return Promise.resolve();
+    const hatZustimmung = !!keksLesen('la-zustimmung');
+    const hatRolle = !!keksLesen('la-rolle');
+    if (hatZustimmung && hatRolle) return Promise.resolve();
+
+    return new Promise(fertig => {
+      const cookies = document.getElementById('startCookies');
+      const rolle = document.getElementById('startRolle');
+      box.hidden = false;
+      document.body.style.overflow = 'hidden';
+      cookies.hidden = hatZustimmung;
+      rolle.hidden = !hatZustimmung;
+
+      const weiter = () => {
+        if (keksLesen('la-rolle')) {
+          box.hidden = true;
+          document.body.style.overflow = '';
+          fertig();
+        } else {
+          cookies.hidden = true;
+          rolle.hidden = false;
+        }
+      };
+      const zustimmen = komfort => {
+        keksSetzen('la-zustimmung', komfort ? 'alle' : 'noetig');
+        if (!komfort) komfortAufraeumen();
+        weiter();
+      };
+      document.getElementById('keksAlle').addEventListener('click', () => {
+        document.getElementById('keksKomfort').checked = true;
+        zustimmen(true);
+      });
+      document.getElementById('keksAuswahl').addEventListener('click', () =>
+        zustimmen(document.getElementById('keksKomfort').checked));
+      document.getElementById('keksKeine').addEventListener('click', () => {
+        document.getElementById('keksKomfort').checked = false;
+        zustimmen(false);
+      });
+      const waehle = wer => { keksSetzen('la-rolle', wer); weiter(); };
+      document.getElementById('rolleSchueler').addEventListener('click', () => waehle('schueler'));
+      document.getElementById('rolleLehrer').addEventListener('click', () => waehle('lehrer'));
+    });
+  }
+
   /* ---------------- Start ---------------- */
   async function initCloud() {
     if (!window.claude || typeof window.claude.use !== 'function') return null;
@@ -2369,6 +2558,10 @@
     const shell = document.getElementById('appShell');
     ladeTheme();
     document.getElementById('app').append(shell.content.cloneNode(true));
+
+    // Erst fragen, dann laden: Ohne Zustimmung schreibt die App nichts
+    // Freiwilliges auf das Gerät.
+    await startTor();
 
     cloud = await initCloud();
     cfg = readCfg();
@@ -2391,7 +2584,7 @@
       localOnly = [];
     }
 
-    const last = (() => { try { return localStorage.getItem('la-last-disc'); } catch (e) { return null; } })();
+    const last = gemerkt('la-last-disc');
     if (DISC[last]) { selDisc = last; chartDisc = last; }
 
     ladeThemeVomProfil();          // ab jetzt gilt die Farbe des Profils
@@ -2427,12 +2620,21 @@
       document.querySelectorAll(id + ' .seg-btn').forEach(b =>
         b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderEinstellungen(); }));
     });
-    $('#jahrInput').addEventListener('change', () => {
-      const jahr = $('#jahrInput').value.trim();
-      setzeEinstellung('jahr', jahr);
-      if (jahr) setzeEinstellung('klasse', '');            // Klasse folgt wieder dem Jahrgang
-      renderEinstellungen();
-      toast(jahr ? 'Jahrgang ' + jahr + ' · ' + klasseVon() : 'Jahrgang gelöscht');
+    $('#geburtZeigen').addEventListener('click', () => { geburtOffen = true; renderEinstellungen(); });
+    $('#geburtInput').addEventListener('change', () => {
+      const wert = $('#geburtInput').value.trim();
+      setzeEinstellung('geburt', wert);
+      setzeEinstellung('jahr', wert ? wert.slice(0, 4) : '');
+      if (wert) setzeEinstellung('klasse', '');            // Klasse folgt wieder dem Alter
+      renderEinstellungen(); renderAll();
+      toast(wert ? 'Geburtstag gespeichert · ' + klasseVon() : 'Geburtstag gelöscht');
+    });
+    $('#pruefungInput').addEventListener('change', () => {
+      const wert = $('#pruefungInput').value.trim();
+      setzeEinstellung('pruefung', wert);
+      setzeEinstellung('klasse', '');                      // Klasse folgt dem Termin
+      renderEinstellungen(); renderAll();
+      toast(wert ? 'Sport-Abi ' + monatDeutsch(wert) + ' · ' + klasseVon() : 'Termin gelöscht');
     });
     document.querySelectorAll('[data-ziel]').forEach(b =>
       b.addEventListener('click', () => show(b.dataset.ziel)));
@@ -2443,7 +2645,8 @@
     $('#profilNeuBtn').addEventListener('click', openNeuesProfil);
     $('#npClose').addEventListener('click', closeNeuesProfil);
     $('#npAbbrechen').addEventListener('click', closeNeuesProfil);
-    $('#npJahr').addEventListener('input', () => npHinweis());
+    $('#npGeburt').addEventListener('input', () => npHinweis());
+    $('#npPruefung').addEventListener('input', () => npHinweis());
     document.querySelectorAll('#npGeschlecht .seg-btn').forEach(b =>
       b.addEventListener('click', () => {
         npGeschlecht = b.dataset.wert;

@@ -1146,3 +1146,58 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   .punkte-summe .v { font-size: 29px; }
   .theme-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* ---------------- Startfenster: Cookies und Rolle ----------------
+   Liegt über allem anderen, auch über dem Abgleich-Fenster. */
+.startscreen { z-index: 60; }
+.start-inner { max-width: 460px; text-align: left; }
+.start-schritt { display: flex; flex-direction: column; gap: 14px; }
+.start-schritt[hidden] { display: none; }
+.start-text { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.5; }
+.start-fein { margin: -4px 0 0; color: var(--muted); font-size: 12.5px; }
+.pscreen-fein { margin: 6px 0 0; color: var(--muted); font-size: 12.5px; }
+
+.keks-liste { display: flex; flex-direction: column; gap: 10px; }
+.keks-punkt {
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 5px;
+}
+.keks-punkt p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.keks-kopf { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.keks-kopf strong { font-size: 15px; color: var(--text); }
+.keks-fest { font-size: 12px; color: var(--muted); }
+.keks-wahl { cursor: pointer; }
+.keks-wahl input { width: 20px; height: 20px; accent-color: var(--mint); flex: none; }
+
+.start-knoepfe { display: flex; flex-direction: column; gap: 8px; }
+.btn-gross { padding: 14px 18px; font-size: 16px; font-weight: 700; }
+/* Ablehnen soll erreichbar, aber nicht der erste Griff sein */
+.btn-leise {
+  background: transparent; border-color: transparent;
+  color: var(--muted); font-weight: 500;
+}
+.btn-leise:hover { color: var(--text); border-color: var(--line-soft); }
+
+/* Schüler ist der Weg, den fast alle gehen: groß und farbig.
+   Lehrer bleibt daneben klein und blass, damit ihn niemand aus Versehen trifft. */
+.rolle-schueler { width: 100%; }
+.rolle-lehrer {
+  align-self: center;
+  margin-top: 18px;
+  background: none; border: 0;
+  color: var(--muted);
+  opacity: .5;
+  font-size: 12.5px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.rolle-lehrer:hover { opacity: .85; }
+.rolle-lehrer:focus-visible { opacity: 1; outline: 2px solid var(--line); outline-offset: 2px; }
+
+/* Verborgene Angabe (Geburtstag) */
+.feld-verdeckt { display: flex; align-items: center; gap: 8px; }
