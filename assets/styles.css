@@ -53,8 +53,12 @@
 html, body { margin: 0; padding: 0; }
 body {
   min-height: 100%;
+  /* no-repeat ist Pflicht: Die Kachel des Scheins ist so hoch wie der Inhalt.
+     Auf kurzen Seiten (Profil) ist das weniger als der Bildschirm – ohne
+     no-repeat fängt die Kachel darunter von vorne an und man sieht quer
+     über die Seite eine harte Kante. */
   background:
-    radial-gradient(1100px 620px at 50% -8%, var(--bg-glow) 0%, transparent 62%),
+    radial-gradient(1100px 620px at 50% -8%, var(--bg-glow) 0%, transparent 62%) no-repeat,
     var(--bg);
   color: var(--text);
   font-family: var(--font);
