@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=a9dc0142">
+<link rel="stylesheet" href="assets/styles.css?v=88da7c4e">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -281,6 +281,32 @@
       <summary>Profil löschen <span class="sub">mit allen Werten</span></summary>
       <div class="klapp-body" id="loeschBereich"></div>
     </details>
+
+    <div class="lehrertuer">
+      <button type="button" id="lehrerTuer" class="lehrer-link">Lehrerzugang</button>
+      <form id="lehrerForm" class="lehrer-form" autocomplete="off" hidden>
+        <input id="lehrerSchluessel" type="password" placeholder="Schlüssel"
+               aria-label="Lehrerschlüssel" autocomplete="off">
+        <button type="submit" class="btn btn-sm btn-mint">Anmelden</button>
+        <button type="button" id="lehrerAbbruch" class="btn btn-sm">Abbrechen</button>
+      </form>
+      <p id="lehrerTuerHinweis" class="hint-text"></p>
+    </div>
+  </section>
+
+  <!-- ============ KLASSENÜBERSICHT (nur Lehrer) ============ -->
+  <section id="view-lehrer" class="view">
+    <h1 class="view-title">Klasse</h1>
+    <p id="lehrerKopf" class="view-note"></p>
+    <div class="sortier" id="lehrerSortier" role="group" aria-label="Sortierung"></div>
+    <div class="tabelle-rahmen">
+      <table class="klassentabelle">
+        <thead id="klassenKopf"></thead>
+        <tbody id="klassenKoerper"></tbody>
+      </table>
+    </div>
+    <div id="lehrerDetail"></div>
+    <p id="lehrerHinweis" class="hint-text"></p>
   </section>
 
   <!-- ============ PROFILE VERWALTEN ============ -->
@@ -307,6 +333,9 @@
   </button>
   <button class="tab" data-view="punkte">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V10M9.5 19V5M15 19v-6M20.5 19V8"/></svg>Punkte
+  </button>
+  <button class="tab tab-lehrer" data-view="lehrer" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Klasse
   </button>
   <button class="tab" data-view="profil">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0114.4 0"/></svg>Profil
@@ -532,6 +561,12 @@
       </button>
       <p class="start-fein">Du trägst deine eigenen Werte ein und siehst deine Punkte.</p>
       <button type="button" id="rolleLehrer" class="rolle-lehrer">Weiter als Lehrer</button>
+      <form id="rolleLehrerForm" class="lehrer-form" autocomplete="off" hidden>
+        <input id="rolleSchluessel" type="password" placeholder="Schlüssel"
+               aria-label="Lehrerschlüssel" autocomplete="off">
+        <button type="submit" class="btn btn-sm btn-mint">Anmelden</button>
+      </form>
+      <p id="rolleHinweis" class="start-fein"></p>
     </div>
 
   </div>
@@ -636,6 +671,6 @@
 <script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "q2sp2026"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
-<script id="appScript" src="assets/app.js?v=3e7a11e6"></script>
+<script id="appScript" src="assets/app.js?v=66dd5b6d"></script>
 </body>
 </html>

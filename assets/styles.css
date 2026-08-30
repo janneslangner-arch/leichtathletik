@@ -1201,3 +1201,107 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 
 /* Verborgene Angabe (Geburtstag) */
 .feld-verdeckt { display: flex; align-items: center; gap: 8px; }
+
+/* ---------------- Lehrerzugang: klein und unauffällig ---------------- */
+.lehrertuer { margin-top: 26px; text-align: center; }
+.lehrer-link {
+  background: none; border: 0; padding: 6px 10px; cursor: pointer;
+  color: var(--muted); opacity: .35; font-size: 11.5px; letter-spacing: .04em;
+}
+.lehrer-link:hover { opacity: .8; }
+.lehrer-link:focus-visible { opacity: 1; outline: 1px solid var(--line); outline-offset: 2px; }
+.lehrer-form { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+.lehrer-form[hidden] { display: none; }
+.lehrer-form input {
+  flex: 1 1 170px; min-width: 0; max-width: 240px;
+  background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
+  border-radius: 10px; padding: 10px 12px; font-size: 14px;
+}
+.lehrer-form input:focus { outline: none; border-color: var(--mint); }
+
+/* ---------------- Klassenübersicht ---------------- */
+.sortier { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+.sortier-btn {
+  background: var(--surface); border: 1px solid var(--line-soft); color: var(--muted);
+  border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+}
+.sortier-btn.is-active { background: var(--mint); border-color: var(--mint); color: var(--ink); font-weight: 600; }
+
+/* Waagerecht scrollen darf nur die Tabelle, nie die Seite */
+.tabelle-rahmen {
+  overflow-x: auto;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: var(--surface);
+  -webkit-overflow-scrolling: touch;
+}
+.klassentabelle { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 13px; }
+.klassentabelle th, .klassentabelle td {
+  padding: 9px 10px; text-align: right; white-space: nowrap;
+  border-bottom: 1px solid var(--line-soft);
+}
+.klassentabelle thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: var(--surface-2); color: var(--muted);
+  font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; font-weight: 600;
+}
+/* Der Name bleibt beim Wischen stehen, sonst weiß man nicht mehr, wessen Zeile man liest */
+.klassentabelle .sp-name {
+  position: sticky; left: 0; z-index: 1;
+  text-align: left; background: var(--surface);
+  border-right: 1px solid var(--line-soft);
+  max-width: 130px; overflow: hidden; text-overflow: ellipsis;
+}
+.klassentabelle thead .sp-name { z-index: 3; background: var(--surface-2); }
+.klassentabelle tbody tr:hover .sp-name { background: var(--surface-2); }
+.klassentabelle tbody tr { cursor: pointer; }
+.klassentabelle tbody tr:hover td { background: color-mix(in srgb, var(--mint) 7%, transparent); }
+.klassentabelle tbody tr.ist-offen td { background: color-mix(in srgb, var(--mint) 12%, transparent); }
+
+.zell-punkt { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.zell-leer { color: var(--muted); opacity: .5; }
+.zell-wert { display: block; font-size: 10.5px; color: var(--muted); font-weight: 400; }
+.sp-summe { font-variant-numeric: tabular-nums; }
+.sp-summe .zell-punkt { color: var(--mint); }
+.np-marke {
+  display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 7px;
+  background: var(--mint); color: var(--ink); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.np-marke.ist-schwach { background: var(--bad); }
+.np-marke.ist-leer { background: var(--surface-2); color: var(--muted); font-weight: 500; }
+.fehlt-marke {
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px;
+  background: color-mix(in srgb, var(--bad) 22%, transparent);
+  color: var(--bad); font-size: 10.5px; font-weight: 600;
+}
+.spark { display: block; }
+.spark path { fill: none; stroke: var(--mint); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; }
+.spark circle { fill: var(--mint); }
+
+/* .tab setzt display: flex – ohne das hier bliebe ein verstecktes
+   [hidden]-Element trotzdem sichtbar. */
+.tab[hidden] { display: none !important; }
+
+/* Die Entwicklung steht unter der Tabelle, nicht darin: in einer seitlich
+   scrollbaren Tabelle wäre die Zelle so breit wie alle Spalten zusammen
+   und der Text läge außerhalb des Bildschirms. */
+#lehrerDetail:empty { display: none; }
+#lehrerDetail {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+}
+.detail-innen { padding: 13px 15px; display: flex; flex-direction: column; gap: 9px; }
+.detail-titel { font-family: inherit; font-size: 15px; font-weight: 700; color: var(--text); margin: 0; }
+.detail-kopf { font-size: 12px; color: var(--muted); }
+.detail-liste { display: flex; flex-direction: column; gap: 6px; }
+.detail-zeile {
+  display: grid; grid-template-columns: 62px 1fr auto; gap: 10px; align-items: baseline;
+  font-size: 12.5px;
+}
+.detail-name { color: var(--muted); font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; }
+.detail-weg { color: var(--text); }
+.detail-plus { color: var(--mint); font-weight: 700; font-variant-numeric: tabular-nums; }
+.detail-minus { color: var(--muted); }

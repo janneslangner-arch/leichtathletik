@@ -217,6 +217,57 @@ begin
 end;
 $$;
 
+-- --------------------------------------------------------- Lehrerzugang
+-- Der Schlüssel steht NICHT in der Webseite – die kann jeder öffnen und
+-- lesen. Er liegt als Prüfsumme in `geheim` und wird nur hier verglichen.
+-- Ohne Verbindung zur Datenbank kommt niemand in die Lehreransicht.
+create table if not exists lehrer_versuche (
+  id     bigserial primary key,
+  code   text not null,
+  wann   timestamptz not null default now(),
+  erfolg boolean not null default false
+);
+alter table lehrer_versuche enable row level security;
+revoke all on table lehrer_versuche from anon, authenticated;
+create index if not exists lehrer_versuche_idx on lehrer_versuche (code, wann);
+
+create or replace function lehrer_pruefen(p_code text, p_schluessel text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+-- Wie beim Löschcode gilt: falscher Schlüssel wirft KEINE Exception, sonst
+-- würde der Versuch mit zurückgedreht und man könnte endlos probieren.
+declare v_code text; v_hash text; v_daneben int;
+begin
+  v_code := gruppe_pruefen(p_code);
+
+  select count(*) into v_daneben from lehrer_versuche
+   where code = v_code and not erfolg and wann > now() - interval '1 hour';
+  if v_daneben >= 10 then
+    return jsonb_build_object('ok', false,
+      'meldung', 'Zu viele Fehlversuche in dieser Klasse – probiere es in einer Stunde wieder');
+  end if;
+
+  select wert into v_hash from geheim where schluessel = 'lehrer_hash';
+  if v_hash is null then
+    return jsonb_build_object('ok', false,
+      'meldung', 'Für diese Klasse ist noch kein Lehrerschlüssel hinterlegt');
+  end if;
+
+  if v_hash = crypt(coalesce(p_schluessel, ''), v_hash) then
+    insert into lehrer_versuche (code, erfolg) values (v_code, true);
+    delete from lehrer_versuche where wann < now() - interval '30 days';
+    return jsonb_build_object('ok', true);
+  end if;
+
+  insert into lehrer_versuche (code, erfolg) values (v_code, false);
+  return jsonb_build_object('ok', false, 'meldung',
+    format('Der Schlüssel stimmt nicht (%s von 10 Versuchen in dieser Stunde)', v_daneben + 1));
+end;
+$$;
+
 -- ------------------------------------------------------- Löschen mit Code
 -- Ein Profil zu löschen nimmt der ganzen Klasse die Werte weg. Deshalb geht
 -- das nur noch mit einem Zahlencode, der hier im Server entsteht und per
@@ -402,6 +453,7 @@ grant execute on function daten_lesen(text)                                     
 grant execute on function profil_anlegen(text, uuid, text)                               to anon, authenticated;
 grant execute on function profil_umbenennen(text, uuid, text)                            to anon, authenticated;
 grant execute on function profil_aussehen(text, uuid, jsonb)                            to anon, authenticated;
+grant execute on function lehrer_pruefen(text, text)                                      to anon, authenticated;
 grant execute on function loeschcode_anfordern(text, uuid, text)                          to anon, authenticated;
 grant execute on function profil_loeschen(text, uuid, text)                              to anon, authenticated;
 grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text, text) to anon, authenticated;
@@ -430,6 +482,14 @@ revoke execute on function profil_pruefen(text, uuid) from anon, authenticated;
 -- Ohne eigene Domain verschickt Resend nur an die Adresse des eigenen
 -- Kontos - für "Code an mich selbst" reicht das genau. Wer eine Domain hat,
 -- trägt zusätzlich ('mail_von', 'Name <post@meine-domain.de>') ein.
+--
+-- ------------------------------------------------- Lehrerschlüssel setzen
+-- Einmal ausführen, mit eurem eigenen Schlüssel. Er wird nur als Prüfsumme
+-- gespeichert und lässt sich daraus nicht zurückrechnen:
+--
+-- insert into geheim (schluessel, wert)
+-- values ('lehrer_hash', crypt('EUER-SCHLUESSEL', gen_salt('bf', 10)))
+-- on conflict (schluessel) do update set wert = excluded.wert;
 --
 -- Kontrolle, ob etwas rausging (zeigt nie den Code, nur den Status):
 --   select created, status_code from net._http_response order by created desc limit 5;

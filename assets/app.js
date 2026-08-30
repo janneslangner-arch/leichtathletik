@@ -1851,6 +1851,7 @@
 
   // Auf einem neuen Gerät steht noch nicht fest, wer eintragt: direkt fragen.
   function starteProfilwahl() {
+    if (istLehrer()) return;        // Lehrer landen direkt in der Klassenübersicht
     const gewaehlt = gemerkt('la-profil-gewaehlt');
     if (gewaehlt && db.athletes.includes(gewaehlt)) return;
     if (!db.athletes.length || (db.athletes.length === 1 && db.athletes[0] === 'Ich' && !countOf('Ich')))
@@ -1959,6 +1960,218 @@
     switchTo(name);                       // wechselt und gleicht dabei ab
   }
 
+  /* ---------------- Auswertung eines beliebigen Profils ----------------
+     renderPunkte rechnet für das gerade gewählte Profil. Die Lehreransicht
+     braucht dasselbe für alle – deshalb hier einmal ohne db.current. */
+  function auswertungVon(name) {
+    const g = einstellungVon(name, 'geschlecht', 'm');
+    const hand = einstellungVon(name, 'zeit', 'hand') === 'hand';
+    const klasse = einstellungVon(name, 'klasse', '')
+      || altersklasse(jahrgangVon(name), stichtagVon(name)) || 'U20';
+    const eintraege = db.entries.filter(e => e.athlete === name)
+      .sort((a, b) => zeitpunkt(a) < zeitpunkt(b) ? -1 : 1);
+
+    const bestwerte = {}, punkte = {}, erste = {};
+    KEYS.forEach(key => {
+      const liste = eintraege.filter(e => e.disc === key);
+      erste[key] = liste[0] || null;
+      const b = liste.length
+        ? liste.reduce((x, e) => isBetter(key, e.value, x.value) ? e : x, liste[0]) : null;
+      bestwerte[key] = b;
+      punkte[key] = b ? dlvPunkte(key, b.value, g, hand) : null;
+    });
+    const ergebnis = fuenfkampf(punkte, g);
+    const np = ergebnis.summe != null ? notenpunkte(ergebnis.summe, g) : null;
+    return { name, g, hand, klasse, eintraege, erste, bestwerte, punkte, ergebnis, np,
+             anzahl: eintraege.length };
+  }
+
+  /* Entwicklung: Nach jedem eingetragenen Wert einmal die Fünfkampf-Summe
+     bilden, so wie sie an dem Tag ausgesehen hätte. Das ergibt die Kurve,
+     an der man sieht, ob es aufwärts geht. */
+  function summenVerlauf(name) {
+    const a = auswertungVon(name);
+    const bisher = {}, punkte = {}, reihe = [];
+    a.eintraege.forEach(e => {
+      const alt = bisher[e.disc];
+      if (!alt || isBetter(e.disc, e.value, alt)) {
+        bisher[e.disc] = e.value;
+        punkte[e.disc] = dlvPunkte(e.disc, e.value, a.g, a.hand);
+      }
+      const r = fuenfkampf(punkte, a.g);
+      if (r.summe != null) {
+        if (reihe.length && reihe[reihe.length - 1].datum === e.date) reihe[reihe.length - 1].summe = r.summe;
+        else reihe.push({ datum: e.date, summe: r.summe });
+      }
+    });
+    return reihe;
+  }
+
+  // Kleine Kurve für die Tabelle – ohne Achsen, es geht nur um die Richtung.
+  function sparkline(reihe) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const b = 64, h = 20;
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('class', 'spark');
+    svg.setAttribute('viewBox', `0 0 ${b} ${h}`);
+    svg.setAttribute('width', String(b)); svg.setAttribute('height', String(h));
+    if (reihe.length < 2) return svg;
+    const werte = reihe.map(r => r.summe);
+    const min = Math.min(...werte), max = Math.max(...werte);
+    const spanne = max - min || 1;
+    const x = i => (i / (reihe.length - 1)) * (b - 4) + 2;
+    const y = v => h - 3 - ((v - min) / spanne) * (h - 6);
+    const pfad = document.createElementNS(NS, 'path');
+    pfad.setAttribute('d', werte.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' '));
+    svg.append(pfad);
+    const punkt = document.createElementNS(NS, 'circle');
+    punkt.setAttribute('cx', x(werte.length - 1).toFixed(1));
+    punkt.setAttribute('cy', y(werte[werte.length - 1]).toFixed(1));
+    punkt.setAttribute('r', '2.1');
+    svg.append(punkt);
+    return svg;
+  }
+
+  /* ---------------- Klassenübersicht (Lehrer) ---------------- */
+  let lehrerSortierung = 'name', lehrerOffen = null;
+
+  function renderLehrer() {
+    const kopf = document.getElementById('klassenKopf');
+    const koerper = document.getElementById('klassenKoerper');
+    if (!kopf || !koerper) return;
+
+    const namen = sichtbareProfile();
+    const daten = namen.map(auswertungVon);
+    const fertig = daten.filter(d => d.ergebnis.summe != null);
+    const schnitt = fertig.length
+      ? (fertig.reduce((a, d) => a + d.np, 0) / fertig.length) : null;
+
+    document.getElementById('lehrerKopf').textContent =
+      `${daten.length} ${daten.length === 1 ? 'Profil' : 'Profile'} · `
+      + `${fertig.length} mit vollständiger Wertung`
+      + (schnitt != null ? ` · Schnitt ${schnitt.toFixed(1)} NP` : '')
+      + ` · ${db.entries.length} Werte insgesamt`;
+
+    // Sortierknöpfe
+    const sort = document.getElementById('lehrerSortier');
+    sort.textContent = '';
+    [['name', 'Name'], ['summe', 'Punkte'], ['note', 'Note'], ['fehlt', 'Was fehlt']]
+      .forEach(([key, text]) => {
+        const b = btn('sortier-btn' + (lehrerSortierung === key ? ' is-active' : ''), text,
+          () => { lehrerSortierung = key; renderLehrer(); }, 'Sortieren nach ' + text);
+        sort.append(b);
+      });
+
+    const luecken = d => d.ergebnis.summe != null ? 0 : (d.ergebnis.fehlend || []).length + 1;
+    daten.sort((a, b) => {
+      if (lehrerSortierung === 'summe') return (b.ergebnis.summe || -1) - (a.ergebnis.summe || -1);
+      if (lehrerSortierung === 'note') return (b.np == null ? -1 : b.np) - (a.np == null ? -1 : a.np);
+      if (lehrerSortierung === 'fehlt') return luecken(b) - luecken(a) || a.name.localeCompare(b.name, 'de');
+      return a.name.localeCompare(b.name, 'de', { sensitivity: 'base' });
+    });
+
+    // Kopfzeile
+    kopf.textContent = '';
+    const kz = el('tr');
+    kz.append(el('th', 'sp-name', 'Name'), el('th', null, 'Σ'), el('th', null, 'NP'), el('th', null, 'Verlauf'));
+    KEYS.forEach(key => kz.append(el('th', null, DISC[key].ic)));
+    kopf.append(kz);
+
+    // Eine Zeile je Profil
+    koerper.textContent = '';
+    daten.forEach(d => {
+      const tr = el('tr' + (lehrerOffen === d.name ? '' : ''));
+      if (lehrerOffen === d.name) tr.classList.add('ist-offen');
+      tr.addEventListener('click', () => {
+        lehrerOffen = lehrerOffen === d.name ? null : d.name;
+        renderLehrer();
+      });
+
+      const name = el('td', 'sp-name');
+      name.append(el('span', null, d.name));
+      const fehlt = d.ergebnis.summe == null ? (d.ergebnis.fehlend || []) : [];
+      if (fehlt.length) name.append(el('span', 'fehlt-marke', fehlt.length + '×'));
+      tr.append(name);
+
+      const summe = el('td', 'sp-summe');
+      summe.append(el('span', 'zell-punkt' + (d.ergebnis.summe == null ? ' zell-leer' : ''),
+        d.ergebnis.summe != null ? d.ergebnis.summe.toLocaleString('de-DE') : '–'));
+      tr.append(summe);
+
+      const note = el('td');
+      const marke = el('span', 'np-marke' + (d.np == null ? ' ist-leer' : d.np < 5 ? ' ist-schwach' : ''),
+        d.np == null ? '–' : String(d.np));
+      note.append(marke);
+      tr.append(note);
+
+      const kurve = el('td');
+      kurve.append(sparkline(summenVerlauf(d.name)));
+      tr.append(kurve);
+
+      KEYS.forEach(key => {
+        const td = el('td');
+        const b = d.bestwerte[key], pkt = d.punkte[key];
+        td.append(el('span', 'zell-punkt' + (pkt == null ? ' zell-leer' : ''),
+          pkt == null ? '–' : String(pkt)));
+        if (b) td.append(el('span', 'zell-wert', fmt(key, b.value)));
+        tr.append(td);
+      });
+      koerper.append(tr);
+    });
+
+    const detail = document.getElementById('lehrerDetail');
+    detail.textContent = '';
+    const offen = daten.find(d => d.name === lehrerOffen);
+    if (offen) detail.append(detailFeld(offen));
+
+    document.getElementById('lehrerHinweis').textContent = daten.length
+      ? 'Tippe auf eine Zeile: dort steht, wie sich die Werte entwickelt haben. '
+        + 'Σ ist die Fünfkampf-Summe, NP die Notenpunkte. Die Tabelle lässt sich zur Seite schieben.'
+      : 'Noch keine Profile in dieser Klasse.';
+  }
+
+  // Aufgeklappt: je Disziplin der Weg vom ersten Wert zum Bestwert
+  function detailFeld(d) {
+    const innen = el('div', 'detail-innen');
+    innen.append(el('p', 'detail-titel', d.name));
+
+    const termin = einstellungVon(d.name, 'pruefung', '');
+    innen.append(el('p', 'detail-kopf',
+      `${d.g === 'w' ? 'Mädchen' : 'Jungen'} · ${d.hand ? 'Handzeit' : 'elektronisch'} · ${d.klasse}`
+      + (termin ? ` · gerechnet auf ${monatDeutsch(termin)}` : ' · ohne Prüfungstermin')
+      + ` · ${d.anzahl} ${d.anzahl === 1 ? 'Wert' : 'Werte'}`
+      + (d.ergebnis.summe == null ? ` · ${d.ergebnis.status}` : '')));
+
+    const liste = el('div', 'detail-liste');
+    KEYS.forEach(key => {
+      const b = d.bestwerte[key], erst = d.erste[key];
+      if (!b) return;
+      const zeile = el('div', 'detail-zeile');
+      zeile.append(el('span', 'detail-name', DISC[key].ic));
+      const weg = el('span', 'detail-weg');
+      if (erst && erst.id !== b.id) {
+        weg.textContent = `${fmt(key, erst.value)} (${datumKurz(erst.date)})`
+          + ` → ${fmt(key, b.value)} (${datumKurz(b.date)})`;
+      } else {
+        weg.textContent = `${fmt(key, b.value)} (${datumKurz(b.date)}) · noch keine Steigerung`;
+      }
+      zeile.append(weg);
+      const ersteP = erst ? dlvPunkte(key, erst.value, d.g, d.hand) : null;
+      const zuwachs = (ersteP != null && d.punkte[key] != null) ? d.punkte[key] - ersteP : null;
+      zeile.append(el('span', zuwachs > 0 ? 'detail-plus' : 'detail-minus',
+        zuwachs > 0 ? '+' + zuwachs : String(d.punkte[key]) + ' P'));
+      liste.append(zeile);
+    });
+    if (!liste.children.length) liste.append(el('p', 'detail-kopf', 'Für dieses Profil ist noch nichts eingetragen.'));
+    innen.append(liste);
+    return innen;
+  }
+
+  const datumKurz = iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    return m ? `${m[3]}.${m[2]}.` : iso;
+  };
+
   /* ---------------- Reiter „Profil“ ---------------- */
   function renderProfil() {
     paintAvatar($('#profilAvatar'), db.current);
@@ -2025,6 +2238,8 @@
             + ' Die Altersklasse richtet sich dabei nach dem Jahrgang im Prüfungsjahr,'
             + ' nicht nach dem Tag – wer 2027 achtzehn wird, läuft dort das ganze Jahr U20.'
           : ' Ohne Prüfungstermin zählt das heutige Jahr – trag den Termin ein, sonst stimmt die Klasse im Prüfungsjahr nicht.');
+    const tuer = document.getElementById('lehrerTuer');
+    if (tuer) tuer.textContent = istLehrer() ? 'Lehreransicht verlassen' : 'Lehrerzugang';
     renderThemes();
     renderStorageInfo();
     renderLoeschen();
@@ -2481,6 +2696,7 @@
     if (view === 'profil') renderProfil();
     if (view === 'einstellungen') renderEinstellungen();
     if (view === 'profile') renderProfilListe();
+    if (view === 'lehrer') renderLehrer();
     window.scrollTo(0, 0);
   }
 
@@ -2490,6 +2706,75 @@
     if ($('#view-verlauf').classList.contains('is-active')) renderVerlauf();
     if ($('#view-punkte').classList.contains('is-active')) renderPunkte();
     if ($('#view-profil').classList.contains('is-active')) renderProfil();
+    if ($('#view-lehrer').classList.contains('is-active')) renderLehrer();
+  }
+
+  /* ---------------- Lehreransicht ein- und ausschalten ----------------
+     Der Schlüssel wird in der Datenbank geprüft, nicht hier. In der Seite
+     steht er nirgends – sonst könnte ihn jeder Schüler auslesen. */
+  function setzeRollenAnsicht() {
+    const lehrer = istLehrer();
+    document.body.classList.toggle('ist-lehrer', lehrer);
+    const zeige = (view, an) => {
+      const t = document.querySelector('.tab[data-view="' + view + '"]');
+      if (t) t.hidden = !an;
+    };
+    zeige('lehrer', lehrer);
+    ['erfassen', 'verlauf', 'punkte'].forEach(v => zeige(v, !lehrer));
+    const profilTab = document.querySelector('.tab[data-view="profil"]');
+    if (profilTab) {
+      // Beim Lehrer heißt der Reiter Einstellungen – der zeigt nur noch dorthin.
+      const beschriftung = lehrer ? 'Einstellungen' : 'Profil';
+      const knoten = [...profilTab.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+      if (knoten) knoten.textContent = beschriftung;
+      profilTab.setAttribute('aria-label', beschriftung);
+    }
+    // Steht der Lehrer gerade auf einer Seite, die es für ihn nicht gibt?
+    if (lehrer && ['erfassen', 'verlauf', 'punkte'].includes(currentView)) show('lehrer');
+    if (!lehrer && currentView === 'lehrer') show('erfassen');
+  }
+
+  async function lehrerAnmelden(ev) {
+    ev.preventDefault();
+    const feld = $('#lehrerSchluessel');
+    const hinweis = $('#lehrerTuerHinweis');
+    const schluessel = feld.value;
+    if (!schluessel) { hinweis.textContent = 'Bitte den Schlüssel eingeben.'; return; }
+    if (!usingDb()) {
+      hinweis.textContent = 'Dafür braucht es die Verbindung zur Klassen-Datenbank.';
+      return;
+    }
+    hinweis.textContent = 'Schlüssel wird geprüft …';
+    let res;
+    try {
+      res = await rpc('lehrer_pruefen', { p_code: cfg.code, p_schluessel: schluessel });
+    } catch (err) {
+      hinweis.textContent = err && err.status === 404
+        ? 'Diese Datenbank kennt den Lehrerzugang noch nicht – das neue SQL fehlt.'
+        : (err.message || 'Der Schlüssel konnte nicht geprüft werden.');
+      return;
+    }
+    if (!res || res.ok !== true) {
+      hinweis.textContent = (res && res.meldung) || 'Der Schlüssel stimmt nicht.';
+      feld.value = ''; feld.focus();
+      return;
+    }
+    feld.value = '';
+    keksSetzen('la-rolle', 'lehrer');
+    $('#lehrerForm').hidden = true;
+    hinweis.textContent = '';
+    setzeRollenAnsicht();
+    renderEinstellungen();
+    show('lehrer');
+    toast('Lehreransicht an');
+  }
+
+  function lehrerAbmelden() {
+    keksSetzen('la-rolle', 'schueler');
+    setzeRollenAnsicht();
+    renderEinstellungen();
+    show('erfassen');
+    toast('Zurück in der Schüleransicht');
   }
 
   /* ---------------- Startfenster ----------------
@@ -2539,7 +2824,45 @@
       });
       const waehle = wer => { keksSetzen('la-rolle', wer); weiter(); };
       document.getElementById('rolleSchueler').addEventListener('click', () => waehle('schueler'));
-      document.getElementById('rolleLehrer').addEventListener('click', () => waehle('lehrer'));
+
+      // Lehrer kommt auch hier nur mit dem Schlüssel weiter. Geprüft wird er
+      // in der Datenbank; die Verbindung steht schon in der Seite, deshalb
+      // geht das auch, bevor der Rest der App geladen ist.
+      const form = document.getElementById('rolleLehrerForm');
+      const hinweis = document.getElementById('rolleHinweis');
+      document.getElementById('rolleLehrer').addEventListener('click', () => {
+        form.hidden = false;
+        hinweis.textContent = 'Für die Lehreransicht braucht es den Schlüssel.';
+        setTimeout(() => document.getElementById('rolleSchluessel').focus(), 30);
+      });
+      form.addEventListener('submit', async ev => {
+        ev.preventDefault();
+        const feld = document.getElementById('rolleSchluessel');
+        const fest = readEmbeddedCfg();
+        if (!fest || !fest.code) {
+          hinweis.textContent = 'Ohne Klassen-Datenbank gibt es keine Lehreransicht.';
+          return;
+        }
+        hinweis.textContent = 'Schlüssel wird geprüft …';
+        const konfig = { url: fest.url.replace(/\/+$/, ''), key: fest.key,
+                         code: String(fest.code).toLowerCase() };
+        let res;
+        try {
+          res = await rpc('lehrer_pruefen', { p_code: konfig.code, p_schluessel: feld.value }, konfig);
+        } catch (err) {
+          hinweis.textContent = err && err.status === 404
+            ? 'Diese Datenbank kennt den Lehrerzugang noch nicht.'
+            : (err.message || 'Der Schlüssel konnte nicht geprüft werden.');
+          return;
+        }
+        if (!res || res.ok !== true) {
+          hinweis.textContent = (res && res.meldung) || 'Der Schlüssel stimmt nicht.';
+          feld.value = ''; feld.focus();
+          return;
+        }
+        feld.value = '';
+        waehle('lehrer');
+      });
     });
   }
 
@@ -2588,6 +2911,7 @@
     if (DISC[last]) { selDisc = last; chartDisc = last; }
 
     ladeThemeVomProfil();          // ab jetzt gilt die Farbe des Profils
+    setzeRollenAnsicht();          // Lehrer sehen andere Reiter
     syncEntryHead();
     syncProfileName();
     // In einer Claude-Seite sind Verbindungen nach außen gesperrt – dort bleibt
@@ -2613,12 +2937,28 @@
     });
     $('#valueInput').addEventListener('input', () => { versteckeDopplung(); preview(); });
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-      flushSave(); if (usingDb()) { flush(); pull(); } show(t.dataset.view);
+      flushSave(); if (usingDb()) { flush(); pull(); }
+      // Beim Lehrer führt der Reiter direkt in die Einstellungen – die
+      // Profilseite mit „Angemeldet als“ braucht er nicht.
+      show(t.dataset.view === 'profil' && istLehrer() ? 'einstellungen' : t.dataset.view);
     }));
 
     [['#genderSeg', 'geschlecht'], ['#zeitSeg', 'zeit'], ['#klasseSeg', 'klasse']].forEach(([id, name]) => {
       document.querySelectorAll(id + ' .seg-btn').forEach(b =>
         b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderEinstellungen(); }));
+    });
+    $('#lehrerTuer').addEventListener('click', () => {
+      if (istLehrer()) { lehrerAbmelden(); return; }
+      const f = $('#lehrerForm');
+      f.hidden = !f.hidden;
+      $('#lehrerTuerHinweis').textContent = '';
+      if (!f.hidden) setTimeout(() => $('#lehrerSchluessel').focus(), 30);
+    });
+    $('#lehrerForm').addEventListener('submit', lehrerAnmelden);
+    $('#lehrerAbbruch').addEventListener('click', () => {
+      $('#lehrerForm').hidden = true;
+      $('#lehrerSchluessel').value = '';
+      $('#lehrerTuerHinweis').textContent = '';
     });
     $('#geburtZeigen').addEventListener('click', () => { geburtOffen = true; renderEinstellungen(); });
     $('#geburtInput').addEventListener('change', () => {
