@@ -12,7 +12,7 @@
     sprint200:    { name: '200 m Sprint', short: '200 m',  ic: '200',   kind: 'sec',    better: 'low',  unit: 's',
                     hint: 'Sekunden, z. B. 27.40', ph: '27.40' },
     sprint400:    { name: '400 m Sprint', short: '400 m',  ic: '400',   kind: 'sec',    better: 'low',  unit: 's',
-                    hint: 'Sekunden, z. B. 62.50', ph: '62.50' },
+                    hint: 'Sekunden, z. B. 62.50 – oder 1:02.5', ph: '62.50' },
     lauf1500:     { name: '1500 m Lauf',  short: '1500 m', ic: '1500',  kind: 'mmss',   better: 'low',  unit: 'min',
                     hint: '5:42 oder kurz 542', ph: '5:42' },
     lauf5000:     { name: '5000 m Lauf',  short: '5000 m', ic: '5000',  kind: 'mmss',   better: 'low',  unit: 'min',
@@ -299,6 +299,13 @@
       return v > 0 && v <= d.maxM ? v : null;
     }
     if (d.kind === 'sec') {
+      // Über 400 m sind die meisten länger als eine Minute unterwegs. Wer
+      // „1:02.5" von der Stoppuhr abliest, soll das auch so eintippen dürfen.
+      const mm = s.match(/^(\d{1,2}):([0-5]?\d)(\.\d+)?$/);
+      if (mm) {
+        const v = (+mm[1]) * 60 + (+mm[2]) + (mm[3] ? parseFloat(mm[3]) : 0);
+        return v > 0 && v < 600 ? v : null;
+      }
       if (!/^\d+(\.\d+)?$/.test(s)) return null;
       const v = parseFloat(s);
       return v > 0 && v < 600 ? v : null;
@@ -537,6 +544,26 @@
 
   function enqueue(fn, args) { queue.push({ fn, args }); writeQueue(); flush(); }
 
+  /* Ein abgewiesener Auftrag ist der eine Fall, in dem wirklich etwas verloren
+     geht: Die Schlange lässt ihn fallen, und beim nächsten Abgleich kommt der
+     Wert nicht mehr zurück. Eine Meldung, die nach vier Sekunden weg ist,
+     reicht dafür nicht – deshalb bleibt sie unter „Speicherort" stehen, bis es
+     wieder klappt. */
+  let abweisung = null;
+  try { abweisung = JSON.parse(localStorage.getItem('la-abweisung') || 'null'); } catch (e) { abweisung = null; }
+  const merkeAbweisung = w => {
+    abweisung = w;
+    try { w ? localStorage.setItem('la-abweisung', JSON.stringify(w)) : localStorage.removeItem('la-abweisung'); }
+    catch (e) { /* egal */ }
+  };
+  // „Unbekannte Disziplin" heißt fast immer: In der Datenbank läuft noch das
+  // alte Schema, das 200 m und 400 m noch nicht kennt.
+  const abweisungsText = meldung => /Unbekannte Disziplin/.test(meldung || '')
+    ? meldung + ' – die Datenbank kennt diese Disziplin noch nicht. Dafür muss '
+      + 'supabase/schema.sql einmal im SQL-Editor laufen. Bis dahin steht der Wert '
+      + 'nur auf diesem Gerät und verschwindet beim nächsten Abgleich.'
+    : meldung;
+
   let retryTimer = null;
   function scheduleRetry() {
     if (retryTimer || !queue.length) return;
@@ -557,8 +584,11 @@
         if (err.status >= 400 && err.status < 500) {
           // Der Server lehnt genau diesen Auftrag ab – sonst blockiert er die Schlange
           queue.shift(); writeQueue();
-          toast(err.message, { warn: true });
+          const text = abweisungsText(err.message);
+          merkeAbweisung({ text, wann: Date.now() });
+          toast(text, { warn: true });
           setSync('db');
+          renderStorageInfo();
           flush();
         } else {
           setSync('offline');
@@ -567,6 +597,7 @@
         return;
       }
       queue.shift(); writeQueue();
+      if (abweisung) { merkeAbweisung(null); renderStorageInfo(); }
       if (!queue.length && data) {
         applyServer(data); ladeThemeVomProfil(); renderAll(); syncProfileName();
       }
@@ -1251,7 +1282,16 @@
      oben die DLV-Punktzahl der Zeile; a und c für 200 m sind so gewählt, dass
      die 200-m-Zeit derselben Zeile möglichst genau dieselbe Punktzahl ergibt
      (Ausgleichsgerade über alle 15 Zeilen). Die Abweichung bleibt unter
-     4 Punkten – ein Notenpunkt sind rund 70. */
+     4 Punkten. Zum Vergleich: In der Fünfkampf-Summe sind 70 (Jungen) bis
+     85 (Mädchen) Punkte ein Notenpunkt, in der Einzelnote 14 bzw. 17. Direkt
+     an einer Notengrenze kann 200 m deshalb einen Notenpunkt neben 100 m
+     liegen, nie mehr.
+
+     Geeicht ist das auf die Handzeit, denn die Tabelle enthält Handzeiten und
+     die Schule stoppt so. Wer auf elektronisch umstellt, vergleicht damit zwei
+     um 0,24 s schnellere Zeiten; 100 m und 200 m können dann um bis zu einem
+     Viertel Notenpunkt auseinanderliegen. Das liegt an der DLV-Formel selbst,
+     nicht an den Beiwerten. */
   const DLV = {
     m: {
       sprint100:   { typ: 'lauf', d: 100,  a: 4.3410,  c: 0.00676 },
@@ -1564,7 +1604,7 @@
         ? 'Sobald alle vier Pflichtbereiche einen Wert haben, steht hier die Wertung.'
         : (ergebnis.status || 'Noch zu wenige Werte für den Fünfkampf.')));
 
-    // Ausgeklappt: alle sieben mit Einzelnote.
+    // Ausgeklappt: alle gewerteten Disziplinen mit Einzelnote.
     const alle = $('#punkteAlle');
     alle.textContent = '';
     Object.entries(GRUPPEN(g)).forEach(([gruppe, keys]) => {
@@ -1631,6 +1671,19 @@
           + ' Dafür muss supabase/schema.sql einmal im SQL-Editor laufen.';
       else if (m && !werte.some(w => 'zeit' in w) && n)
         text += ' Hinweis: Die Werte kommen ohne Uhrzeit zurück – dafür fehlt der Datenbank noch die Spalte „zeit".';
+
+      // Läuft dort schon das neue Schema? lehrer_abmelden mit einem
+      // Fantasie-Kürzel löscht nichts – die Antwort sagt nur, ob es die
+      // Funktion überhaupt gibt. Fehlt sie, fehlen auch 200 m und 400 m.
+      try {
+        await rpc('lehrer_abmelden', { p_code: cfg.code, p_kuerzel: 'probe' });
+      } catch (err) {
+        if (err.status === 404)
+          text += ' Achtung: Die Datenbank kennt die neuen Funktionen noch nicht –'
+            + ' damit lassen sich 200 m und 400 m nicht speichern und die Lehreransicht'
+            + ' nicht sauber verlassen. Dafür muss supabase/schema.sql einmal im'
+            + " SQL-Editor laufen; hilft das nicht, dort einmal: notify pgrst, 'reload schema';";
+      }
       return text;
     } catch (err) {
       if (err.status) return 'Die Datenbank meldet: ' + err.message + (err.status === 404
@@ -1655,6 +1708,14 @@
         : `Verbunden mit ${cfg.url.replace(/^https?:\/\//, '')}, Gruppe „${cfg.code}“.`);
       if (queue.length) line(`${queue.length} ${queue.length === 1 ? 'Änderung wartet' : 'Änderungen warten'} auf die Verbindung und ${queue.length === 1 ? 'wird' : 'werden'} nachgereicht.`);
       else line('Eine Kopie bleibt zusätzlich auf diesem Gerät, damit die App auch ohne Netz läuft.');
+      if (abweisung) {
+        const wann = abweisung.wann
+          ? ' (' + new Date(abweisung.wann).toLocaleDateString('de-DE') + ')' : '';
+        const warn = el('p', 'hint-warn db-abweisung',
+          'Zuletzt abgewiesen' + wann + ': ' + abweisung.text);
+        warn.style.margin = '0 0 8px';
+        box.append(warn);
+      }
       acts.append(btn('btn', 'Jetzt abgleichen', () => pull(true)));
       // Wenn die feste Verbindung klemmt, soll man wenigstens erfahren, woran.
       acts.append(btn('btn', 'Verbindung prüfen', async ev => {
@@ -2241,8 +2302,12 @@
     innen.append(el('p', 'detail-titel', d.name));
 
     const termin = einstellungVon(d.name, 'pruefung', '');
+    // Der Jahrgang steht hier und sonst nirgends: Schüler sollen ihn nicht
+    // voneinander sehen, die Lehrkraft braucht ihn für die Altersklasse.
+    const jahr = jahrgangVon(d.name);
     innen.append(el('p', 'detail-kopf',
       `${d.g === 'w' ? 'Mädchen' : 'Jungen'} · ${d.hand ? 'Handzeit' : 'elektronisch'} · ${d.klasse}`
+      + (jahr ? ` · Jahrgang ${jahr}` : ' · ohne Jahrgang')
       + (termin ? ` · gerechnet auf ${monatDeutsch(termin)}` : ' · ohne Prüfungstermin')
       + ` · ${d.anzahl} ${d.anzahl === 1 ? 'Wert' : 'Werte'}`
       + (d.ergebnis.summe == null ? ` · ${d.ergebnis.status}` : '')));
@@ -2903,6 +2968,9 @@
       if (knoten) knoten.textContent = beschriftung;
       profilTab.setAttribute('aria-label', beschriftung);
     }
+    // „‹ Profil" wäre in der Lehreransicht das falsche Wort – dort gibt es keins.
+    const zurueck = document.querySelector('#view-einstellungen .zurueck');
+    if (zurueck) zurueck.textContent = lehrer ? '‹ Zurück' : '‹ Profil';
     // Steht der Lehrer gerade auf einer Seite, die es für ihn nicht gibt?
     if (lehrer && ['erfassen', 'verlauf', 'punkte'].includes(currentView)) show('lehrer');
     if (!lehrer && currentView === 'lehrer') show('erfassen');

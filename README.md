@@ -71,8 +71,11 @@ Bewertungstabelle gerechnet. Dort steht je Notenpunkt-Zeile eine 100-m- und
 eine 200-m-Zeit; aus der 100-m-Zeit folgt mit den Beiwerten oben die
 DLV-Punktzahl der Zeile, und `a`/`c` für 200 m sind so bestimmt, dass die
 200-m-Zeit derselben Zeile dieselbe Punktzahl ergibt (Ausgleichsgerade über
-alle 15 Zeilen, Abweichung unter 4 Punkten – ein Notenpunkt sind rund 70).
-Geprüft wird das Zeile für Zeile über die Oberfläche.
+alle 15 Zeilen, Abweichung unter 4 Punkten). Zum Vergleich: In der
+Fünfkampf-Summe sind 70 (Jungen) bis 85 (Mädchen) Punkte ein Notenpunkt, in
+der Einzelnote 14 bzw. 17 – direkt an einer Notengrenze kann 200 m also einen
+Notenpunkt neben 100 m liegen, nie mehr. Geprüft wird das Zeile für Zeile
+über die Oberfläche.
 
 **400 m** kann man eintragen und im Verlauf verfolgen, gewertet wird es
 nicht: In unserer Bewertungstabelle steht ausdrücklich „Nicht aufgeführt:
@@ -85,8 +88,9 @@ gelaufenen Strecke, und die App schreibt es an die Zeile. Die App probiert alle 
 und nimmt die beste Summe; oben stehen nur die fünf Zeilen, die zählen.
 Aus der Summe kommt die Bewertung in Notenpunkten (15 NP = 1+, 0 NP = 6)
 nach der SH-Tabelle unter `NOTENPUNKTE`. Ausgeklappt („Alle Disziplinen")
-stehen alle sieben und dazu, was jede Leistung einzeln wäre – dieselbe
-Tabelle, geteilt durch fünf.
+stehen alle gewerteten Disziplinen und dazu, was jede Leistung einzeln wäre
+– dieselbe Tabelle, geteilt durch fünf. Ganz unten und blass steht, was sich
+zwar erfassen lässt, aber keine Punktetabelle hat (400 m).
 
 Umschalter für Jungen/Mädchen, Handzeit/elektronisch und die Altersklasse
 (U18/U20/U23, bestimmt die angezeigten Gerätegewichte) stehen in den
