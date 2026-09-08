@@ -2866,6 +2866,50 @@
     if (!lehrer && currentView === 'lehrer') show('erfassen');
   }
 
+  /* Auge am Schlüsselfeld: Wer einen Schlüssel mit Sonderzeichen abtippt,
+     will sehen können, was er getippt hat. Das muss VOR dem Startbildschirm
+     eingerichtet sein – dort steht ja schon so ein Feld. */
+  function richteAugenEin() {
+    document.querySelectorAll('.auge').forEach(knopf => {
+      const feld = document.getElementById(knopf.dataset.fuer);
+      if (!feld || knopf.dataset.fertig) return;
+      knopf.dataset.fertig = '1';
+      const zeichne = () => {
+        const zu = feld.type === 'password';
+        knopf.classList.toggle('ist-zu', zu);
+        knopf.classList.toggle('ist-offen', !zu);
+        knopf.setAttribute('aria-pressed', String(!zu));
+        knopf.title = zu ? 'Schlüssel anzeigen' : 'Schlüssel verbergen';
+        knopf.setAttribute('aria-label', knopf.title);
+      };
+      knopf.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'
+        + '<path d="M2.2 12S6 5.8 12 5.8 21.8 12 21.8 12 18 18.2 12 18.2 2.2 12 2.2 12z"/>'
+        + '<circle cx="12" cy="12" r="3"/>'
+        + '<path class="auge-strich" d="M4.5 19.5 19.5 4.5"/></svg>';
+      knopf.addEventListener('click', () => {
+        feld.type = feld.type === 'password' ? 'text' : 'password';
+        zeichne();
+        feld.focus();
+      });
+      zeichne();
+    });
+  }
+
+  // Nach dem Anmelden oder Abbrechen ist der Schlüssel wieder verdeckt –
+  // sonst stünde er offen da, wenn jemand anders auf das Handy schaut.
+  function verdeckeWieder(id) {
+    const feld = document.getElementById(id);
+    if (feld && feld.type !== 'password') {
+      feld.type = 'password';
+      const knopf = document.querySelector('.auge[data-fuer="' + id + '"]');
+      if (knopf) {
+        knopf.classList.add('ist-zu');
+        knopf.classList.remove('ist-offen');
+        knopf.setAttribute('aria-pressed', 'false');
+      }
+    }
+  }
+
   async function pruefeLehrerSitzung() {
     lehrerGeprueft = false;
     if (rolleVon() !== 'lehrer') return;
@@ -2911,6 +2955,7 @@
       return;
     }
     feld.value = '';
+    verdeckeWieder('lehrerSchluessel');
     keksSetzen('la-rolle', 'lehrer');
     keksSetzen('la-lehrer', (res && res.kuerzel) || '');
     lehrerGeprueft = !!(res && res.kuerzel);
@@ -3016,6 +3061,7 @@
           return;
         }
         feld.value = '';
+        verdeckeWieder('rolleSchluessel');
         keksSetzen('la-lehrer', (res && res.kuerzel) || '');
         lehrerGeprueft = !!(res && res.kuerzel);
         waehle('lehrer');
@@ -3038,6 +3084,8 @@
     const shell = document.getElementById('appShell');
     ladeTheme();
     document.getElementById('app').append(shell.content.cloneNode(true));
+
+    richteAugenEin();              // das Auge gibt es schon im Startbildschirm
 
     // Erst fragen, dann laden: Ohne Zustimmung schreibt die App nichts
     // Freiwilliges auf das Gerät.
@@ -3117,6 +3165,7 @@
     $('#lehrerAbbruch').addEventListener('click', () => {
       $('#lehrerForm').hidden = true;
       $('#lehrerSchluessel').value = '';
+      verdeckeWieder('lehrerSchluessel');
       $('#lehrerTuerHinweis').textContent = '';
     });
     $('#geburtZeigen').addEventListener('click', () => { geburtOffen = true; renderEinstellungen(); });

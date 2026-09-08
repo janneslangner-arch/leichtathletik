@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=677db9d3">
+<link rel="stylesheet" href="assets/styles.css?v=7d794fff">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -312,8 +312,11 @@
     <div class="lehrertuer">
       <button type="button" id="lehrerTuer" class="lehrer-link">Lehrerzugang</button>
       <form id="lehrerForm" class="lehrer-form" autocomplete="off" hidden>
-        <input id="lehrerSchluessel" type="password" placeholder="Schlüssel"
-               aria-label="Lehrerschlüssel" autocomplete="off">
+        <span class="feld-mit-auge">
+          <input id="lehrerSchluessel" type="password" placeholder="Schlüssel"
+                 aria-label="Lehrerschlüssel" autocomplete="off">
+          <button type="button" class="auge" data-fuer="lehrerSchluessel"></button>
+        </span>
         <button type="submit" class="btn btn-sm btn-mint">Anmelden</button>
         <button type="button" id="lehrerAbbruch" class="btn btn-sm">Abbrechen</button>
       </form>
@@ -589,8 +592,11 @@
       <p class="start-fein">Du trägst deine eigenen Werte ein und siehst deine Punkte.</p>
       <button type="button" id="rolleLehrer" class="rolle-lehrer">Weiter als Lehrer</button>
       <form id="rolleLehrerForm" class="lehrer-form" autocomplete="off" hidden>
-        <input id="rolleSchluessel" type="password" placeholder="Schlüssel"
-               aria-label="Lehrerschlüssel" autocomplete="off">
+        <span class="feld-mit-auge">
+          <input id="rolleSchluessel" type="password" placeholder="Schlüssel"
+                 aria-label="Lehrerschlüssel" autocomplete="off">
+          <button type="button" class="auge" data-fuer="rolleSchluessel"></button>
+        </span>
         <button type="submit" class="btn btn-sm btn-mint">Anmelden</button>
       </form>
       <p id="rolleHinweis" class="start-fein"></p>
@@ -713,6 +719,6 @@
 <script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "q2sp2026"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
-<script id="appScript" src="assets/app.js?v=41ece52d"></script>
+<script id="appScript" src="assets/app.js?v=aff8e702"></script>
 </body>
 </html>
