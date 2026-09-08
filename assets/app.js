@@ -2866,6 +2866,22 @@
     if (!lehrer && currentView === 'lehrer') show('erfassen');
   }
 
+  /* Ein 404 heißt hier nicht zwingend „SQL fehlt“. Die Schnittstelle vor der
+     Datenbank hält einen eigenen Katalog; solange der nicht neu eingelesen
+     ist, meldet sie eine längst angelegte Funktion als unbekannt. Deshalb
+     nennt die Meldung beide Möglichkeiten und den Weg heraus – samt dem, was
+     der Server selbst sagt. */
+  function lehrerFehler(err) {
+    if (!err) return 'Der Schlüssel konnte nicht geprüft werden.';
+    if (err.status === 404) {
+      return 'Die Datenbank meldet den Lehrerzugang als unbekannt. Entweder fehlt das '
+        + 'neue SQL – oder die Schnittstelle hat es noch nicht gelesen. Im SQL-Editor '
+        + "einmal: notify pgrst, 'reload schema';"
+        + (err.message ? ' (Server: ' + err.message + ')' : '');
+    }
+    return err.message || 'Der Schlüssel konnte nicht geprüft werden.';
+  }
+
   /* Auge am Schlüsselfeld: Wer einen Schlüssel mit Sonderzeichen abtippt,
      will sehen können, was er getippt hat. Das muss VOR dem Startbildschirm
      eingerichtet sein – dort steht ja schon so ein Feld. */
@@ -2944,9 +2960,7 @@
     try {
       res = await rpc('lehrer_pruefen', { p_code: cfg.code, p_schluessel: schluessel });
     } catch (err) {
-      hinweis.textContent = err && err.status === 404
-        ? 'Diese Datenbank kennt den Lehrerzugang noch nicht – das neue SQL fehlt.'
-        : (err.message || 'Der Schlüssel konnte nicht geprüft werden.');
+      hinweis.textContent = lehrerFehler(err);
       return;
     }
     if (!res || res.ok !== true) {
@@ -3050,9 +3064,7 @@
         try {
           res = await rpc('lehrer_pruefen', { p_code: konfig.code, p_schluessel: feld.value }, konfig);
         } catch (err) {
-          hinweis.textContent = err && err.status === 404
-            ? 'Diese Datenbank kennt den Lehrerzugang noch nicht.'
-            : (err.message || 'Der Schlüssel konnte nicht geprüft werden.');
+          hinweis.textContent = lehrerFehler(err);
           return;
         }
         if (!res || res.ok !== true) {
