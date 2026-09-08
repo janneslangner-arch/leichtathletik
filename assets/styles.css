@@ -1305,3 +1305,29 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .detail-weg { color: var(--text); }
 .detail-plus { color: var(--mint); font-weight: 700; font-variant-numeric: tabular-nums; }
 .detail-minus { color: var(--muted); }
+
+/* ---------------- Rückfrage vor dem Löschen eines Werts ---------------- */
+.loesch-karte {
+  background: var(--surface-2);
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 12px;
+}
+.lk-disziplin {
+  font-size: 11px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600;
+}
+.lk-wert {
+  font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: var(--text);
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.lk-zeile { display: grid; grid-template-columns: 74px 1fr; gap: 4px 12px; font-size: 13.5px; margin-top: 8px; }
+.lk-name { color: var(--muted); }
+.lk-inhalt { color: var(--text); }
+.lk-marke {
+  align-self: flex-start; margin-top: 8px;
+  padding: 3px 9px; border-radius: 8px; font-size: 11.5px; font-weight: 700;
+  background: var(--mint); color: var(--ink);
+}

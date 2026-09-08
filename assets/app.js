@@ -998,8 +998,49 @@
     return li;
   }
 
-  // Löschen ohne Rückfrage-Dialog: sofort weg, dafür mit Rückgängig.
-  function removeEntry(e) {
+  /* Löschen erst nach einer Rückfrage, die den Wert noch einmal vollständig
+     zeigt: Disziplin, Zahl, Tag, Uhrzeit, Notiz und wessen Wert es ist. Das
+     ✕ liegt direkt neben der Zeile – ohne Rückfrage wäre es zu leicht,
+     versehentlich den falschen zu erwischen. */
+  let loeschKandidat = null;
+
+  function fragteLoeschen(e) {
+    loeschKandidat = e;
+    const d = DISC[e.disc], b = best(e.disc), istBest = b && b.id === e.id;
+    const karte = $('#wertLoeschKarte');
+    karte.textContent = '';
+    karte.append(el('div', 'lk-disziplin', d.name));
+    karte.append(el('div', 'lk-wert', fmt(e.disc, e.value)));
+
+    const zeile = (name, inhalt) => {
+      const z = el('div', 'lk-zeile');
+      z.append(el('span', 'lk-name', name), el('span', 'lk-inhalt', inhalt));
+      karte.append(z);
+    };
+    zeile('Wann', fmtDateLang(e.date) + (e.zeit ? ' – ' + e.zeit + ' Uhr' : ' (ohne Uhrzeit)'));
+    zeile('Profil', e.athlete);
+    if (e.note) zeile('Notiz', e.note);
+    const wieViele = db.entries.filter(x => x.athlete === e.athlete && x.disc === e.disc).length;
+    zeile('Disziplin', `${wieViele} ${wieViele === 1 ? 'Wert' : 'Werte'} insgesamt`);
+    if (istBest) karte.append(el('span', 'lk-marke', 'Das ist der Bestwert'));
+
+    $('#wertLoeschFolge').textContent =
+      (istBest ? 'Damit ändern sich auch die Punkte. ' : '')
+      + (usingDb() ? 'Der Wert verschwindet für die ganze Klasse.' : 'Der Wert verschwindet von diesem Gerät.')
+      + ' Rückgängig machen geht danach noch einmal über die Meldung unten.';
+    $('#wertLoeschDialog').showModal();
+  }
+
+  function schliesseLoeschFrage() {
+    loeschKandidat = null;
+    const d = $('#wertLoeschDialog');
+    if (d.open) d.close();
+  }
+
+  function loescheKandidat() {
+    const e = loeschKandidat;
+    schliesseLoeschFrage();
+    if (!e) return;
     Store.removeEntry(e);
     renderAll();
     toast(`${DISC[e.disc].name} ${fmt(e.disc, e.value)} gelöscht`, {
@@ -1007,6 +1048,8 @@
       onAction: () => { Store.addEntry(e); renderAll(); toast('Wieder da'); }
     });
   }
+
+  const removeEntry = e => fragteLoeschen(e);
 
   // Warnung vor Dopplungen: derselbe Wert, dieselbe Disziplin, derselbe Tag,
   // dasselbe Profil. Zwei Leute tragen denselben Sprung ein, ohne es zu merken.
@@ -3009,6 +3052,10 @@
       if (ev.target.files[0]) importJSON(ev.target.files[0]);
       ev.target.value = '';
     });
+    $('#wertLoeschJa').addEventListener('click', loescheKandidat);
+    $('#wertLoeschNein').addEventListener('click', schliesseLoeschFrage);
+    $('#wertLoeschClose').addEventListener('click', schliesseLoeschFrage);
+    $('#wertLoeschDialog').addEventListener('close', () => { loeschKandidat = null; });
     $('#dbForm').addEventListener('submit', submitDb);
     $('#dbClose').addEventListener('click', () => $('#dbDialog').close());
     $('#dbDisconnect').addEventListener('click', disconnectDb);
