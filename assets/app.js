@@ -185,6 +185,12 @@
     } catch (e) { /* egal */ }
     try { localStorage.setItem(name, wert); } catch (e) { /* egal */ }
   }
+  function keksLoeschen(name) {
+    try {
+      document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/; SameSite=Lax';
+    } catch (e) { /* egal */ }
+    try { localStorage.removeItem(name); } catch (e) { /* egal */ }
+  }
   function keksLesen(name) {
     try {
       const teile = ('; ' + document.cookie).split('; ' + name + '=');
@@ -199,7 +205,11 @@
                               'la-profil-gewaehlt', 'la-last-disc'];
   const komfortErlaubt = () => keksLesen('la-zustimmung') !== 'noetig';
   const rolleVon = () => keksLesen('la-rolle') || 'schueler';
-  const istLehrer = () => rolleVon() === 'lehrer';
+  /* Die Lehreransicht hängt nicht am Cookie allein – das könnte sich jeder
+     selbst setzen. Sie gilt erst, wenn der Server das Kürzel bestätigt hat,
+     das er beim richtigen Schlüssel ausgegeben hat. */
+  let lehrerGeprueft = false;
+  const istLehrer = () => rolleVon() === 'lehrer' && lehrerGeprueft;
 
   const merke = (schluessel, wert) => {
     if (!komfortErlaubt() && KOMFORT_SCHLUESSEL.includes(schluessel)) return;
@@ -516,6 +526,9 @@
       const leer = !p.aussehen || typeof p.aussehen !== 'object' || !Object.keys(p.aussehen).length;
       if (leer && Object.keys(profilEinstellungen(p.name)).length) sendeProfilEinstellungen(p.name);
     });
+    // Kommt aus einer früheren Fassung noch ein Geburtstag vom Server, wird
+    // er hier weggeräumt – nicht nur auf diesem Gerät, sondern auch dort.
+    entferneGeburtstage();
   }
 
   function enqueue(fn, args) { queue.push({ fn, args }); writeQueue(); flush(); }
@@ -1387,29 +1400,30 @@
   const pruefungVon = (profil) => pruefungDatum(einstellungVon(profil || db.current, 'pruefung', ''));
   const stichtagVon = (profil) => pruefungVon(profil) || new Date();
 
-  // Geburtstag als 'JJJJ-MM-TT'. Alte Profile kennen nur den Jahrgang.
-  function geburtVon(profil) {
-    const g = einstellungVon(profil || db.current, 'geburt', '');
-    return /^\d{4}-\d{2}-\d{2}$/.test(g) ? g : '';
+  /* Nur der Jahrgang, kein Geburtstag. Für die Altersklasse zählt allein das
+     Jahr – nachgemessen: zwei Menschen desselben Jahrgangs, ein Jahr
+     auseinander geboren, bekommen dieselben Punkte und dieselben Geräte.
+     Tag und Monat wären also Daten, die niemandem nützen und trotzdem in
+     einer Datenbank lägen, die die halbe Klasse öffnen kann. */
+  const jahrgangVon = profil => Number(einstellungVon(profil || db.current, 'jahr', 0)) || 0;
+
+  // Wie alt jemand im Prüfungsjahr wird – die Zahl, nach der die Klasse geht.
+  function alterImJahr(jahrgang, stichtag) {
+    if (!jahrgang) return null;
+    return (stichtag || new Date()).getFullYear() - jahrgang;
   }
-  function jahrgangVon(profil) {
-    const g = geburtVon(profil);
-    return g ? Number(g.slice(0, 4)) : Number(einstellungVon(profil || db.current, 'jahr', 0));
+
+  /* Einmalig aufräumen: Geburtstage, die eine frühere Fassung gespeichert
+     hat, verschwinden aus dem Gerät und aus der Datenbank. Der Jahrgang
+     bleibt, damit die Wertung weiterläuft. */
+  function entferneGeburtstage() {
+    db.athletes.forEach(name => {
+      const g = einstellungVon(name, 'geburt', '');
+      if (!g) return;
+      if (!einstellungVon(name, 'jahr', '')) setzeEinstellungVon(name, 'jahr', String(g).slice(0, 4));
+      setzeEinstellungVon(name, 'geburt', '');
+    });
   }
-  // Volle Jahre am Stichtag – dafür ist der genaue Geburtstag da.
-  function alterAm(geburt, stichtag) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(geburt || '')) return null;
-    const [j, m, t] = geburt.split('-').map(Number);
-    let jahre = stichtag.getFullYear() - j;
-    const vorGeburtstag = (stichtag.getMonth() + 1) < m
-      || ((stichtag.getMonth() + 1) === m && stichtag.getDate() < t);
-    if (vorGeburtstag) jahre--;
-    return jahre;
-  }
-  const datumDeutsch = iso => {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
-    return m ? `${m[3]}.${m[2]}.${m[1]}` : '';
-  };
   const monatDeutsch = wert => {
     const M = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli',
                'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -1932,7 +1946,7 @@
     closePicker();
     npGeschlecht = 'm';
     $('#npName').value = '';
-    $('#npGeburt').value = '';
+    $('#npJahr').value = '';
     // Der Termin ist für die ganze Klasse derselbe: was schon jemand
     // eingetragen hat, steht beim nächsten Profil gleich drin.
     $('#npPruefung').value = pruefungAusKlasse();
@@ -1959,20 +1973,19 @@
   }
 
   function npHinweis(text) {
-    const geburt = $('#npGeburt').value;
+    const jahr = Number($('#npJahr').value) || 0;
     const termin = pruefungDatum($('#npPruefung').value);
-    const jahr = /^\d{4}-\d{2}-\d{2}$/.test(geburt) ? Number(geburt.slice(0, 4)) : 0;
     const klasse = altersklasse(jahr, termin || new Date());
     if (text) { $('#npHinweis').textContent = text; return; }
     if (!klasse) {
       $('#npHinweis').textContent = 'Das bestimmt die Punkte: die Tabelle die Beiwerte, '
-        + 'Geburtstag und Prüfungstermin die Altersklasse und damit die Gerätegewichte.';
+        + 'Jahrgang und Prüfungstermin die Altersklasse und damit die Gerätegewichte.';
       return;
     }
-    const alter = termin ? alterAm(geburt, termin) : null;
+    const alter = alterImJahr(jahr, termin || new Date());
     $('#npHinweis').textContent =
-      (termin ? `Beim Sport-Abi im ${monatDeutsch($('#npPruefung').value)} ` : 'Heute ')
-      + (alter != null ? `${alter} Jahre alt · ` : '')
+      (termin ? `Beim Sport-Abi im ${monatDeutsch($('#npPruefung').value)} ` : 'Dieses Jahr ')
+      + (alter != null ? `${alter} Jahre · ` : '')
       + `Altersklasse ${klasse} · ${GERAETE[npGeschlecht + '|' + klasse]}`;
   }
 
@@ -1992,17 +2005,15 @@
   function speichereNeuesProfil(ev) {
     ev.preventDefault();
     const name = $('#npName').value.trim();
-    const geburt = $('#npGeburt').value;
+    const jahrText = $('#npJahr').value.trim();
     const pruefung = $('#npPruefung').value;
     if (!name) { npHinweis('Bitte einen Namen eingeben.'); $('#npName').focus(); return; }
     if (db.athletes.includes(name)) { npHinweis(`„${name}“ gibt es schon.`); return; }
     const jetzt = new Date().getFullYear();
-    if (geburt) {
-      const jahr = Number(geburt.slice(0, 4));
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(geburt) || jahr < 1950 || jahr > jetzt) {
-        npHinweis('Bitte einen Geburtstag zwischen 1950 und heute wählen.');
-        $('#npGeburt').focus(); return;
-      }
+    const jahr = Number(jahrText);
+    if (jahrText && (!Number.isInteger(jahr) || jahr < 1950 || jahr > jetzt)) {
+      npHinweis(`Bitte einen Jahrgang zwischen 1950 und ${jetzt} eintragen.`);
+      $('#npJahr').focus(); return;
     }
     if (pruefung && !/^\d{4}-\d{2}$/.test(pruefung)) {
       npHinweis('Bitte Monat und Jahr des Sport-Abiturs wählen.'); $('#npPruefung').focus(); return;
@@ -2015,10 +2026,7 @@
     setzeEinstellungVon(name, 'verlauf', look.verlauf);   // gilt für alle Geräte
     setzeEinstellungVon(name, 'geschlecht', npGeschlecht);
     setzeEinstellungVon(name, 'zeit', 'hand');            // Schulsport misst von Hand
-    if (geburt) {
-      setzeEinstellungVon(name, 'geburt', geburt);
-      setzeEinstellungVon(name, 'jahr', geburt.slice(0, 4));   // für ältere Geräte
-    }
+    if (jahrText) setzeEinstellungVon(name, 'jahr', jahrText);
     if (pruefung) setzeEinstellungVon(name, 'pruefung', pruefung);
     closeNeuesProfil();
     toast('Profil angelegt: ' + name);
@@ -2277,13 +2285,13 @@
     setzeAktiv('#klasseSeg', klasse);
     // Der Geburtstag liegt hinter „Anzeigen“. Lehrer sehen ihn gleich –
     // sie brauchen ihn, um die Altersklasse zu prüfen.
-    const geburt = geburtVon();
-    const feld = $('#geburtInput'), zeigen = $('#geburtZeigen');
-    feld.value = geburt;
+    const jahrgang = jahrgangVon();
+    const feld = $('#jahrInput'), zeigen = $('#geburtZeigen');
+    feld.value = jahrgang ? String(jahrgang) : '';
     const offen = istLehrer() || geburtOffen;
     feld.hidden = !offen;
     zeigen.hidden = offen;
-    zeigen.textContent = geburt ? 'Anzeigen' : 'Eintragen';
+    zeigen.textContent = jahrgang ? 'Anzeigen' : 'Eintragen';
     $('#pruefungInput').value = einstellung('pruefung', '');
     $('#einstellungenFuer').textContent = 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
     $('#wertungKurz').textContent =
@@ -2292,23 +2300,79 @@
       + ' · ' + verlaufName(verlauf) + ' · ' + musterName(pattern);
     $('#speicherKurz').textContent = '· ' + speicherName();
     const termin = einstellung('pruefung', '');
-    const alterDann = termin ? alterAm(geburt, pruefungDatum(termin)) : null;
+    const alterDann = termin ? alterImJahr(jahrgang, pruefungDatum(termin)) : null;
     $('#wertungHinweis').textContent =
       `${g === 'w' ? 'Mädchen' : 'Jungen'}, ${zeit === 'hand' ? 'Handzeit (Zuschlag 0,24 s bis 300 m)' : 'elektronische Zeit'}, `
       + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}.`
       + (g === 'w' ? ' Mädchen laufen 800 m statt 1500 m und 2000 m statt 5000 m.' : '')
       + (termin
           ? ` Gerechnet wird auf ${monatDeutsch(termin)}`
-            + (alterDann != null ? `, dann ${alterDann} Jahre alt` : '') + '.'
-            + ' Die Altersklasse richtet sich dabei nach dem Jahrgang im Prüfungsjahr,'
-            + ' nicht nach dem Tag – wer 2027 achtzehn wird, läuft dort das ganze Jahr U20.'
+            + (alterDann != null ? `, dann wird ${db.current} ${alterDann}` : '') + '.'
+            + ' Die Altersklasse richtet sich nach dem Jahrgang im Prüfungsjahr,'
+            + ' nicht nach dem Geburtstag – wer 2027 achtzehn wird, läuft dort das ganze Jahr U20.'
           : ' Ohne Prüfungstermin zählt das heutige Jahr – trag den Termin ein, sonst stimmt die Klasse im Prüfungsjahr nicht.');
+    renderSicherungsstand();
     const tuer = document.getElementById('lehrerTuer');
     if (tuer) tuer.textContent = istLehrer() ? 'Lehreransicht verlassen' : 'Lehrerzugang';
     renderThemes();
     renderStorageInfo();
     renderLoeschen();
   }
+
+  /* Eine Sicherung ist der einzige Schutz gegen ein Missgeschick, das alle
+     trifft. Die App kann nicht von selbst sichern – sie kann aber sagen,
+     wann es das letzte Mal jemand getan hat. */
+  function renderSicherungsstand() {
+    const z = document.getElementById('sicherungStand');
+    if (!z) return;
+    const wann = gemerktImmer('la-sicherung');
+    const tage = wann ? Math.floor((Date.now() - Number(wann)) / 86400000) : null;
+    if (!db.entries.length) {
+      z.textContent = 'Noch keine Werte zum Sichern.';
+      z.classList.remove('hint-warn');
+      return;
+    }
+    if (tage == null) {
+      z.textContent = `${db.entries.length} Werte, noch nie gesichert. Einmal „Sichern (JSON)“ – `
+        + 'die Datei liegt dann bei dir und übersteht auch ein Missgeschick in der Klasse.';
+      z.classList.add('hint-warn');
+      return;
+    }
+    const alt = tage >= 7;
+    z.textContent = `${db.entries.length} Werte · letzte Sicherung `
+      + (tage === 0 ? 'heute' : tage === 1 ? 'gestern' : `vor ${tage} Tagen`)
+      + (alt ? ' – Zeit für eine neue.' : '.');
+    z.classList.toggle('hint-warn', alt);
+  }
+
+  // Der Sicherungsstand gehört nicht zum Komfort: er soll auch dann stehen,
+  // wenn jemand die Komfort-Cookies abgelehnt hat.
+  const merkeImmer = (k, w) => { try { localStorage.setItem(k, w); } catch (e) { /* egal */ } };
+  const gemerktImmer = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+
+  // Alles, was diese App auf dem Gerät abgelegt hat – und sonst nichts.
+  function leereGeraet() {
+    const hinweis = document.getElementById('geraetHinweis');
+    if (!geraetSicher) {
+      geraetSicher = true;
+      hinweis.textContent = 'Wirklich? Noch einmal tippen, dann ist die Kopie auf diesem Gerät weg. '
+        + 'In der Klassen-Datenbank bleibt alles stehen.';
+      hinweis.classList.add('hint-warn');
+      setTimeout(() => { geraetSicher = false; renderEinstellungen(); }, 6000);
+      return;
+    }
+    try {
+      Object.keys(localStorage)
+        .filter(k => k.startsWith('la-'))
+        .forEach(k => localStorage.removeItem(k));
+      sessionStorage.clear();
+    } catch (e) { /* egal */ }
+    // Auch die Cookies – sonst bliebe ausgerechnet das Lehrer-Kürzel
+    // auf einem Gerät zurück, das jemand weitergibt.
+    ['la-rolle', 'la-lehrer', 'la-zustimmung'].forEach(keksLoeschen);
+    location.reload();
+  }
+  let geraetSicher = false;
 
   const musterName = key => (PATTERNS.find(([k]) => k === key) || [null, 'Schlicht'])[1];
   const verlaufName = key => (VERLAEUFE.find(([k]) => k === key) || [null, 'Keiner'])[1];
@@ -2704,8 +2768,11 @@
     return true;
   }
   async function exportJSON() {
-    if (await download(`leichtathletik-${todayISO()}.json`, JSON.stringify(db, null, 2), 'application/json'))
+    if (await download(`leichtathletik-${todayISO()}.json`, JSON.stringify(db, null, 2), 'application/json')) {
+      merkeImmer('la-sicherung', String(Date.now()));
+      renderSicherungsstand();
       toast('Datei gespeichert');
+    }
   }
   async function exportCSV() {
     const rows = [['Profil', 'Disziplin', 'Wert', 'Einheit', 'Datum', 'Uhrzeit', 'Notiz']];
@@ -2799,6 +2866,25 @@
     if (!lehrer && currentView === 'lehrer') show('erfassen');
   }
 
+  async function pruefeLehrerSitzung() {
+    lehrerGeprueft = false;
+    if (rolleVon() !== 'lehrer') return;
+    const kuerzel = keksLesen('la-lehrer');
+    if (!kuerzel) { keksSetzen('la-rolle', 'schueler'); return; }
+    if (!usingDb()) { lehrerGeprueft = true; return; }   // ohne Datenbank nicht prüfbar
+    try {
+      const res = await rpc('lehrer_sitzung_pruefen', { p_code: cfg.code, p_kuerzel: kuerzel });
+      if (res && res.ok === true) { lehrerGeprueft = true; return; }
+      // Der Server kennt das Kürzel nicht: zurück in die Schüleransicht.
+      keksSetzen('la-rolle', 'schueler');
+      keksSetzen('la-lehrer', '');
+    } catch (err) {
+      // Kein Netz heißt nicht „kein Lehrer“ – die Werte liegen ohnehin
+      // auf dem Gerät. Beim nächsten Start wird wieder geprüft.
+      lehrerGeprueft = true;
+    }
+  }
+
   async function lehrerAnmelden(ev) {
     ev.preventDefault();
     const feld = $('#lehrerSchluessel');
@@ -2826,6 +2912,8 @@
     }
     feld.value = '';
     keksSetzen('la-rolle', 'lehrer');
+    keksSetzen('la-lehrer', (res && res.kuerzel) || '');
+    lehrerGeprueft = !!(res && res.kuerzel);
     $('#lehrerForm').hidden = true;
     hinweis.textContent = '';
     setzeRollenAnsicht();
@@ -2836,6 +2924,8 @@
 
   function lehrerAbmelden() {
     keksSetzen('la-rolle', 'schueler');
+    keksSetzen('la-lehrer', '');
+    lehrerGeprueft = false;
     setzeRollenAnsicht();
     renderEinstellungen();
     show('erfassen');
@@ -2926,6 +3016,8 @@
           return;
         }
         feld.value = '';
+        keksSetzen('la-lehrer', (res && res.kuerzel) || '');
+        lehrerGeprueft = !!(res && res.kuerzel);
         waehle('lehrer');
       });
     });
@@ -2975,7 +3067,9 @@
     const last = gemerkt('la-last-disc');
     if (DISC[last]) { selDisc = last; chartDisc = last; }
 
+    entferneGeburtstage();         // Geburtstage aus früheren Fassungen wegräumen
     ladeThemeVomProfil();          // ab jetzt gilt die Farbe des Profils
+    await pruefeLehrerSitzung();   // gilt das Lehrer-Kürzel noch?
     setzeRollenAnsicht();          // Lehrer sehen andere Reiter
     syncEntryHead();
     syncProfileName();
@@ -3026,13 +3120,18 @@
       $('#lehrerTuerHinweis').textContent = '';
     });
     $('#geburtZeigen').addEventListener('click', () => { geburtOffen = true; renderEinstellungen(); });
-    $('#geburtInput').addEventListener('change', () => {
-      const wert = $('#geburtInput').value.trim();
-      setzeEinstellung('geburt', wert);
-      setzeEinstellung('jahr', wert ? wert.slice(0, 4) : '');
-      if (wert) setzeEinstellung('klasse', '');            // Klasse folgt wieder dem Alter
+    $('#jahrInput').addEventListener('change', () => {
+      const wert = $('#jahrInput').value.trim();
+      const jahr = Number(wert), jetzt = new Date().getFullYear();
+      if (wert && (!Number.isInteger(jahr) || jahr < 1950 || jahr > jetzt)) {
+        toast(`Jahrgang zwischen 1950 und ${jetzt} eintragen`, { warn: true });
+        $('#jahrInput').value = jahrgangVon() || '';
+        return;
+      }
+      setzeEinstellung('jahr', wert);
+      if (wert) setzeEinstellung('klasse', '');            // Klasse folgt wieder dem Jahrgang
       renderEinstellungen(); renderAll();
-      toast(wert ? 'Geburtstag gespeichert · ' + klasseVon() : 'Geburtstag gelöscht');
+      toast(wert ? 'Jahrgang ' + wert + ' · ' + klasseVon() : 'Jahrgang gelöscht');
     });
     $('#pruefungInput').addEventListener('change', () => {
       const wert = $('#pruefungInput').value.trim();
@@ -3050,7 +3149,7 @@
     $('#profilNeuBtn').addEventListener('click', openNeuesProfil);
     $('#npClose').addEventListener('click', closeNeuesProfil);
     $('#npAbbrechen').addEventListener('click', closeNeuesProfil);
-    $('#npGeburt').addEventListener('input', () => npHinweis());
+    $('#npJahr').addEventListener('input', () => npHinweis());
     $('#npPruefung').addEventListener('input', () => npHinweis());
     document.querySelectorAll('#npGeschlecht .seg-btn').forEach(b =>
       b.addEventListener('click', () => {
@@ -3067,6 +3166,7 @@
 
     $('#eigenForm').addEventListener('submit', neueEigeneFarbe);
     $('#eigenAbbruch').addEventListener('click', brichAendernAb);
+    $('#geraetLeeren').addEventListener('click', leereGeraet);
     $('#exportBtn').addEventListener('click', exportJSON);
     $('#csvBtn').addEventListener('click', exportCSV);
     $('#importBtn').addEventListener('click', () => $('#importFile').click());

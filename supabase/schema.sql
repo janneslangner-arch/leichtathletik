@@ -55,6 +55,12 @@ alter table profile add column if not exists aussehen jsonb not null default '{}
 -- Leer heißt: bei diesem Wert wurde keine Zeit erfasst.
 alter table werte add column if not exists zeit text not null default '';
 
+-- Gelöschte Werte werden nur markiert, nicht weggeworfen. Wer die Konsole
+-- öffnet, könnte sonst in einer Schleife alle Werte der Klasse entfernen –
+-- so ist das jederzeit zurückzuholen.
+alter table werte add column if not exists geloescht_am timestamptz;
+create index if not exists werte_lebend_idx on werte (code) where geloescht_am is null;
+
 -- Zugangsdaten für den Mailversand. Steht bewusst NICHT in der Webseite:
 -- die kann jeder öffnen und mitlesen. Auf diese Tabelle kommt nur der
 -- Server selbst, über die Funktionen weiter unten.
@@ -150,7 +156,7 @@ begin
                'id', w.id, 'profil_id', w.profil_id, 'disziplin', w.disziplin,
                'wert', w.wert, 'datum', w.datum, 'zeit', w.zeit, 'notiz', w.notiz)
                order by w.datum, w.zeit, w.erfasst_am)
-      from werte w where w.code = v_code), '[]'::jsonb)
+      from werte w where w.code = v_code and w.geloescht_am is null), '[]'::jsonb)
   );
 end;
 $$;
@@ -231,6 +237,38 @@ alter table lehrer_versuche enable row level security;
 revoke all on table lehrer_versuche from anon, authenticated;
 create index if not exists lehrer_versuche_idx on lehrer_versuche (code, wann);
 
+-- Nach richtigem Schlüssel bekommt das Gerät ein Kürzel mit Ablauf. Ohne
+-- das ist die Lehreransicht nicht zu haben – ein selbst gesetztes Cookie
+-- reicht nicht mehr.
+create table if not exists lehrer_sitzungen (
+  kuerzel_hash text primary key,
+  code         text not null,
+  erstellt_am  timestamptz not null default now(),
+  gueltig_bis  timestamptz not null
+);
+alter table lehrer_sitzungen enable row level security;
+revoke all on table lehrer_sitzungen from anon, authenticated;
+
+create or replace function lehrer_sitzung_pruefen(p_code text, p_kuerzel text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_code text;
+begin
+  v_code := lower(btrim(coalesce(p_code, '')));
+  delete from lehrer_sitzungen where gueltig_bis < now();
+  if exists (select 1 from lehrer_sitzungen
+             where code = v_code
+               and kuerzel_hash = encode(digest(coalesce(p_kuerzel, ''), 'sha256'), 'hex')
+               and gueltig_bis > now()) then
+    return jsonb_build_object('ok', true);
+  end if;
+  return jsonb_build_object('ok', false);
+end;
+$$;
+
 create or replace function lehrer_pruefen(p_code text, p_schluessel text)
 returns jsonb
 language plpgsql
@@ -239,7 +277,7 @@ set search_path = public
 as $$
 -- Wie beim Löschcode gilt: falscher Schlüssel wirft KEINE Exception, sonst
 -- würde der Versuch mit zurückgedreht und man könnte endlos probieren.
-declare v_code text; v_hash text; v_daneben int;
+declare v_code text; v_hash text; v_daneben int; v_kuerzel text;
 begin
   v_code := gruppe_pruefen(p_code);
 
@@ -259,7 +297,11 @@ begin
   if v_hash = crypt(coalesce(p_schluessel, ''), v_hash) then
     insert into lehrer_versuche (code, erfolg) values (v_code, true);
     delete from lehrer_versuche where wann < now() - interval '30 days';
-    return jsonb_build_object('ok', true);
+    -- Kürzel ausgeben; gespeichert wird nur seine Prüfsumme
+    v_kuerzel := encode(gen_random_bytes(24), 'hex');
+    insert into lehrer_sitzungen (kuerzel_hash, code, gueltig_bis)
+    values (encode(digest(v_kuerzel, 'sha256'), 'hex'), v_code, now() + interval '30 days');
+    return jsonb_build_object('ok', true, 'kuerzel', v_kuerzel);
   end if;
 
   insert into lehrer_versuche (code, erfolg) values (v_code, false);
@@ -428,7 +470,10 @@ begin
   insert into werte (id, code, profil_id, disziplin, wert, datum, notiz, zeit)
   values (p_id, v_code, p_profil, p_disziplin, p_wert, p_datum, left(coalesce(p_notiz, ''), 200),
           case when coalesce(p_zeit, '') ~ '^[0-2][0-9]:[0-5][0-9]$' then p_zeit else '' end)
-  on conflict (id) do nothing;                       -- doppeltes Senden ist harmlos
+  -- Doppeltes Senden ist harmlos. Und war der Wert markiert gelöscht,
+  -- ist genau das hier das „Rückgängig“: die Markierung fällt weg, die
+  -- Zahlen bleiben unangetastet.
+  on conflict (id) do update set geloescht_am = null;
   return daten_lesen(v_code);
 end;
 $$;
@@ -439,10 +484,20 @@ language plpgsql
 security definer
 set search_path = public
 as $$
-declare v_code text;
+-- Die Bremse zählt nur vorhandene Markierungen, schreibt also nichts mit.
+-- Deshalb darf sie hier abbrechen, ohne dass etwas verloren geht.
+declare v_code text; v_zuletzt int;
 begin
   v_code := gruppe_pruefen(p_code);
-  delete from werte where id = p_id and code = v_code;
+  select count(*) into v_zuletzt from werte
+   where code = v_code and geloescht_am > now() - interval '1 hour';
+  if v_zuletzt >= 20 then
+    raise exception 'In dieser Klasse wurden gerade sehr viele Werte gelöscht – in einer Stunde geht es weiter';
+  end if;
+  update werte set geloescht_am = now()
+   where id = p_id and code = v_code and geloescht_am is null;
+  -- Das Sicherheitsnetz hält 30 Tage, danach ist wirklich Schluss.
+  delete from werte where geloescht_am < now() - interval '30 days';
   return daten_lesen(v_code);
 end;
 $$;
@@ -454,6 +509,7 @@ grant execute on function profil_anlegen(text, uuid, text)                      
 grant execute on function profil_umbenennen(text, uuid, text)                            to anon, authenticated;
 grant execute on function profil_aussehen(text, uuid, jsonb)                            to anon, authenticated;
 grant execute on function lehrer_pruefen(text, text)                                      to anon, authenticated;
+grant execute on function lehrer_sitzung_pruefen(text, text)                             to anon, authenticated;
 grant execute on function loeschcode_anfordern(text, uuid, text)                          to anon, authenticated;
 grant execute on function profil_loeschen(text, uuid, text)                              to anon, authenticated;
 grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text, text) to anon, authenticated;
