@@ -7,6 +7,10 @@
 -- geschrieben wird ausschließlich über die Funktionen unten, und die verlangen
 -- jedes Mal den Klassen-Code. Wer den Code nicht kennt, kommt an keine Daten.
 
+-- pgcrypto liefert crypt() und digest(). Auf Supabase liegt es im Schema
+-- "extensions", nicht in "public" – deshalb steht bei jeder Funktion unten
+-- `set search_path = public, extensions`. Ohne das meldet der Server
+-- "function crypt(text, text) does not exist", obwohl alles da ist.
 create extension if not exists pgcrypto;
 
 -- Für den Mailversand des Löschcodes. Fehlt die Erweiterung, läuft alles
@@ -103,7 +107,7 @@ create or replace function gruppe_pruefen(p_code text)
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text;
 begin
@@ -124,7 +128,7 @@ create or replace function profil_pruefen(p_code text, p_id uuid)
 returns uuid
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_id uuid;
 begin
@@ -141,7 +145,7 @@ create or replace function daten_lesen(p_code text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text;
 begin
@@ -166,7 +170,7 @@ create or replace function profil_anlegen(p_code text, p_id uuid, p_name text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text; v_name text;
 begin
@@ -187,7 +191,7 @@ create or replace function profil_umbenennen(p_code text, p_id uuid, p_name text
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text; v_name text;
 begin
@@ -208,7 +212,7 @@ create or replace function profil_aussehen(p_code text, p_id uuid, p_aussehen js
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text;
 begin
@@ -253,7 +257,7 @@ create or replace function lehrer_sitzung_pruefen(p_code text, p_kuerzel text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text;
 begin
@@ -273,7 +277,7 @@ create or replace function lehrer_pruefen(p_code text, p_schluessel text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 -- Wie beim Löschcode gilt: falscher Schlüssel wirft KEINE Exception, sonst
 -- würde der Versuch mit zurückgedreht und man könnte endlos probieren.
@@ -324,7 +328,7 @@ create or replace function loeschcode_anfordern(p_code text, p_id uuid, p_wer te
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_code text; v_name text; v_wer text;
@@ -402,7 +406,7 @@ create or replace function profil_loeschen(p_code text, p_id uuid, p_pin text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 -- Wichtig: Ein falscher Code darf hier KEINE Exception werfen. Die würde
 -- die Transaktion zurückdrehen und damit auch den Fehlversuchs-Zähler –
@@ -456,7 +460,7 @@ create or replace function wert_anlegen(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare v_code text;
 begin
@@ -482,7 +486,7 @@ create or replace function wert_loeschen(p_code text, p_id uuid)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 -- Die Bremse zählt nur vorhandene Markierungen, schreibt also nichts mit.
 -- Deshalb darf sie hier abbrechen, ohne dass etwas verloren geht.

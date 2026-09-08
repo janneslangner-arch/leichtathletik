@@ -26,7 +26,7 @@ create or replace function lehrer_pruefen(p_code text, p_schluessel text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 -- Ein falscher Schlüssel wirft absichtlich keine Exception: die würde den
 -- Fehlversuch mit zurückdrehen und man könnte endlos weiterraten.
