@@ -9,6 +9,10 @@
   const DISC = {
     sprint100:    { name: '100 m Sprint', short: '100 m',  ic: '100',   kind: 'sec',    better: 'low',  unit: 's',
                     hint: 'Sekunden, z. B. 12.85', ph: '12.85' },
+    sprint200:    { name: '200 m Sprint', short: '200 m',  ic: '200',   kind: 'sec',    better: 'low',  unit: 's',
+                    hint: 'Sekunden, z. B. 27.40', ph: '27.40' },
+    sprint400:    { name: '400 m Sprint', short: '400 m',  ic: '400',   kind: 'sec',    better: 'low',  unit: 's',
+                    hint: 'Sekunden, z. B. 62.50', ph: '62.50' },
     lauf1500:     { name: '1500 m Lauf',  short: '1500 m', ic: '1500',  kind: 'mmss',   better: 'low',  unit: 'min',
                     hint: '5:42 oder kurz 542', ph: '5:42' },
     lauf5000:     { name: '5000 m Lauf',  short: '5000 m', ic: '5000',  kind: 'mmss',   better: 'low',  unit: 'min',
@@ -1239,10 +1243,19 @@
        Feld:  P = abrunden( (√Leistung[m] − a) / c )
 
      Handzeit-Zuschlag: bis 300 m +0,24 s, über 300 bis 400 m +0,14 s,
-     darüber 0. Nie unter 0 Punkte. */
+     darüber 0. Nie unter 0 Punkte.
+
+     200 m: Die Beiwerte stehen so in keiner Vorlage – sie sind aus unserer
+     eigenen Bewertungstabelle gerechnet. Dort steht für jede Notenpunkt-Zeile
+     eine 100-m- und eine 200-m-Zeit. Aus der 100-m-Zeit folgt mit den Werten
+     oben die DLV-Punktzahl der Zeile; a und c für 200 m sind so gewählt, dass
+     die 200-m-Zeit derselben Zeile möglichst genau dieselbe Punktzahl ergibt
+     (Ausgleichsgerade über alle 15 Zeilen). Die Abweichung bleibt unter
+     4 Punkten – ein Notenpunkt sind rund 70. */
   const DLV = {
     m: {
       sprint100:   { typ: 'lauf', d: 100,  a: 4.3410,  c: 0.00676 },
+      sprint200:   { typ: 'lauf', d: 200,  a: 3.5939,  c: 0.00765 },
       lauf1500:    { typ: 'lauf', d: 1500, a: 1.9122,  c: 0.00613 },
       lauf5000:    { typ: 'lauf', d: 5000, a: 1.5250,  c: 0.00560 },
       hochsprung:  { typ: 'feld', a: 0.8410,  c: 0.00080 },
@@ -1255,6 +1268,7 @@
     // gerechnet wird mit den Beiwerten der tatsächlich gelaufenen Strecke.
     w: {
       sprint100:   { typ: 'lauf', d: 100,  a: 4.0062,  c: 0.00656 },
+      sprint200:   { typ: 'lauf', d: 200,  a: 3.7756,  c: 0.00739 },
       lauf1500:    { typ: 'lauf', d: 800,  a: 2.0232,  c: 0.00647, strecke: '800 m' },
       lauf5000:    { typ: 'lauf', d: 2000, a: 1.8000,  c: 0.00540, strecke: '2000 m' },
       hochsprung:  { typ: 'feld', a: 0.8807,  c: 0.00068 },
@@ -1283,10 +1297,15 @@
   // Fünfkampf: je eine Disziplin aus vier Gruppen, die fünfte frei
   /* Die vier Pflichtbereiche des Fünfkampfs, in der Reihenfolge der
      Prüfungsordnung. Die fünfte Disziplin ist frei und wird dort gewertet,
-     wo sie am meisten bringt. Angeboten werden hier nur die Disziplinen des
-     Schulsports; 200 m, 400 m und Diskus kommen bei uns nicht vor. */
+     wo sie am meisten bringt.
+
+     400 m fehlt hier mit Absicht: Eintragen und im Verlauf verfolgen geht,
+     gewertet wird nicht. In unserer Bewertungstabelle steht ausdrücklich
+     „Nicht aufgeführt: 400m Sprint" – ohne diese Zeile gibt es keine Punkte,
+     die zur Note passen. Sobald die Zeiten da sind, kommt 400 m hier dazu.
+     Diskuswurf steht in der Tabelle, wird bei uns aber nicht geworfen. */
   const GRUPPEN = () => ({
-    Sprint:   ['sprint100'],
+    Sprint:   ['sprint100', 'sprint200'],
     Wurf:     ['kugelstossen', 'speerwurf'],
     Sprung:   ['hochsprung', 'weitsprung'],
     Langlauf: ['lauf1500', 'lauf5000']
@@ -1564,6 +1583,18 @@
       });
     });
 
+    // Was in keiner Gruppe steht, hat keine Punktetabelle – der Bestwert
+    // gehört trotzdem hierher, sonst sucht man ihn vergeblich.
+    const inGruppen = new Set(Object.values(GRUPPEN(g)).flat());
+    KEYS.filter(k => !inGruppen.has(k)).forEach(key => {
+      const li = zeile(key, 'ohne Wertung', false);
+      li.classList.add('ist-ungewertet');
+      li.querySelector('.punkte-wert').append(
+        el('span', 'p-note', 'keine Tabelle vorhanden'));
+      li.querySelector('.main .nm').textContent = DISC[key].name;
+      alle.append(li);
+    });
+
     const langlauf = g === 'w' ? '800 m oder 2000 m' : '1500 m oder 5000 m';
     $('#punkteHinweis').textContent =
       'Ein Ergebnis gibt es nur, wenn unter den fünf gewerteten Disziplinen mindestens '
@@ -1573,7 +1604,8 @@
       + `DLV-Punkte je Disziplin aus dem Bestwert, ${hand ? 'Handzeit (Zuschlag 0,24 s bis 300 m, 0,14 s bis 400 m)' : 'elektronische Zeitmessung'}; `
       + 'Note aus der Summe nach der SH-Tabelle (15 NP = 1+, 0 NP = 6). '
       + `${klasse}: ${GERAETE[g + '|' + klasse] || ''}. `
-      + 'Nicht dabei: 200 m, 400 m und Diskus – die gibt es im Schulsport hier nicht.';
+      + '400 m kannst du eintragen und im Verlauf verfolgen, gewertet wird es nicht: '
+      + 'In unserer Bewertungstabelle steht dafür keine Zeile. Diskus gibt es hier nicht.';
   }
 
   // Die Seite bringt Adresse, Schlüssel und Klassen-Code mit: dann ist die
@@ -2247,6 +2279,14 @@
 
   /* ---------------- Reiter „Profil“ ---------------- */
   function renderProfil() {
+    const kuerzelInfo = document.getElementById('lehrerKuerzelInfo');
+    if (kuerzelInfo) {
+      // Vom Kürzel nur ein Stummel: es ist der Schlüssel zur Sitzung.
+      const k = keksLesen('la-lehrer') || '';
+      kuerzelInfo.textContent = k
+        ? 'Sitzung ' + k.slice(0, 6) + '… · gilt 30 Tage'
+        : 'Sitzung nur auf diesem Gerät';
+    }
     paintAvatar($('#profilAvatar'), db.current);
     $('#profilName').textContent = db.current;
     const n = countOf(db.current);
@@ -2293,7 +2333,9 @@
     zeigen.hidden = offen;
     zeigen.textContent = jahrgang ? 'Anzeigen' : 'Eintragen';
     $('#pruefungInput').value = einstellung('pruefung', '');
-    $('#einstellungenFuer').textContent = 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
+    $('#einstellungenFuer').textContent = istLehrer()
+      ? 'Speicherort, Sicherung und Datenschutz gelten für dieses Gerät – nicht für ein einzelnes Profil.'
+      : 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
     $('#wertungKurz').textContent =
       `· ${g === 'w' ? 'Mädchen' : 'Jungen'} · ${zeit === 'hand' ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
     $('#designKurz').textContent = '· ' + (alleThemen()[theme] || THEMES.mint).name
@@ -2981,7 +3023,11 @@
     toast('Lehreransicht an');
   }
 
-  function lehrerAbmelden() {
+  /* Zurück in die Schüleransicht. Das Kürzel wird nicht nur hier vergessen,
+     sondern auch im Server gelöscht – sonst käme jemand, der das Cookie
+     vorher kopiert hat, ohne Schlüssel wieder hinein. */
+  async function lehrerAbmelden() {
+    const kuerzel = keksLesen('la-lehrer');
     keksSetzen('la-rolle', 'schueler');
     keksSetzen('la-lehrer', '');
     lehrerGeprueft = false;
@@ -2989,6 +3035,10 @@
     renderEinstellungen();
     show('erfassen');
     toast('Zurück in der Schüleransicht');
+    if (kuerzel && usingDb()) {
+      try { await rpc('lehrer_abmelden', { p_code: cfg.code, p_kuerzel: kuerzel }); }
+      catch (err) { /* Ohne Netz bleibt die Sitzung stehen; sie läuft von selbst ab. */ }
+    }
   }
 
   /* ---------------- Startfenster ----------------
@@ -3166,6 +3216,7 @@
       document.querySelectorAll(id + ' .seg-btn').forEach(b =>
         b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderEinstellungen(); }));
     });
+    $('#lehrerZurueck').addEventListener('click', lehrerAbmelden);
     $('#lehrerTuer').addEventListener('click', () => {
       if (istLehrer()) { lehrerAbmelden(); return; }
       const f = $('#lehrerForm');

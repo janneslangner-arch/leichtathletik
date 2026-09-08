@@ -11,6 +11,8 @@ einfach `index.html` im Browser öffnen (Handy, Tablet oder Laptop).
 | Hochsprung    | m       | `1.45` oder `145` (cm)   |
 | Weitsprung    | m       | `4.35` oder `435` (cm)   |
 | 100 m Sprint  | s       | `12.85`                  |
+| 200 m Sprint  | s       | `27.40`                  |
+| 400 m Sprint  | s       | `62.50`                  |
 | 1500 m Lauf   | min     | `5:42` oder kurz `542`   |
 | 5000 m Lauf   | min     | `21:30` oder kurz `2130` |
 | Speerwurf     | m       | `27.50` oder `2750` (cm) |
@@ -54,7 +56,7 @@ Ein Ergebnis gibt es nur, wenn alle vier Pflichtbereiche abgedeckt sind:
 
 | # | Bereich  | hier verfügbar                 |
 |---|----------|--------------------------------|
-| 1 | Sprint   | 100 m                          |
+| 1 | Sprint   | 100 m, 200 m                   |
 | 2 | Wurf     | Kugelstoßen, Speerwurf         |
 | 3 | Sprung   | Hochsprung, Weitsprung         |
 | 4 | Langlauf | Jungen 1500 m / 5000 m, Mädchen 800 m / 2000 m |
@@ -64,9 +66,19 @@ bringt. Der Reiter **Punkte** listet die vier Bereiche einzeln auf und
 markiert rot, welcher noch keinen Wert hat – ohne den kommt keine Note
 zustande.
 
-Die Prüfungsordnung nennt zusätzlich 200 m, 400 m und Diskus. Die gibt es
-im Schulsport hier nicht und sie sind deshalb nicht eingebaut; die App sagt
-das unter „Alle Disziplinen" auch dazu.
+**200 m** hat in keiner Vorlage Beiwerte – sie sind aus unserer eigenen
+Bewertungstabelle gerechnet. Dort steht je Notenpunkt-Zeile eine 100-m- und
+eine 200-m-Zeit; aus der 100-m-Zeit folgt mit den Beiwerten oben die
+DLV-Punktzahl der Zeile, und `a`/`c` für 200 m sind so bestimmt, dass die
+200-m-Zeit derselben Zeile dieselbe Punktzahl ergibt (Ausgleichsgerade über
+alle 15 Zeilen, Abweichung unter 4 Punkten – ein Notenpunkt sind rund 70).
+Geprüft wird das Zeile für Zeile über die Oberfläche.
+
+**400 m** kann man eintragen und im Verlauf verfolgen, gewertet wird es
+nicht: In unserer Bewertungstabelle steht ausdrücklich „Nicht aufgeführt:
+400m Sprint“. Ohne diese Zeile gäbe es nur geratene Punkte. Sobald die Zeiten
+da sind, kommt 400 m in `DLV` und in die Gruppe `Sprint` – mehr ist nicht zu
+tun. Diskuswurf steht in der Tabelle, wird bei uns aber nicht geworfen.
 Mädchen laufen laut Vorlage 800 m statt 1500 m und 2000 m statt 5000 m; die
 Zeile heißt weiterhin so, gerechnet wird mit den Beiwerten der tatsächlich
 gelaufenen Strecke, und die App schreibt es an die Zeile. Die App probiert alle vier Möglichkeiten durch
@@ -192,6 +204,26 @@ genau den Fehler wieder ein, den `wertungdbtest.js` fängt.
 
 Gelöschtes lässt sich sofort über „Rückgängig" in der Meldung zurückholen –
 das gilt für einzelne Werte und für ganze Profile.
+
+## Lehreransicht
+
+Die Lehreransicht hängt an **keinem Profil**. Sie läuft neben den Schülern
+her: eigener Reiter „Klasse" mit allen Schülern auf einer Seite (Bestwerte,
+Summe, Note, kleine Verlaufskurve, aufklappbare Entwicklung), und statt
+„Profil" heißt der zweite Reiter „Einstellungen".
+
+Hinein kommt man nur über den Schlüssel. Der steht **nicht** in der Seite –
+in der Datenbank liegt bloß seine Prüfsumme (`geheim.lehrer_hash`), geprüft
+wird in `lehrer_pruefen`. Nach zehn Fehlversuchen macht die Klasse für eine
+Stunde zu. Bei Erfolg gibt der Server ein Kürzel aus, das 30 Tage gilt; ein
+selbst gesetztes Cookie reicht nicht.
+
+Weil die Ansicht nicht am Profil hängt, fehlen dort **Wertung, Aussehen und
+Profil löschen** – das gehört zu einem Schülerprofil. Stattdessen steht oben
+in den Einstellungen **„Zur Schüleransicht"**. Der Knopf löscht die Sitzung
+auch in der Datenbank (`lehrer_abmelden`), nicht nur das Cookie: Wer danach
+wieder in die Lehreransicht will, muss den Schlüssel neu eingeben – ein
+zurückgeholtes Cookie nützt nichts mehr. `lehrertest.js` prüft genau das.
 
 ## Wo die Werte liegen
 

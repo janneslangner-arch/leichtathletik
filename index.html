@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=7d794fff">
+<link rel="stylesheet" href="assets/styles.css?v=7cf4f6ff">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -154,7 +154,13 @@
   <section id="view-profil" class="view">
     <h1 class="view-title">Profil</h1>
 
-    <div class="profil-head">
+    <div class="lehrer-kopf nur-lehrer">
+      <p class="greeting">Angemeldet als</p>
+      <p class="profil-name">Lehrkraft</p>
+      <p id="lehrerKuerzelInfo" class="profil-sub"></p>
+    </div>
+
+    <div class="profil-head nur-schueler">
       <span id="profilAvatar" class="p-avatar p-avatar-lg"></span>
       <div>
         <p class="greeting">Angemeldet als</p>
@@ -162,7 +168,9 @@
         <p id="profilWerte" class="profil-sub"></p>
       </div>
     </div>
-    <p class="hint-text" style="margin:8px 2px 0">Profil wechseln: oben rechts auf den Namen tippen.</p>
+    <p class="hint-text nur-schueler" style="margin:8px 2px 0">Profil wechseln: oben rechts auf den Namen tippen.</p>
+    <p class="hint-text nur-lehrer" style="margin:8px 2px 0">Die Lehreransicht hängt an keinem Profil.
+      Sie zeigt die ganze Klasse; einzelne Werte werden hier nicht eingetragen.</p>
 
     <ul class="menu">
       <li>
@@ -175,7 +183,7 @@
           <span class="mr-chev" aria-hidden="true">›</span>
         </button>
       </li>
-      <li>
+      <li class="nur-schueler">
         <button type="button" class="menu-row" data-ziel="profile">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8.5" r="3.2"/><path d="M2.8 19a6.2 6.2 0 0112.4 0"/><path d="M16 5.6a3.2 3.2 0 010 5.8M17.5 19a6.4 6.4 0 00-1.6-4.2"/></svg>
           <span class="mr-text">
@@ -194,7 +202,19 @@
     <h1 class="view-title">Einstellungen</h1>
     <p id="einstellungenFuer" class="view-note"></p>
 
-    <details class="klapp" open>
+    <div class="lehrer-austritt nur-lehrer">
+      <h3 class="section-title">Lehreransicht</h3>
+      <p class="hint-text">Du bist gerade als Lehrkraft angemeldet und siehst die ganze Klasse.
+        Wertung, Aussehen und das Löschen von Profilen gehören zu einem Schülerprofil und stehen
+        hier deshalb nicht.</p>
+      <div class="data-actions">
+        <button type="button" id="lehrerZurueck" class="btn btn-mint">Zur Schüleransicht</button>
+      </div>
+      <p class="hint-text">Danach ist die Lehreransicht zu. Um wieder hineinzukommen, muss der
+        Schlüssel neu eingegeben werden – auf jedem Gerät, jedes Mal.</p>
+    </div>
+
+    <details class="klapp nur-schueler" open>
       <summary>Wertung <span id="wertungKurz" class="sub"></span></summary>
       <div class="klapp-body">
         <div class="feld-zeile">
@@ -235,7 +255,7 @@
       </div>
     </details>
 
-    <details class="klapp">
+    <details class="klapp nur-schueler">
       <summary>Aussehen <span id="designKurz" class="sub"></span></summary>
       <div class="klapp-body">
         <h3 class="section-title">Farbe</h3>
@@ -304,12 +324,12 @@
       </div>
     </details>
 
-    <details class="klapp klapp-gefahr">
+    <details class="klapp klapp-gefahr nur-schueler">
       <summary>Profil löschen <span class="sub">mit allen Werten</span></summary>
       <div class="klapp-body" id="loeschBereich"></div>
     </details>
 
-    <div class="lehrertuer">
+    <div class="lehrertuer nur-schueler">
       <button type="button" id="lehrerTuer" class="lehrer-link">Lehrerzugang</button>
       <form id="lehrerForm" class="lehrer-form" autocomplete="off" hidden>
         <span class="feld-mit-auge">
@@ -719,6 +739,6 @@
 <script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "q2sp2026"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
-<script id="appScript" src="assets/app.js?v=406170c0"></script>
+<script id="appScript" src="assets/app.js?v=504650cf"></script>
 </body>
 </html>

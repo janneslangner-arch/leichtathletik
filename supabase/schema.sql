@@ -273,6 +273,25 @@ begin
 end;
 $$;
 
+-- Zurück in die Schüleransicht: die Sitzung wird hier wirklich gelöscht,
+-- nicht nur das Cookie. Wer danach wieder in die Lehreransicht will, muss
+-- den Schlüssel neu eingeben – ein zurückgeholtes Cookie nützt nichts mehr.
+create or replace function lehrer_abmelden(p_code text, p_kuerzel text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare v_code text;
+begin
+  v_code := lower(btrim(coalesce(p_code, '')));
+  delete from lehrer_sitzungen
+   where code = v_code
+     and kuerzel_hash = encode(digest(coalesce(p_kuerzel, ''), 'sha256'), 'hex');
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
 create or replace function lehrer_pruefen(p_code text, p_schluessel text)
 returns jsonb
 language plpgsql
@@ -466,7 +485,7 @@ declare v_code text;
 begin
   v_code := gruppe_pruefen(p_code);
   perform profil_pruefen(v_code, p_profil);
-  if p_disziplin not in ('hochsprung','weitsprung','sprint100','lauf1500','lauf5000','speerwurf','kugelstossen') then
+  if p_disziplin not in ('hochsprung','weitsprung','sprint100','sprint200','sprint400','lauf1500','lauf5000','speerwurf','kugelstossen') then
     raise exception 'Unbekannte Disziplin: %', p_disziplin;
   end if;
   if p_wert is null or p_wert <= 0 then raise exception 'Wert muss größer als 0 sein'; end if;
@@ -514,6 +533,7 @@ grant execute on function profil_umbenennen(text, uuid, text)                   
 grant execute on function profil_aussehen(text, uuid, jsonb)                            to anon, authenticated;
 grant execute on function lehrer_pruefen(text, text)                                      to anon, authenticated;
 grant execute on function lehrer_sitzung_pruefen(text, text)                             to anon, authenticated;
+grant execute on function lehrer_abmelden(text, text)                                     to anon, authenticated;
 grant execute on function loeschcode_anfordern(text, uuid, text)                          to anon, authenticated;
 grant execute on function profil_loeschen(text, uuid, text)                              to anon, authenticated;
 grant execute on function wert_anlegen(text, uuid, uuid, text, double precision, date, text, text) to anon, authenticated;

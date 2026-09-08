@@ -1203,6 +1203,26 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .feld-verdeckt { display: flex; align-items: center; gap: 8px; }
 
 /* ---------------- Lehrerzugang: klein und unauffällig ---------------- */
+/* Was nur die eine oder die andere Rolle sieht. Die Lehreransicht hängt an
+   keinem Profil – Wertung, Aussehen und Profil löschen gehören dort nicht hin. */
+.nur-lehrer { display: none; }
+body.ist-lehrer .nur-schueler { display: none !important; }
+body.ist-lehrer .nur-lehrer { display: block; }
+body.ist-lehrer li.nur-lehrer { display: list-item; }
+/* Oben rechts steht sonst ein Schülername: In der Lehreransicht gibt es
+   kein eigenes Profil und damit auch nichts zu wechseln. */
+body.ist-lehrer .profile-btn { display: none; }
+
+.punkte-row.ist-ungewertet { opacity: .62; }
+
+.lehrer-kopf { padding: 4px 2px 2px; }
+.lehrer-austritt {
+  margin: 4px 0 18px; padding: 14px; border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line-soft);
+}
+.lehrer-austritt .section-title { margin-top: 0; }
+.lehrer-austritt .data-actions { margin: 10px 0 8px; }
+
 .lehrertuer { margin-top: 26px; text-align: center; }
 .lehrer-link {
   background: none; border: 0; padding: 6px 10px; cursor: pointer;
