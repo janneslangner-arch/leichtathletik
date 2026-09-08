@@ -3102,6 +3102,10 @@
     setzeRollenAnsicht();
     renderEinstellungen();
     show('erfassen');
+    // Die Lehrkraft hatte kein eigenes Profil. Also nicht stillschweigend in
+    // irgendeinem Schülerprofil landen, sondern fragen – wie beim frischen
+    // Öffnen der Seite.
+    openPicker('Wer trägt ein?');
     toast('Zurück in der Schüleransicht');
     if (kuerzel && usingDb()) {
       try { await rpc('lehrer_abmelden', { p_code: cfg.code, p_kuerzel: kuerzel }); }
