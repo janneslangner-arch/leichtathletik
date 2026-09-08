@@ -1799,10 +1799,32 @@
     if (g) g.textContent = db.current;
   }
 
+  /* Beim Wechsel geht die App in den Anfangszustand zurück: alle Klappen zu,
+     offene Rückfragen weg, oben auf „Erfassen“. Sonst käme man in einem
+     fremden Profil mitten in aufgeklappten Einstellungen heraus. */
+  function setzeAnsichtZurueck() {
+    document.querySelectorAll('#app details[open]').forEach(d => { d.open = false; });
+    loeschStand = null;                 // Profil löschen: Schritt vergessen
+    geburtOffen = false;                // Geburtstag wieder zudecken
+    bearbeiteFarbe = null;              // keine Farbe mehr in Arbeit
+    lehrerOffen = null;                 // aufgeklappte Zeile der Klassenliste
+    dopplungOk = null;                  // bestätigte Dopplung gilt nur im Profil
+    schliesseLoeschFrage();
+    const dopp = document.getElementById('dopplung');
+    if (dopp) dopp.hidden = true;
+    const eigen = document.getElementById('eigenForm');
+    if (eigen) eigen.hidden = false;
+    const lf = document.getElementById('lehrerForm');
+    if (lf) { lf.hidden = true; document.getElementById('lehrerSchluessel').value = ''; }
+    show(istLehrer() ? 'lehrer' : 'erfassen');
+    window.scrollTo(0, 0);
+  }
+
   async function switchTo(name) {
     merke('la-profil-gewaehlt', name);
     Store.switchProfile(name);
     ladeThemeVomProfil();          // jedes Profil hat seine eigene Farbe
+    setzeAnsichtZurueck();
     renderAll(); syncProfileName(); renderProfiles();
     closePicker();
     // Kurzes Vollbild und dabei abgleichen: eigene Änderungen gehen raus,
