@@ -52,7 +52,92 @@
      0 = Grau. Damit werden alle Sättigungen skaliert – wer Weiß oder
      Schwarz wählt, bekommt wirklich ein graues Schema und kein rotes.
      `akzentL` ist die Helligkeit der gewählten Farbe. */
-  function themeVars(h, kraft, akzentL) {
+
+  /* ---- Hell oder dunkel ------------------------------------------------
+     Der Normalfall ist hell: weißer Grund, fast schwarze Schrift, alles
+     andere durch Konturen getrennt. „dunkel" dreht dieselben Marken um,
+     „auto" folgt der Einstellung des Geräts. Gespeichert wird das wie Farbe
+     und Muster beim Profil, gilt also auf jedem Gerät gleich. */
+  const MODI = [['hell', 'Hell'], ['dunkel', 'Dunkel'], ['auto', 'Automatisch']];
+  let modus = 'hell';
+  const geraetDunkel = () => {
+    try { return window.matchMedia('(prefers-color-scheme: dark)').matches; }
+    catch (e) { return false; }
+  };
+  const istDunkel = m => {
+    const wahl = m || modus;
+    return wahl === 'dunkel' || (wahl === 'auto' && geraetDunkel());
+  };
+
+  /* ---- Wie dunkel muss eine Farbe auf Weiß sein? ----------------------
+     Ein fester Wert reicht nicht: Gelb bei 50 % Helligkeit ist auf Weiß kaum
+     zu sehen, Blau bei 50 % dagegen kräftig. Deshalb wird gerechnet – nach
+     derselben Formel, mit der Barrierefreiheit gemessen wird (WCAG). Die
+     Farbe wird so weit abgedunkelt, bis sie den geforderten Abstand zum
+     weißen Grund hat, und keinen Schritt weiter. Farbton und Buntheit
+     bleiben dabei, wie sie gewählt wurden. */
+  function hslZuRgb(h, sat, hell) {
+    const s = grenze(sat, 0, 100) / 100, l = grenze(hell, 0, 100) / 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m = l - c / 2;
+    const [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x]
+      : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+    return [r + m, g + m, b + m];
+  }
+  const kanalLinear = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+  function luminanz(h, sat, hell) {
+    const [r, g, b] = hslZuRgb(h, sat, hell);
+    return 0.2126 * kanalLinear(r) + 0.7152 * kanalLinear(g) + 0.0722 * kanalLinear(b);
+  }
+  const kontrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+  // Höchste Helligkeit (in Schritten von 0,5 %), die auf Weiß noch reicht
+  function dunkelGenug(h, sat, start, ziel) {
+    let l = grenze(start, 8, 92);
+    while (l > 8 && kontrast(luminanz(h, sat, l), 1) < ziel) l -= 0.5;
+    return Math.round(l * 10) / 10;
+  }
+
+  /* Der Akzent im hellen Modus muss zweierlei können: als Schrift auf Weiß
+     lesbar sein und als Fläche eine weiße Schrift tragen. Beides erledigt
+     dieselbe Rechnung – wer Weiß wählt, bekommt hier also ein kräftiges
+     Grau; im dunklen Modus bleibt sein Weiß Weiß. */
+  function themeVarsHell(h, kraft, akzentL) {
+    const k = kraft == null ? 1 : grenze(kraft, 0, 1);
+    const s = v => (Math.round(v * k * 10) / 10) + '%';
+    const sAkz = 76 * k;
+    const aL = dunkelGenug(h, sAkz, akzentL == null ? 52 : grenze(akzentL, 18, 62), 4.6);
+    const badH = (h >= 330 || h <= 45) ? 350 : 356;
+    return {
+      '--bg':        `hsl(${h} ${s(40)} 100%)`,
+      '--bg-glow':   `hsl(${h} ${s(70)} 99.2%)`,
+      '--surface':   `hsl(${h} ${s(40)} 100%)`,
+      '--surface-2': `hsl(${h} ${s(26)} 96.5%)`,
+      '--line':      `hsl(${h} ${s(24)} 11%)`,
+      '--line-soft': `hsl(${h} ${s(20)} 87%)`,
+      '--text':      `hsl(${h} ${s(28)} 8%)`,
+      '--muted':     `hsl(${h} ${s(14)} 42%)`,
+      '--mint':      `hsl(${h} ${s(76)} ${aL}%)`,
+      '--mint-dim':  `hsl(${h} ${s(48)} ${Math.min(72, aL + 18)}%)`,
+      '--mint-glow': `hsla(${h} ${s(76)} ${aL}% / .14)`,
+      '--ink':       `hsl(${h} ${s(30)} 100%)`,
+      '--bad':       `hsl(${badH} 74% 41%)`,
+      '--auflage':   `hsla(${h} ${s(30)} 8% / .035)`,
+      '--schatten':  `0 20px 44px -30px hsla(${h} ${s(30)} 8% / .55)`,
+      '--schimmer':  `hsla(${h} ${s(30)} 8% / .06)`,
+      '--rand-tief': `hsla(${h} ${s(30)} 8% / .26)`,
+      '--verlauf-a': '11%',
+      '--verlauf-b': '5%',
+      // Vollbilder (Profilwahl, Startfrage) halten sich absichtlich aus dem
+      // Farbschema heraus: dort tragen die Kacheln die Farbe.
+      '--voll-bg':      '#FFFFFF',
+      '--voll-glanz':   '#F1F3F6',
+      '--voll-flaeche': '#FAFBFC',
+      '--voll-line':    '#DCE0E6',
+      '--voll-text':    '#0D1017',
+      '--voll-muted':   '#5C6473'
+    };
+  }
+
+  function themeVarsDunkel(h, kraft, akzentL) {
     const k = kraft == null ? 1 : grenze(kraft, 0, 1);
     const s = v => (Math.round(v * k * 10) / 10) + '%';
     const g = grundFaktor(akzentL);
@@ -71,8 +156,8 @@
       '--bg-glow':   `hsl(${h} ${s(34)} ${l(15)})`,
       '--surface':   `hsl(${h} ${s(22)} ${l(12.5)})`,
       '--surface-2': `hsl(${h} ${s(20)} ${l(17.5)})`,
-      '--line':      `hsl(${h} ${s(20)} ${ll(31)})`,
-      '--line-soft': `hsl(${h} ${s(20)} ${ll(22)})`,
+      '--line':      `hsl(${h} ${s(20)} ${ll(46)})`,
+      '--line-soft': `hsl(${h} ${s(20)} ${ll(24)})`,
       '--text':      `hsl(${h} ${s(32)} 96%)`,
       '--muted':     `hsl(${h} ${s(15)} 68%)`,
       '--mint':      `hsl(${h} ${s(94)} ${aL}%)`,
@@ -80,12 +165,35 @@
       '--mint-glow': `hsla(${h} ${s(94)} ${aL}% / .22)`,
       '--ink':       `hsl(${h} ${s(48)} ${inkL}%)`,
       // Rot bleibt Rot, auch im grauen Schema – sonst sieht man Warnungen nicht
-      '--bad':       `hsl(${badH} 88% 70%)`
+      '--bad':       `hsl(${badH} 88% 70%)`,
+      '--auflage':   'rgba(255, 255, 255, .05)',
+      '--schatten':  '0 24px 54px -30px rgba(0, 0, 0, .9)',
+      '--schimmer':  'rgba(255, 255, 255, .10)',
+      '--rand-tief': 'rgba(0, 0, 0, .55)',
+      '--verlauf-a': '26%',
+      '--verlauf-b': '13%',
+      '--voll-bg':      '#0A0B0D',
+      '--voll-glanz':   '#14161A',
+      '--voll-flaeche': '#15171A',
+      '--voll-line':    '#2B3034',
+      '--voll-text':    '#F2F5F4',
+      '--voll-muted':   '#93999B'
     };
   }
+
+  // Ein Aufruf, zwei Ausgänge. Ohne vierten Wert gilt der gerade gewählte Modus.
+  function themeVars(h, kraft, akzentL, dunkel) {
+    const d = dunkel == null ? istDunkel() : dunkel;
+    return (d ? themeVarsDunkel : themeVarsHell)(h, kraft, akzentL);
+  }
+
   const THEMES = {};
   THEME_DEFS.forEach(([key, name, hue]) => {
-    THEMES[key] = { name, hue, kraft: 1, akzent: 66, grund: 1, vars: themeVars(hue) };
+    // `vars` als Abfrage, nicht als fester Wert: Beim Umschalten auf Dunkel
+    // sollen dieselben Farben eine andere Palette ergeben, ohne dass irgendwo
+    // ein alter Stand liegen bleibt.
+    THEMES[key] = { name, hue, kraft: 1, akzent: 66, grund: 1,
+                    get vars() { return themeVars(hue); } };
   });
 
   /* ---- Eigene Farben: bis zu fünf je Profil ---------------------------
@@ -205,7 +313,7 @@
 
   // Diese Schlüssel sind reiner Komfort: Ohne sie läuft die App, sie merkt
   // sich nur nichts von diesem Gerät. Genau darüber wird beim Start gefragt.
-  const KOMFORT_SCHLUESSEL = ['la-theme', 'la-pattern', 'la-verlauf',
+  const KOMFORT_SCHLUESSEL = ['la-theme', 'la-modus', 'la-pattern', 'la-verlauf',
                               'la-profil-gewaehlt', 'la-last-disc'];
   const komfortErlaubt = () => keksLesen('la-zustimmung') !== 'noetig';
   const rolleVon = () => keksLesen('la-rolle') || 'schueler';
@@ -242,6 +350,23 @@
     if (meta) meta.setAttribute('content', themen[key].vars['--bg']);
     if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
   }
+  /* Hell oder dunkel umschalten. Die Farbe bleibt dieselbe – nur die Palette
+     darum herum dreht sich. Deshalb wird am Ende dasselbe Schema noch einmal
+     aufgetragen, jetzt mit den Werten des anderen Modus. */
+  function applyModus(key, merken) {
+    if (!MODI.some(m => m[0] === key)) key = 'hell';
+    modus = key;
+    document.body.dataset.modus = istDunkel() ? 'dunkel' : 'hell';
+    document.documentElement.style.colorScheme = istDunkel() ? 'dark' : 'light';
+    if (merken) { merke('la-modus', key); setzeEinstellung('modus', key); }
+    applyTheme(theme);
+  }
+  // Steht der Modus auf „automatisch", zieht ein Wechsel am Gerät sofort nach.
+  try {
+    window.matchMedia('(prefers-color-scheme: dark)')
+      .addEventListener('change', () => { if (modus === 'auto') applyModus('auto'); });
+  } catch (e) { /* ältere Browser: dann eben erst beim nächsten Start */ }
+
   function applyPattern(key, merken) {
     if (!PATTERNS.some(pp => pp[0] === key)) key = 'keins';
     pattern = key;
@@ -257,6 +382,7 @@
   // Vor dem ersten Profil: das zuletzt auf diesem Gerät Gewählte
   function ladeTheme() {
     const t = gemerkt('la-theme'), m = gemerkt('la-pattern');
+    applyModus(gemerkt('la-modus') || 'hell');
     applyTheme(THEMES[t] ? t : 'mint');
     applyPattern(m || 'keins');
     applyVerlauf(gemerkt('la-verlauf') || 'keins');
@@ -278,6 +404,7 @@
   // Sobald feststeht, wer eingetragen hat: dessen Farbe und Muster.
   // Beides kommt allein aus dem Profil, nichts wird vom vorigen übernommen.
   function ladeThemeVomProfil() {
+    applyModus(einstellung('modus', gemerkt('la-modus') || 'hell'));
     applyTheme(farbeVon(db.current));
     applyPattern(einstellung('muster', 'keins'));
     applyVerlauf(einstellung('verlauf', 'keins'));
@@ -1961,8 +2088,16 @@
     const schrift = grenze(t.akzent == null ? 74 : t.akzent + 8, 58, AKZENT_MAX);
     span.textContent = monogram(name);
     span.dataset.hue = h;
-    span.style.background = `linear-gradient(155deg, hsl(${h} ${s(44)} ${l(27)}), hsl(${h} ${s(46)} ${l(16)}))`;
-    span.style.color = `hsl(${h} ${s(72)} ${schrift}%)`;
+    if (istDunkel()) {
+      span.style.background = `linear-gradient(155deg, hsl(${h} ${s(44)} ${l(27)}), hsl(${h} ${s(46)} ${l(16)}))`;
+      span.style.color = `hsl(${h} ${s(72)} ${schrift}%)`;
+    } else {
+      // Hell: keine dunkle Fläche, sondern ein heller Block mit kräftigem
+      // Buchstaben – dieselbe Farbe, nur anders herum gedacht.
+      const dunkelBuchstabe = dunkelGenug(h, 70 * k, 46, 4.6);
+      span.style.background = `hsl(${h} ${s(62)} 94%)`;
+      span.style.color = `hsl(${h} ${s(70)} ${dunkelBuchstabe}%)`;
+    }
   }
 
   // Wer wird aktiv, wenn das aktuelle Profil verschwindet? Nicht das leere
@@ -2388,6 +2523,13 @@
     setzeAktiv('#genderSeg', g);
     setzeAktiv('#zeitSeg', zeit);
     setzeAktiv('#klasseSeg', klasse);
+    setzeAktiv('#modusSeg', modus);
+    const modusText = document.getElementById('modusHinweis');
+    if (modusText) modusText.textContent = modus === 'auto'
+      ? 'Folgt dem Gerät – dort steht gerade ' + (geraetDunkel() ? 'dunkel' : 'hell') + '.'
+      : modus === 'dunkel'
+        ? 'Schwarzer Grund, helle Schrift. Abends angenehmer, spart auf OLED-Displays Strom.'
+        : 'Weißer Grund, schwarze Schrift – so ist es draußen auf dem Sportplatz am besten zu lesen.';
     // Der Geburtstag liegt hinter „Anzeigen“. Lehrer sehen ihn gleich –
     // sie brauchen ihn, um die Altersklasse zu prüfen.
     const jahrgang = jahrgangVon();
@@ -3288,6 +3430,14 @@
       document.querySelectorAll(id + ' .seg-btn').forEach(b =>
         b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderEinstellungen(); }));
     });
+    // Der Modus geht nicht über setzeEinstellung: Er muss die Palette sofort
+    // neu auftragen, sonst stünde die halbe Seite noch im alten Licht.
+    document.querySelectorAll('#modusSeg .seg-btn').forEach(b =>
+      b.addEventListener('click', () => {
+        applyModus(b.dataset.wert, true);
+        renderEinstellungen();
+        renderThemes();
+      }));
     $('#lehrerZurueck').addEventListener('click', lehrerAbmelden);
     $('#lehrerTuer').addEventListener('click', () => {
       if (istLehrer()) { lehrerAbmelden(); return; }

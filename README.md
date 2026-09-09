@@ -140,8 +140,8 @@ zusammen mit den Einstellungen (Wertung, Farbe, Muster).
 
 Die Kacheln stehen **alphabetisch** und tragen die Farbe des jeweiligen
 Profils – so erkennt man sich schon am Farbfleck. Der Grund dahinter ist
-bewusst neutral (fast schwarz) und folgt nicht dem Farbschema, damit die
-Kacheln herausstechen.
+bewusst neutral und folgt nicht dem Farbschema, damit die Kacheln
+herausstechen: im hellen Modus fast weiß, im dunklen fast schwarz.
 
 **Profil löschen** – bewusst versteckt: nur in den Einstellungen des
 Profils, das gelöscht werden soll, ganz unten in einem zugeklappten
@@ -149,10 +149,25 @@ Abschnitt und erst nach einer Rückfrage. In der Profilliste steht der Knopf
 nicht mehr neben dem zum Wechseln. Danach lässt sich das Löschen einmal
 über „Rückgängig" umkehren; ist es das letzte Profil, geht es gar nicht.
 
+**Modus** – Hell, Dunkel oder Automatisch. Hell ist der Normalfall: weißer
+Grund, fast schwarze Schrift, Flächen durch Konturen getrennt statt durch
+Grautöne – draußen auf dem Sportplatz ist das am besten zu lesen. Dunkel
+dreht dieselben Marken um. Automatisch folgt der Einstellung des Geräts und
+zieht sofort nach, wenn sie sich dort ändert. Die Wahl gehört zum Profil,
+gilt also auf jedem Gerät.
+
 **Farbe** – zehn Akzentfarben (Mint, Limette, Aqua, Cyan, Blau, Violett,
 Magenta, Koralle, Orange, Gold). Jedes Schema wird aus einem Farbton
 berechnet: Grund, Flächen, Linien, Text und Akzent kommen aus derselben
 Quelle, deshalb bleibt keine Farbe zurück.
+
+Im hellen Modus wird der Akzent **gerechnet, nicht geraten**: Ein fester
+Helligkeitswert reicht nicht, weil Gelb bei 50 % auf Weiß kaum zu sehen ist
+und Blau bei 50 % kräftig. Die Farbe wird deshalb so weit abgedunkelt, bis
+sie den Abstand 4,6:1 zum Grund hat (dieselbe Formel, mit der
+Barrierefreiheit gemessen wird), und keinen Schritt weiter – Farbton und
+Buntheit bleiben. `modustest.js` misst das für alle zehn Farben in beiden
+Modi nach, dazu Schrift, Nebentext und Warnfarbe.
 
 **Eigene Farbe** – bis zu **fünf je Profil**, jederzeit wieder löschbar über
 das ✕ auf der Kachel. Gespeichert wird nur der Farbton; Grund, Flächen,
@@ -321,22 +336,43 @@ Damit Besucher nicht URL und Key eintippen müssen, legt der Knopf
 `id="appConfig"` in die Zwischenablage; die in `index.html` einsetzen und
 pushen. Der Klassen-Code bleibt außen vor.
 
+## Aussehen
+
+Weißer Grund, fast schwarze Schrift, **klare Kanten** – nichts ist gerundet
+außer den Punkten, die als Zeichen gemeint sind (der Punkt hinter jeder
+Überschrift, der Statuspunkt in der Kopfzeile, die Farbkreise). Getrennt
+wird durch **Konturen**, nicht durch Grautöne: eine Haarlinie um jede Karte,
+eine kräftige Linie dort, wo etwas aktiv ist.
+
+Vorher lag auf jeder Fläche ein Glanzverlauf und darunter ein Schatten. Das
+sieht auf Anhieb teuer aus und nach dem dritten Blick nach Baukasten – beides
+ist raus. Tiefe gibt es nur noch, wo wirklich etwas über der Seite liegt:
+Vollbild, Dialog, Meldung. Ein **Schimmer** läuft schräg über den
+Speichern-Knopf, wenn man ihn berührt: kein Dauerglanz, ein Lebenszeichen.
+
+Die Überschrift trägt die Seite: groß, eng gesetzt (`letter-spacing: -.04em`),
+mit einem Punkt am Ende. Auf der Punkteseite steht die Summe in derselben
+Größe, dahinter ein angeschnittener Kreis – der einzige Kreis im ganzen
+Design, deshalb fällt er auf.
+
 ## Schrift
 
-Auf iPhone, iPad und Mac **San Francisco** – die Systemschrift, geholt über
-`-apple-system`. Mitliefern lässt sie sich nicht: Apples Lizenz erlaubt die
-Nutzung auf Apple-Geräten, nicht das Verteilen der Schriftdateien. Über den
-Systemverweis ist das erlaubt und kostet null Ladezeit.
+**Montserrat**, aus `assets/fonts/` – geometrisch gebaut, weite Versalien,
+kräftige Schnitte bis 900. Genau das trägt die großen Überschriften, um die
+herum dieses Design gebaut ist. Zwei woff2-Dateien als variable Schrift für
+alle Stärken von 400 bis 900; die zweite (latin-ext) lädt der Browser nur,
+wenn ein Zeichen daraus vorkommt. Umlaute stecken schon in der ersten.
 
-Wo es sie nicht gibt (Android, Windows), greift **Urbanist** aus
-`assets/fonts/` – zwei woff2-Dateien, zusammen 44 kB, als variable Schrift
-für alle Stärken von 400 bis 800. Sie liegt im Projekt statt bei Google:
-kein fremder Server und auch ohne Netz da. `build.py` bettet sie für die
+Sie steht **vor** der Systemschrift, nicht dahinter. Vorher war es
+umgekehrt: Auf dem iPhone lief die App in San Francisco, auf Android in
+etwas anderem – dieselbe App sah auf jedem Gerät anders aus und nach nichts
+Eigenem. Eine zweite mitgelieferte Schrift als Rückfall gibt es nicht mehr:
+Sie käme aus derselben Datei­ablage und wäre dasselbe Format, würde also
+genau dann fehlen, wenn Montserrat fehlt.
+
+Die Schrift liegt im Projekt statt bei Google: kein fremder Server, keine
+Wartezeit, und sie ist auch ohne Netz da. `build.py` bettet sie für die
 Einzeldatei als data-URI ein.
-
-Urbanist hat keine gleich breiten Ziffern (`tabular-nums` greift also
-nicht); San Francisco hat sie. In den Listen fällt es so oder so nicht auf,
-weil Zahlenspalten rechtsbündig stehen.
 
 **Nach jeder Änderung: stempeln.** Browser halten `assets/app.js` und
 `assets/styles.css` sonst tagelang im Zwischenspeicher fest, und die

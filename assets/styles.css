@@ -1,54 +1,68 @@
-/* Leichtathletik Tracker – Mint auf Petrol, San Francisco bzw. Urbanist
-   Bewusst einfarbiges (dunkles) Design: alle Farben explizit gesetzt.
+/* Leichtathletik Tracker – Stil: weißer Grund, klare Kanten, Konturen
+   Zwei Modi, ein Bauplan: hell ist der Normalfall, dunkel dreht dieselben
+   Marken um. Beide entstehen aus einem Farbton (themeVars in app.js), hier
+   stehen nur die Rückfallwerte für den Fall, dass das Skript noch nicht lief.
 
    Die Schrift liegt im Projekt statt bei Google: kein fremder Server, keine
-   Wartezeit, und sie ist auch ohne Netz da. Eine Datei deckt alle Stärken
-   von 400 bis 800 ab (variable font), zusammen 44 kB. */
+   Wartezeit, und sie ist auch ohne Netz da. Montserrat ist geometrisch
+   gebaut – runde Grundformen, weite Versalien, kräftige Schnitte bis 900 –
+   und trägt damit die großen Überschriften, die dieses Design ausmachen.
+   Eine Datei deckt alle Stärken von 400 bis 900 ab (variable font). */
 @font-face {
-  font-family: 'Urbanist';
+  font-family: 'Montserrat';
   font-style: normal;
-  font-weight: 400 800;
+  font-weight: 400 900;
   font-display: swap;
-  src: url(fonts/urbanist-latin.woff2) format('woff2');
+  src: url(fonts/montserrat-latin.woff2) format('woff2');
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
                  U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
                  U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: 'Urbanist';
+  font-family: 'Montserrat';
   font-style: normal;
-  font-weight: 400 800;
+  font-weight: 400 900;
   font-display: swap;
-  src: url(fonts/urbanist-latin-ext.woff2) format('woff2');
+  src: url(fonts/montserrat-latin-ext.woff2) format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
                  U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF,
                  U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
-
 :root {
-  --bg:        #0E1F27;
-  --bg-glow:   #123039;
-  --surface:   #142B34;
-  --surface-2: #1A3641;
-  --line:      #24505C;
-  --line-soft: #1D414C;
-  --text:      #E8F6EF;
-  --muted:     #8FAFB2;
-  --mint:      #7BF29C;
-  --mint-dim:  #4FBF77;
-  --mint-glow: rgba(123, 242, 156, .18);
-  --ink:       #0B1A21;
-  --bad:       #FF8A73;
-  --r:  14px;
-  --r-lg: 20px;
-  /* San Francisco kommt vom Gerät: -apple-system liefert auf iPhone, iPad und
-     Mac genau die Systemschrift (SF Pro). Mitliefern dürfte man sie nicht –
-     Apple erlaubt nur die Nutzung auf den eigenen Geräten, nicht das
-     Verteilen der Dateien. Wo es sie nicht gibt (Android, Windows), greift
-     Urbanist aus dem Projekt, damit die App dort nicht beliebig aussieht. */
-  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
-          Urbanist, "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Heller Grund: weiß, Schrift fast schwarz, Flächen durch Konturen
+     getrennt statt durch Grautöne. Das Skript setzt dieselben Marken neu,
+     sobald ein Farbton gewählt ist. */
+  --bg:        #FFFFFF;
+  --bg-glow:   #F2F4F8;
+  --surface:   #FFFFFF;
+  --surface-2: #F4F6F8;
+  --line:      #12151C;
+  --line-soft: #D9DDE4;
+  --text:      #0D1017;
+  --muted:     #5C6473;
+  --mint:      #1B7F4B;
+  --mint-dim:  #12613A;
+  --mint-glow: rgba(27, 127, 75, .16);
+  --ink:       #FFFFFF;
+  --bad:       #C0392B;
+  /* Auflage = die hauchfeine Aufhellung auf Flächen, Schatten = die Tiefe
+     darunter. Im dunklen Modus werden beide getauscht. */
+  --auflage:   rgba(13, 16, 23, .03);
+  --schatten:  0 18px 40px -30px rgba(13, 16, 23, .55);
+  --schimmer:  rgba(13, 16, 23, .06);
+  --rand-tief: rgba(13, 16, 23, .30);
+  --voll-bg: #FFFFFF; --voll-glanz: #F1F3F6; --voll-flaeche: #FAFBFC;
+  --voll-line: #DCE0E6; --voll-text: #0D1017; --voll-muted: #5C6473;
+  /* Klare Kanten: keine Rundungen. Die Marken bleiben stehen, damit ein
+     einzelner Wert reicht, falls das je wieder anders sein soll. */
+  --r:  0px;
+  --r-lg: 0px;
+  /* Montserrat kommt aus dem Projekt und steht bewusst vor der Systemschrift:
+     Sonst sähe die App auf jedem Gerät anders aus – auf dem iPhone wie jede
+     andere iPhone-App. Genau das soll sie nicht. */
+  --font: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
@@ -70,7 +84,7 @@ body {
 }
 h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -.02em; text-wrap: balance; }
 button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; border-radius: 6px; }
+:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; border-radius: 0; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -83,17 +97,23 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   background: color-mix(in srgb, var(--bg-glow) 45%, var(--bg));
   border-bottom: 1px solid var(--line-soft);
 }
-.brand { display: flex; align-items: center; gap: 9px; }
+.brand { display: flex; align-items: center; gap: 9px; min-width: 0; }
+/* Der Strich neben der Marke: eine Haarlinie, sonst nichts. Sie bindet die
+   Kopfzeile zusammen, ohne selbst etwas zu sein. */
+.brand::after {
+  content: ""; width: 34px; height: 1px; background: var(--line); flex: none;
+}
+@media (max-width: 430px) { .brand::after { width: 18px; } }
 .brand-icon {
   display: grid; place-items: center;
-  width: 28px; height: 28px; border-radius: 9px;
+  width: 28px; height: 28px; border-radius: 0;
   background: var(--mint); color: var(--ink); font-size: 15px;
 }
 .brand-text { font-size: 14px; font-weight: 700; letter-spacing: .01em; }
 .profile-btn {
   display: flex; align-items: center; gap: 6px; min-width: 0;
   background: var(--surface); border: 1px solid var(--line); color: var(--text);
-  border-radius: 999px; padding: 8px 13px; font-size: 13.5px; font-weight: 600;
+  border-radius: 0; padding: 8px 13px; font-size: 13.5px; font-weight: 600;
   cursor: pointer; transition: .12s;
 }
 .profile-btn:hover { border-color: var(--mint); }
@@ -106,7 +126,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
   margin-left: auto; flex: none;
   display: inline-flex; align-items: center; gap: 6px;
   font-size: 11.5px; font-weight: 600; color: var(--muted);
-  border: 1px solid var(--line-soft); border-radius: 999px; padding: 5px 10px;
+  border: 1px solid var(--line-soft); border-radius: 0; padding: 5px 10px;
   white-space: nowrap;
 }
 .sync-chip::before {
@@ -121,7 +141,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 @media (max-width: 430px) { .brand-text { display: none; } }
 .icon-btn {
   flex: none; width: 38px; height: 38px;
-  border-radius: 999px; border: 1px solid var(--line);
+  border-radius: 0; border: 1px solid var(--line);
   background: var(--surface); color: var(--mint);
   font-size: 21px; line-height: 1; cursor: pointer; transition: .12s;
 }
@@ -133,7 +153,17 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .view { display: none; }
 .view.is-active { display: block; animation: rise .2s ease both; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.view-title { font-size: 27px; margin-bottom: 14px; }
+/* Die Überschrift trägt die Seite: groß, eng gesetzt, mit einem Punkt am
+   Ende – dieselbe Geste wie in der Vorlage, wo der Punkt über dem i sitzt. */
+.view-title {
+  font-size: clamp(30px, 9vw, 40px); font-weight: 800; letter-spacing: -.04em;
+  line-height: 1.02; margin-bottom: 16px;
+}
+.view-title::after {
+  content: ""; display: inline-block; vertical-align: baseline;
+  width: .17em; height: .17em; border-radius: 50%;
+  margin-left: .1em; background: var(--mint);
+}
 .greeting {
   margin: 0 0 2px; font-size: 13px; font-weight: 600; letter-spacing: .02em; color: var(--muted);
 }
@@ -150,7 +180,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   display: grid; gap: 3px; justify-items: center;
   padding: 11px 6px; cursor: pointer; text-align: center;
   background: var(--surface); border: 1px solid var(--line-soft);
-  border-radius: var(--r); transition: .14s;
+  border-radius: 0; transition: .14s;
 }
 .disc:hover { border-color: var(--line); }
 .disc:active { transform: scale(.97); }
@@ -167,7 +197,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 /* ---------- Eingabe ---------- */
 .entry-card {
   background: var(--surface); border: 1px solid var(--line-soft);
-  border-radius: var(--r-lg); padding: 16px;
+  border-radius: 0; padding: 16px;
 }
 .entry-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .entry-disc { font-weight: 700; font-size: 15px; }
@@ -187,7 +217,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .save-btn {
   flex: none; align-self: flex-end; width: 64px; height: 58px;
   display: grid; place-items: center;
-  border: 0; border-radius: var(--r); cursor: pointer;
+  border: 0; border-radius: 0; cursor: pointer;
   background: var(--mint); color: var(--ink);
   transition: .12s;
 }
@@ -213,7 +243,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .field { display: grid; gap: 5px; font-size: 12px; color: var(--muted); }
 .field input {
   background: var(--surface-2); border: 1px solid var(--line-soft);
-  border-radius: 10px; padding: 11px; font-size: 15px;
+  border-radius: 0; padding: 11px; font-size: 15px;
 }
 
 /* ---------- Listen ---------- */
@@ -221,12 +251,12 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .row {
   display: flex; align-items: center; gap: 11px;
   background: var(--surface); border: 1px solid var(--line-soft);
-  border-radius: var(--r); padding: 11px 13px;
+  border-radius: 0; padding: 11px 13px;
 }
 .row .ic {
   flex: none; width: 48px; padding: 5px 2px; text-align: center;
   font-size: 9.5px; font-weight: 700; letter-spacing: .07em; color: var(--muted);
-  background: var(--surface-2); border-radius: 7px;
+  background: var(--surface-2); border-radius: 0;
 }
 .row .main { flex: 1 1 auto; min-width: 0; }
 .row .nm { font-size: 12px; color: var(--muted); }
@@ -237,18 +267,18 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .row .meta { font-size: 12px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .row .del {
   flex: none; border: 0; background: transparent; color: var(--muted);
-  font-size: 17px; cursor: pointer; padding: 4px 7px; border-radius: 8px;
+  font-size: 17px; cursor: pointer; padding: 4px 7px; border-radius: 0;
 }
 .row .del:hover { color: var(--bad); background: var(--surface-2); }
 .row.is-pb { border-color: var(--mint); box-shadow: 0 0 18px var(--mint-glow); }
 .row.is-pb .val { color: var(--mint); }
 .badge {
   font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink); background: var(--mint); border-radius: 999px; padding: 2px 7px;
+  color: var(--ink); background: var(--mint); border-radius: 0; padding: 2px 7px;
 }
 .empty {
   color: var(--muted); font-size: 13.5px; padding: 22px 14px; text-align: center;
-  border: 1px dashed var(--line); border-radius: var(--r);
+  border: 1px dashed var(--line); border-radius: 0;
 }
 
 /* ---------- Chips ---------- */
@@ -256,19 +286,19 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .chip {
   flex: 0 1 auto; cursor: pointer; white-space: nowrap;
   background: var(--surface); border: 1px solid var(--line-soft); color: var(--text);
-  border-radius: 999px; padding: 9px 15px; font-size: 13px; font-weight: 600; transition: .12s;
+  border-radius: 0; padding: 9px 15px; font-size: 13px; font-weight: 600; transition: .12s;
 }
 .chip:hover { border-color: var(--line); }
 .chip.is-active { background: var(--mint); border-color: var(--mint); color: var(--ink); }
 
 /* ---------- Diagramm ---------- */
-.chart-card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: 16px; }
+.chart-card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: 0; padding: 16px; }
 .chart-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
 .chart-title { font-size: 19px; }
 .chart-sub { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 .trend {
   margin-left: auto; font-size: 13px; font-weight: 700; white-space: nowrap;
-  padding: 6px 11px; border-radius: 999px; background: var(--surface-2); color: var(--muted);
+  padding: 6px 11px; border-radius: 0; background: var(--surface-2); color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
 .trend.up { color: var(--mint); background: var(--mint-glow); }
@@ -294,10 +324,9 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 
 /* ---------- Ausklappbare Abschnitte ---------- */
 .klapp {
-  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 0;
   margin-top: 10px; overflow: hidden;
-  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
-  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 14px 28px -22px rgba(0,0,0,.95);
+  background-image: none;
 }
 .klapp > summary {
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -325,7 +354,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 
 .data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .btn {
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 0;
   padding: 11px 15px; cursor: pointer; font-size: 13.5px; font-weight: 600; transition: .12s;
 }
 .btn:hover { border-color: var(--mint); color: var(--mint); }
@@ -347,14 +376,20 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 }
 .tab svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.8;
   stroke-linecap: round; stroke-linejoin: round; }
-.tab.is-active { color: var(--mint); }
+.tab { position: relative; }
+.tab.is-active { color: var(--text); }
+.tab.is-active::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--mint);
+}
+.tab.is-active svg { color: var(--mint); }
 
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: 92px; transform: translate(-50%, 14px);
   background: var(--mint); color: var(--ink); font-weight: 700; font-size: 14px;
-  padding: 11px 20px; border-radius: 999px; opacity: 0; pointer-events: none;
-  transition: .2s; z-index: 40; box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  padding: 11px 20px; border-radius: 0; opacity: 0; pointer-events: none;
+  transition: .2s; z-index: 40; box-shadow: var(--schatten);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.warn { background: var(--bad); }
@@ -363,7 +398,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 /* ---------- Profil-Dialog ---------- */
 .sheet {
   width: min(440px, calc(100vw - 28px));
-  border: 1px solid var(--line); border-radius: var(--r-lg);
+  border: 1px solid var(--line); border-radius: 0;
   background: var(--surface); color: var(--text);
   padding: 16px; margin: auto;
   max-height: 86vh; overflow-y: auto;
@@ -383,7 +418,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .p-tile {
   width: 100%; display: grid; justify-items: center; gap: 7px;
   background: none; border: 0; padding: 4px 2px 8px; cursor: pointer;
-  color: inherit; font: inherit; border-radius: var(--r);
+  color: inherit; font: inherit; border-radius: 0;
   transition: transform .14s ease;
 }
 .p-tile:hover { transform: translateY(-2px); }
@@ -391,13 +426,15 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .p-avatar {
   display: grid; place-items: center;
   width: 100%; aspect-ratio: 1; max-width: 96px;
-  border-radius: 26px; border: 2px solid transparent;
+  border-radius: 0; border: 2px solid transparent;
   font-size: 30px; font-weight: 700; letter-spacing: .02em;
-  box-shadow: 0 1px 0 rgba(255,255,255,.09) inset, 0 16px 30px -18px rgba(0,0,0,.95);
+  box-shadow: none;
   transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease;
 }
 .p-tile:hover .p-avatar { border-color: var(--line); }
-.p-tile.is-current .p-avatar { border-color: var(--mint); box-shadow: 0 0 24px var(--mint-glow); }
+/* Das aktive Profil trägt eine kräftige Kontur, keinen Schein: Auf Weiß
+   sieht ein Schein nach Fehler aus, auf Schwarz nach Kirmes. */
+.p-tile.is-current .p-avatar { border-color: var(--mint); box-shadow: 0 0 0 2px var(--mint); }
 .p-label {
   font-size: 13px; font-weight: 600; text-align: center; line-height: 1.2;
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -416,27 +453,27 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .p-row {
   display: flex; align-items: center; gap: 7px;
   background: var(--surface-2); border: 1px solid var(--line-soft);
-  border-radius: var(--r); padding: 8px 9px;
+  border-radius: 0; padding: 8px 9px;
 }
 .p-row.is-current { border-color: var(--mint); }
 .p-name {
   flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   background: none; border: 0; color: inherit; cursor: pointer; text-align: left; padding: 4px 5px;
-  border-radius: 8px;
+  border-radius: 0;
 }
 .p-name:hover { background: color-mix(in srgb, var(--mint) 8%, transparent); }
 .p-nm { font-weight: 700; font-size: 15px; }
 .p-count { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .p-act {
   flex: none; background: none; border: 1px solid var(--line-soft); color: var(--muted);
-  border-radius: 9px; padding: 6px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
+  border-radius: 0; padding: 6px 9px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .p-act:hover { color: var(--text); border-color: var(--line); }
 .p-act.p-danger:hover { color: var(--bad); border-color: var(--bad); }
 .p-edit { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; }
 .p-input {
   flex: 1 1 130px; min-width: 0; background: var(--bg); color: var(--text);
-  border: 1px solid var(--mint); border-radius: 9px; padding: 8px 10px; font-size: 15px;
+  border: 1px solid var(--mint); border-radius: 0; padding: 8px 10px; font-size: 15px;
 }
 .p-confirm { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; width: 100%; }
 .p-q { flex: 1 1 100%; font-size: 13px; color: var(--text); }
@@ -446,7 +483,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .profile-add input {
   flex: 1 1 auto; min-width: 0;
   background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
-  border-radius: var(--r); padding: 11px 12px; font-size: 15px;
+  border-radius: 0; padding: 11px 12px; font-size: 15px;
 }
 .profile-add input:focus { outline: none; border-color: var(--mint); }
 
@@ -456,7 +493,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   background: color-mix(in srgb, var(--mint) 82%, white);
   border-color: color-mix(in srgb, var(--mint) 82%, white); color: var(--ink);
 }
-.btn-sm { padding: 7px 11px; font-size: 12.5px; border-radius: 9px; }
+.btn-sm { padding: 7px 11px; font-size: 12.5px; border-radius: 0; }
 .btn-danger { border-color: var(--bad); color: var(--bad); }
 .btn-danger:hover { background: var(--bad); color: var(--ink); border-color: var(--bad); }
 
@@ -466,7 +503,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   pointer-events: auto;                 /* der Toast selbst ist klick-durchlässig */
   border: 0; background: color-mix(in srgb, var(--ink) 18%, transparent); color: inherit;
   font: inherit; font-weight: 700; cursor: pointer;
-  border-radius: 999px; padding: 4px 12px; margin: -4px -8px -4px 0;
+  border-radius: 0; padding: 4px 12px; margin: -4px -8px -4px 0;
 }
 .toast-action:hover { background: color-mix(in srgb, var(--ink) 30%, transparent); }
 
@@ -484,7 +521,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .db-form { display: grid; gap: 11px; }
 .db-form .field input {
   background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
-  border-radius: 10px; padding: 11px; font-size: 14px; width: 100%;
+  border-radius: 0; padding: 11px; font-size: 14px; width: 100%;
 }
 .db-form .field input:focus { outline: none; border-color: var(--mint); }
 .db-actions { display: flex; gap: 8px; margin-top: 3px; }
@@ -492,7 +529,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .sql-box {
   width: 100%; height: 130px; margin-top: 8px;
   background: var(--bg); color: var(--muted); border: 1px solid var(--line-soft);
-  border-radius: 10px; padding: 9px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  border-radius: 0; padding: 9px; font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-size: 11px; resize: vertical;
 }
 
@@ -516,19 +553,29 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   /* Bewusst neutral, fast schwarz: die Kacheln tragen die Farben, der Grund
      hält sich raus. Nicht aus dem Farbschema, sondern fest. */
   background:
-    radial-gradient(900px 520px at 50% 0%, #14161A 0%, transparent 62%),
-    #0A0B0D;
+    radial-gradient(900px 520px at 50% 0%, var(--voll-glanz) 0%, transparent 62%),
+    var(--voll-bg);
   animation: pscreen-in .22s ease both;
 }
-.pscreen .pscreen-title { color: #F2F5F4; }
-.pscreen .pscreen-hint, .pscreen .p-sub { color: #93999B; }
-.pscreen .p-label { color: #E9EDEC; }
+/* Innerhalb des Vollbilds gelten eigene Marken – hell wie dunkel neutral,
+   damit die bunten Kacheln allein die Farbe machen. */
+.pscreen {
+  --surface: var(--voll-flaeche);
+  --surface-2: var(--voll-flaeche);
+  --line-soft: var(--voll-line);
+  --text: var(--voll-text);
+  --muted: var(--voll-muted);
+  color: var(--voll-text);
+}
+.pscreen .pscreen-title { color: var(--voll-text); }
+.pscreen .pscreen-hint, .pscreen .p-sub { color: var(--voll-muted); }
+.pscreen .p-label { color: var(--voll-text); }
 .pscreen .p-tile.is-current .p-label { color: var(--mint); }
-.pscreen .pscreen-close { background: #15171A; border-color: #2B3034; color: #9AA0A3; }
-.pscreen .pscreen-close:hover { color: #F2F5F4; border-color: var(--mint); }
-.pscreen .pscreen-link { color: #9AA0A3; border-color: #2B3034; }
+.pscreen .pscreen-close { background: var(--voll-flaeche); border-color: var(--voll-line); color: var(--voll-muted); }
+.pscreen .pscreen-close:hover { color: var(--voll-text); border-color: var(--mint); }
+.pscreen .pscreen-link { color: var(--voll-muted); border-color: var(--voll-line); }
 .pscreen .pscreen-link:hover { color: var(--mint); border-color: var(--mint); }
-.pscreen .p-avatar-add { background: #15171A; border-color: #33383C; }
+.pscreen .p-avatar-add { background: var(--voll-flaeche); border-color: var(--voll-line); }
 .pscreen[hidden] { display: none; }
 /* Nur die Deckkraft animieren: eine Animation auf transform macht das
    Vollbild zum Bezugsrahmen, und der fixierte Schließen-Knopf scrollt mit. */
@@ -538,7 +585,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   /* fixed statt absolute: das Vollbild scrollt bei vielen Profilen –
      der Schließen-Knopf soll dabei stehen bleiben. */
   position: fixed; top: 16px; right: 16px; z-index: 2;
-  width: 42px; height: 42px; border-radius: 50%;
+  width: 42px; height: 42px; border-radius: 0;
   background: var(--surface); border: 1px solid var(--line); color: var(--muted);
   font-size: 16px; cursor: pointer;
 }
@@ -553,14 +600,14 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   grid-template-columns: repeat(auto-fit, minmax(102px, 1fr));
   justify-content: center; gap: 18px 14px; margin: 0 auto 22px; max-width: 560px;
 }
-.pscreen .p-avatar { max-width: 132px; border-radius: 26px; font-size: clamp(30px, 9vw, 42px); }
+.pscreen .p-avatar { max-width: 132px; border-radius: 0; font-size: clamp(30px, 9vw, 42px); }
 .pscreen .p-tile:hover .p-avatar { transform: translateY(-1px) scale(1.02); }
 .pscreen .p-label { font-size: 15px; margin-top: 2px; }
 .pscreen-add { display: flex; gap: 8px; max-width: 340px; margin: 0 auto 14px; }
 .pscreen-add[hidden] { display: none; }
 .pscreen-add input {
   flex: 1 1 auto; min-width: 0; background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--line); border-radius: var(--r); padding: 11px 12px; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 0; padding: 11px 12px; font-size: 15px;
 }
 .pscreen-add input:focus { outline: none; border-color: var(--mint); }
 .pscreen-hint { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
@@ -568,7 +615,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   .pscreen { padding-top: 18px; }
   .pscreen-title { font-size: 22px; margin-bottom: 14px; }
   .pscreen .profile-grid { gap: 12px 12px; margin-bottom: 14px; }
-  .pscreen .p-avatar { max-width: 74px; border-radius: 20px; font-size: 24px; }
+  .pscreen .p-avatar { max-width: 74px; border-radius: 0; font-size: 24px; }
   .pscreen .p-label { font-size: 13px; }
   .pscreen-hint { margin-bottom: 12px; }
 }
@@ -583,9 +630,9 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .profil-head {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   background: var(--surface); border: 1px solid var(--line-soft);
-  border-radius: var(--r-lg); padding: 16px; margin-bottom: 6px;
+  border-radius: 0; padding: 16px; margin-bottom: 6px;
 }
-.p-avatar-lg { width: 68px; height: 68px; flex: none; font-size: 25px; border-radius: 22px; }
+.p-avatar-lg { width: 68px; height: 68px; flex: none; font-size: 25px; border-radius: 0; }
 .profil-name { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
 .profil-sub { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .profil-head .btn { margin-left: auto; }
@@ -595,7 +642,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 8px; }
 .theme-card {
   display: grid; justify-items: center; gap: 5px;
-  background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 12px;
+  background: var(--surface-2); border: 1px solid var(--line-soft); border-radius: 0;
   padding: 9px 4px; cursor: pointer; color: inherit; font: inherit; transition: .14s;
 }
 .theme-card:hover { border-color: var(--line); }
@@ -706,31 +753,50 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .sync-name { color: var(--mint); }
 
 
-/* ---------- Tiefe: leichte Wölbung statt flacher Flächen ---------- */
+/* ---------- Kanten statt Wölbung ----------
+   Vorher lag auf jeder Fläche ein Glanz und darunter ein Schatten. Das sieht
+   auf Anhieb teuer aus und nach dem dritten Blick nach Baukasten. Jetzt
+   trennt eine Kontur, und Tiefe gibt es nur dort, wo etwas wirklich über der
+   Seite liegt: Dialoge, Vollbilder, die Meldung. */
 .entry-card, .chart-card, .row, .disc, .p-row, .theme-card,
-.profil-head, .sheet, .wertung-zeile {
-  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
-  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 14px 28px -22px rgba(0,0,0,.95);
+.profil-head, .wertung-zeile {
+  background-image: none;
+  box-shadow: none;
 }
-.disc.is-active {
-  box-shadow: 0 0 0 1px var(--mint) inset, 0 0 26px var(--mint-glow),
-              0 14px 28px -20px rgba(0,0,0,.95);
+.sheet { box-shadow: var(--schatten); }
+.disc.is-active { box-shadow: 0 0 0 1px var(--mint) inset; }
+
+/* Der Schimmer: ein schräger Lichtstreif, der einmal über den Knopf läuft,
+   wenn man ihn berührt. Kein Dauerglanz – ein Lebenszeichen. */
+.save-btn, .btn-mint { position: relative; overflow: hidden; }
+.save-btn::after, .btn-mint::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%,
+              color-mix(in srgb, var(--ink) 26%, transparent) 50%, transparent 65%);
+  transform: translateX(-120%);
 }
-.save-btn, .btn-mint {
-  background-image: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 60%);
-  box-shadow: 0 10px 22px -12px var(--mint-glow), 0 1px 0 rgba(255,255,255,.35) inset;
+.save-btn:hover::after, .btn-mint:hover::after,
+.save-btn:focus-visible::after, .btn-mint:focus-visible::after,
+.save-btn:active::after, .btn-mint:active::after {
+  /* :active ist wichtig – auf dem Handy gibt es kein hover, und dort wird
+     dieser Knopf am häufigsten gedrückt. */
+  animation: schimmer .75s ease-out;
 }
-.topbar { box-shadow: 0 10px 24px -24px rgba(0,0,0,1); }
-.tabbar { box-shadow: 0 -12px 26px -26px rgba(0,0,0,1); }
-.toast { box-shadow: 0 14px 34px -16px rgba(0,0,0,.6); }
+@keyframes schimmer { to { transform: translateX(120%); } }
+
+.topbar { box-shadow: none; }
+.tabbar { box-shadow: none; }
+.toast { box-shadow: var(--schatten); }
 
 /* ---------- Farbverläufe ----------
    Eigene Ebene unter dem Muster. Alles aus --mint und --bg-glow, damit jeder
    Verlauf zur gewählten Farbe passt – auch zu selbst angelegten. */
 #bgverlauf {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  --a: color-mix(in srgb, var(--mint) 26%, transparent);
-  --a2: color-mix(in srgb, var(--mint) 13%, transparent);
+  /* Wie kräftig ein Verlauf aufträgt, hängt vom Modus ab: Auf Schwarz ist
+     eine helle Farbe ein Schimmer, auf Weiß dieselbe Menge ein Fleck. */
+  --a: color-mix(in srgb, var(--mint) var(--verlauf-a, 26%), transparent);
+  --a2: color-mix(in srgb, var(--mint) var(--verlauf-b, 13%), transparent);
   --g: var(--bg-glow);
 }
 /* Sonnenaufgang: Licht steigt vom unteren Rand */
@@ -750,7 +816,7 @@ body[data-verlauf="nordlicht"] #bgverlauf {
 body[data-verlauf="tiefe"] #bgverlauf {
   background-image:
     radial-gradient(75% 45% at 50% 32%, var(--a2) 0%, transparent 70%),
-    radial-gradient(140% 110% at 50% 50%, transparent 40%, rgba(0, 0, 0, .55) 100%);
+    radial-gradient(140% 110% at 50% 50%, transparent 40%, var(--rand-tief) 100%);
 }
 /* Bahnkurve: schräger Streifen wie eine angeschnittene Laufbahn */
 body[data-verlauf="bahn"] #bgverlauf {
@@ -782,7 +848,7 @@ body[data-verlauf="flutlicht"] #bgverlauf {
 
 /* Vorschaukacheln: dieselben Verläufe auf kleiner Fläche */
 .verlauf-probe {
-  width: 34px; height: 34px; border-radius: 10px;
+  width: 34px; height: 34px; border-radius: 0;
   border: 1px solid var(--line); background-color: var(--bg);
   --a: color-mix(in srgb, var(--mint) 55%, transparent);
   --a2: color-mix(in srgb, var(--mint) 28%, transparent);
@@ -799,7 +865,7 @@ body[data-verlauf="flutlicht"] #bgverlauf {
 }
 .verlauf-probe[data-verlauf="tiefe"] {
   background-image: radial-gradient(75% 45% at 50% 32%, var(--a) 0%, transparent 70%),
-                    radial-gradient(140% 110% at 50% 50%, transparent 34%, rgba(0, 0, 0, .6) 100%);
+                    radial-gradient(140% 110% at 50% 50%, transparent 34%, var(--rand-tief) 100%);
 }
 .verlauf-probe[data-verlauf="bahn"] {
   background-image: linear-gradient(104deg, transparent 18%, var(--a) 47%, var(--a2) 55%, transparent 82%);
@@ -832,7 +898,7 @@ main { position: relative; z-index: 1; }
     transparent 0 9deg, var(--p2) 9deg 18deg) !important;
 }
 .pattern-swatch {
-  width: 34px; height: 34px; border-radius: 10px;
+  width: 34px; height: 34px; border-radius: 0;
   border: 1px solid var(--line); background-color: var(--bg);
   --p1: color-mix(in srgb, var(--mint) 30%, transparent);
   --p2: color-mix(in srgb, var(--mint) 16%, transparent);
@@ -893,25 +959,35 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 /* ---------- Punktewertung ---------- */
 .seg {
   display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px;
-  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 0;
 }
 .seg-btn {
   border: 0; background: none; color: var(--muted); cursor: pointer;
   font: inherit; font-size: 13px; font-weight: 600;
-  padding: 8px 16px; border-radius: 999px; transition: .12s;
+  padding: 8px 16px; border-radius: 0; transition: .12s;
 }
 .seg-btn:hover { color: var(--text); }
 .seg-btn.is-active { background: var(--mint); color: var(--ink); }
 
 .punkte-summe {
+  position: relative; overflow: hidden;
   display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
-  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
-  padding: 14px 16px; margin-bottom: 14px;
-  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
-  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 14px 28px -22px rgba(0,0,0,.95);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 0;
+  padding: 18px 16px 16px; margin-bottom: 14px;
+  background-image: none;
+}
+/* Angeschnittener Kreis in der Ecke – der einzige Kreis im ganzen Design,
+   und deshalb fällt er auf. Kontur, keine Fläche. */
+.punkte-summe::after {
+  content: ""; position: absolute; right: -46px; top: -46px;
+  width: 136px; height: 136px; border-radius: 50%;
+  border: 1px solid var(--mint); opacity: .5; pointer-events: none;
 }
 .punkte-summe .k { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 700; }
-.punkte-summe .v { font-size: 34px; font-weight: 700; letter-spacing: -.03em; color: var(--mint); font-variant-numeric: tabular-nums; }
+.punkte-summe .v {
+  font-size: clamp(38px, 12vw, 52px); font-weight: 800; letter-spacing: -.045em;
+  line-height: 1; color: var(--mint); font-variant-numeric: tabular-nums;
+}
 .punkte-summe .sub { font-size: 12.5px; color: var(--muted); margin-left: auto; }
 
 .punkte-row { align-items: flex-start; }
@@ -920,11 +996,11 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .p-zahl.p-leer { color: var(--line); }
 .p-einheit { font-size: 10.5px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .p-bar {
-  margin-top: 7px; height: 5px; border-radius: 999px; overflow: hidden;
+  margin-top: 7px; height: 5px; border-radius: 0; overflow: hidden;
   background: color-mix(in srgb, var(--mint) 12%, transparent);
 }
 .p-bar span {
-  display: block; height: 100%; border-radius: 999px;
+  display: block; height: 100%; border-radius: 0;
   background: linear-gradient(90deg, var(--mint-dim), var(--mint));
 }
 
@@ -955,7 +1031,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .np-form .field span { font-size: 12px; }
 .np-form input {
   width: 100%; background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--line); border-radius: var(--r); padding: 12px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: 0; padding: 12px; font-size: 16px;
 }
 .np-form input:focus { outline: none; border-color: var(--mint); }
 .np-form .seg { margin: 0; }
@@ -966,10 +1042,9 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .menu { list-style: none; margin: 18px 0 0; padding: 0; display: grid; gap: 8px; }
 .menu-row {
   width: 100%; display: flex; align-items: center; gap: 13px; text-align: left;
-  background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r);
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 0;
   padding: 14px 15px; cursor: pointer; color: inherit; font: inherit; transition: .14s;
-  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
-  box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 14px 28px -22px rgba(0,0,0,.95);
+  background-image: none;
 }
 .menu-row:hover { border-color: var(--mint); }
 .menu-row:active { transform: scale(.99); }
@@ -997,9 +1072,12 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .feld-name { font-size: 13.5px; font-weight: 600; min-width: 104px; }
 .feld-zeile .seg { margin: 0 0 0 auto; }
 .feld-eingabe {
-  margin-left: auto; width: 110px; text-align: right;
+  /* Montserrat läuft breiter als die vorige Schrift: Der Monatswähler
+     braucht mehr Platz, sonst steht dort „April 202" mit abgeschnittener
+     Jahreszahl. */
+  margin-left: auto; width: 132px; max-width: 100%; text-align: right;
   background: var(--surface-2); color: var(--text);
-  border: 1px solid var(--line-soft); border-radius: 10px; padding: 9px 11px; font-size: 15px;
+  border: 1px solid var(--line-soft); border-radius: 0; padding: 9px 11px; font-size: 14.5px;
 }
 .feld-eingabe:focus { outline: none; border-color: var(--mint); }
 
@@ -1017,18 +1095,18 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .eigen-form[hidden] { display: none; }
 .eigen-form input[type="color"] {
   flex: none; width: 46px; height: 40px; padding: 3px;
-  background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 0; cursor: pointer;
 }
 .eigen-form input[type="text"] {
   flex: 1 1 130px; min-width: 0;
   background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
-  border-radius: 10px; padding: 10px 11px; font-size: 14px;
+  border-radius: 0; padding: 10px 11px; font-size: 14px;
 }
 .eigen-form input[type="text"]:focus { outline: none; border-color: var(--mint); }
 .theme-card { position: relative; }
 .theme-weg {
   position: absolute; top: -5px; right: -5px;
-  width: 21px; height: 21px; border-radius: 50%;
+  width: 21px; height: 21px; border-radius: 0;
   display: grid; place-items: center;
   background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
   font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
@@ -1036,7 +1114,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .theme-weg:hover { color: var(--bad); border-color: var(--bad); }
 .theme-aendern {
   position: absolute; top: -5px; left: -5px;
-  width: 21px; height: 21px; border-radius: 50%;
+  width: 21px; height: 21px; border-radius: 0;
   display: grid; place-items: center;
   background: var(--surface-2); border: 1px solid var(--line); color: var(--muted);
   font-size: 10px; line-height: 1; cursor: pointer; padding: 0;
@@ -1059,11 +1137,10 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   padding: 13px 14px;
   border: 1px solid var(--bad);
   border-left-width: 4px;
-  border-radius: 12px;
+  border-radius: 0;
   background: #0A0405;
   background-image: linear-gradient(180deg, color-mix(in srgb, var(--bad) 12%, transparent), transparent 70%);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 18%, transparent),
-              0 14px 30px -20px rgba(0, 0, 0, .95);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 30%, transparent);
   animation: warnung-auf .16s ease both;
 }
 .warnung[hidden] { display: none; }
@@ -1085,7 +1162,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 /* Befund der Verbindungsprüfung */
 .db-befund {
   margin: 10px 0 0; padding: 10px 12px;
-  border-left: 3px solid var(--mint); border-radius: 0 10px 10px 0;
+  border-left: 3px solid var(--mint); border-radius: 0;
   background: var(--surface-2); color: var(--text); font-size: 12.5px; line-height: 1.5;
 }
 
@@ -1094,12 +1171,11 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .vor-zeile {
   display: flex; align-items: center; gap: 12px;
   background: var(--surface); border: 1px solid var(--line-soft);
-  border-radius: var(--r); padding: 10px 13px;
-  background-image: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0) 52%);
+  border-radius: 0; padding: 10px 13px;
 }
 .vor-nr {
   flex: none; display: grid; place-items: center;
-  width: 24px; height: 24px; border-radius: 50%;
+  width: 24px; height: 24px; border-radius: 0;
   font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums;
   background: var(--surface-2); color: var(--muted);
 }
@@ -1127,7 +1203,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 /* Punkte: Kopfzeile mit Verweis auf die Einstellungen */
 .wertung-zeile {
   width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
-  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--line-soft); border-radius: 0;
   padding: 9px 16px; cursor: pointer; color: var(--muted); font: inherit; font-size: 13px; font-weight: 600;
 }
 .wertung-zeile:hover { border-color: var(--mint); color: var(--text); }
@@ -1161,7 +1237,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 .keks-punkt {
   background: var(--surface);
   border: 1px solid var(--line-soft);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 12px 14px;
   display: flex; flex-direction: column; gap: 5px;
 }
@@ -1217,7 +1293,7 @@ body.ist-lehrer .profile-btn { display: none; }
 
 .lehrer-kopf { padding: 4px 2px 2px; }
 .lehrer-austritt {
-  margin: 4px 0 18px; padding: 14px; border-radius: var(--r);
+  margin: 4px 0 18px; padding: 14px; border-radius: 0;
   background: var(--surface); border: 1px solid var(--line-soft);
 }
 .lehrer-austritt .section-title { margin-top: 0; }
@@ -1235,7 +1311,7 @@ body.ist-lehrer .profile-btn { display: none; }
 .lehrer-form input {
   flex: 1 1 170px; min-width: 0; max-width: 240px;
   background: var(--surface-2); border: 1px solid var(--line-soft); color: var(--text);
-  border-radius: 10px; padding: 10px 12px; font-size: 14px;
+  border-radius: 0; padding: 10px 12px; font-size: 14px;
 }
 .lehrer-form input:focus { outline: none; border-color: var(--mint); }
 
@@ -1243,7 +1319,7 @@ body.ist-lehrer .profile-btn { display: none; }
 .sortier { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
 .sortier-btn {
   background: var(--surface); border: 1px solid var(--line-soft); color: var(--muted);
-  border-radius: 999px; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+  border-radius: 0; padding: 6px 12px; font-size: 12.5px; cursor: pointer;
 }
 .sortier-btn.is-active { background: var(--mint); border-color: var(--mint); color: var(--ink); font-weight: 600; }
 
@@ -1251,7 +1327,7 @@ body.ist-lehrer .profile-btn { display: none; }
 .tabelle-rahmen {
   overflow-x: auto;
   border: 1px solid var(--line-soft);
-  border-radius: 14px;
+  border-radius: 0;
   background: var(--surface);
   -webkit-overflow-scrolling: touch;
 }
@@ -1284,14 +1360,14 @@ body.ist-lehrer .profile-btn { display: none; }
 .sp-summe { font-variant-numeric: tabular-nums; }
 .sp-summe .zell-punkt { color: var(--mint); }
 .np-marke {
-  display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 7px;
+  display: inline-block; min-width: 26px; padding: 2px 7px; border-radius: 0;
   background: var(--mint); color: var(--ink); font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .np-marke.ist-schwach { background: var(--bad); }
 .np-marke.ist-leer { background: var(--surface-2); color: var(--muted); font-weight: 500; }
 .fehlt-marke {
-  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px;
+  display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 0;
   background: color-mix(in srgb, var(--bad) 22%, transparent);
   color: var(--bad); font-size: 10.5px; font-weight: 600;
 }
@@ -1311,7 +1387,7 @@ body.ist-lehrer .profile-btn { display: none; }
   margin-top: 12px;
   background: var(--surface);
   border: 1px solid var(--line-soft);
-  border-radius: 14px;
+  border-radius: 0;
 }
 .detail-innen { padding: 13px 15px; display: flex; flex-direction: column; gap: 9px; }
 .detail-titel { font-family: inherit; font-size: 15px; font-weight: 700; color: var(--text); margin: 0; }
@@ -1330,7 +1406,7 @@ body.ist-lehrer .profile-btn { display: none; }
 .loesch-karte {
   background: var(--surface-2);
   border: 1px solid var(--line-soft);
-  border-radius: 14px;
+  border-radius: 0;
   padding: 14px 16px;
   display: flex; flex-direction: column; gap: 2px;
   margin-bottom: 12px;
@@ -1348,7 +1424,7 @@ body.ist-lehrer .profile-btn { display: none; }
 .lk-inhalt { color: var(--text); }
 .lk-marke {
   align-self: flex-start; margin-top: 8px;
-  padding: 3px 9px; border-radius: 8px; font-size: 11.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 0; font-size: 11.5px; font-weight: 700;
   background: var(--mint); color: var(--ink);
 }
 
@@ -1361,7 +1437,7 @@ body.ist-lehrer .profile-btn { display: none; }
   position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
   width: 32px; height: 32px; padding: 0;
   display: grid; place-items: center;
-  background: none; border: 0; border-radius: 8px;
+  background: none; border: 0; border-radius: 0;
   color: var(--muted); cursor: pointer;
 }
 .auge:hover { color: var(--text); }
