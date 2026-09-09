@@ -34,10 +34,10 @@
      sobald ein Farbton gewählt ist. */
   --bg:        #FFFFFF;
   --bg-glow:   #F2F4F8;
-  --surface:   #FFFFFF;
-  --surface-2: #F4F6F8;
+  --surface:   #F5F6F8;
+  --surface-2: #EBEDF1;
   --line:      #12151C;
-  --line-soft: #D9DDE4;
+  --line-soft: #CFD4DC;
   --text:      #0D1017;
   --muted:     #5C6473;
   --mint:      #1B7F4B;

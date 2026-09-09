@@ -89,12 +89,26 @@
     return 0.2126 * kanalLinear(r) + 0.7152 * kanalLinear(g) + 0.0722 * kanalLinear(b);
   }
   const kontrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
-  // Höchste Helligkeit (in Schritten von 0,5 %), die auf Weiß noch reicht
-  function dunkelGenug(h, sat, start, ziel) {
-    let l = grenze(start, 8, 92);
-    while (l > 8 && kontrast(luminanz(h, sat, l), 1) < ziel) l -= 0.5;
+
+  /* Sucht die Helligkeit, bei der eine Farbe vor einem gegebenen Grund den
+     geforderten Abstand hat. `richtung` sagt, wohin gesucht wird: −0,5 macht
+     dunkler (heller Modus), +0,5 heller (dunkler Modus). Gesucht wird vom
+     Wunschwert aus, es wird also nur so weit gegangen wie nötig. */
+  function kontrastHelligkeit(h, sat, start, ziel, grundLum, richtung) {
+    // Die Grenzen sind die der Farbwahl selbst: reines Weiß (100) muss reines
+    // Weiß bleiben dürfen, sonst wäre das Schema „Weiß" plötzlich Hellgrau.
+    let l = grenze(start, 4, 100);
+    let schritte = 0;
+    while (kontrast(luminanz(h, sat, l), grundLum) < ziel && schritte++ < 220) {
+      const naechste = l + richtung;
+      if (naechste < 4 || naechste > 100) break;
+      l = naechste;
+    }
     return Math.round(l * 10) / 10;
   }
+  // Höchste Helligkeit, die auf Weiß noch reicht
+  const dunkelGenug = (h, sat, start, ziel) =>
+    kontrastHelligkeit(h, sat, start, ziel, 1, -0.5);
 
   /* Der Akzent im hellen Modus muss zweierlei können: als Schrift auf Weiß
      lesbar sein und als Fläche eine weiße Schrift tragen. Beides erledigt
@@ -104,17 +118,26 @@
     const k = kraft == null ? 1 : grenze(kraft, 0, 1);
     const s = v => (Math.round(v * k * 10) / 10) + '%';
     const sAkz = 76 * k;
-    const aL = dunkelGenug(h, sAkz, akzentL == null ? 52 : grenze(akzentL, 18, 62), 4.6);
+    // Gemessen wird gegen die Fläche (96,5 %), nicht gegen den weißen Grund:
+    // Der meiste Text steht auf einer Karte, und die ist etwas dunkler.
+    const flaecheLum = luminanz(h, 30 * k, 96.5);
+    const aL = kontrastHelligkeit(h, sAkz, akzentL == null ? 52 : grenze(akzentL, 18, 62),
+                                  4.6, flaecheLum, -0.5);
     const badH = (h >= 330 || h <= 45) ? 350 : 356;
     return {
+      // Der Grund bleibt Weiß. Alles, was eine Fläche ist, hebt sich davon
+      // ab – sonst verschwimmt Karte, Zeile und Seite zu einem Blatt Papier.
+      // Drei Stufen: Grund 100 %, Fläche 97 %, Eingabefeld 93,5 %.
       '--bg':        `hsl(${h} ${s(40)} 100%)`,
       '--bg-glow':   `hsl(${h} ${s(70)} 99.2%)`,
-      '--surface':   `hsl(${h} ${s(40)} 100%)`,
-      '--surface-2': `hsl(${h} ${s(26)} 96.5%)`,
+      '--surface':   `hsl(${h} ${s(30)} 96.5%)`,
+      '--surface-2': `hsl(${h} ${s(24)} 92.5%)`,
       '--line':      `hsl(${h} ${s(24)} 11%)`,
-      '--line-soft': `hsl(${h} ${s(20)} 87%)`,
+      '--line-soft': `hsl(${h} ${s(22)} 80%)`,
       '--text':      `hsl(${h} ${s(28)} 8%)`,
-      '--muted':     `hsl(${h} ${s(14)} 42%)`,
+      // 39 % statt 42 %: Der Nebentext steht meist auf einer Fläche, nicht
+      // auf dem weißen Grund – dort braucht er den Abstand genauso.
+      '--muted':     `hsl(${h} ${s(14)} 39%)`,
       '--mint':      `hsl(${h} ${s(76)} ${aL}%)`,
       '--mint-dim':  `hsl(${h} ${s(48)} ${Math.min(72, aL + 18)}%)`,
       '--mint-glow': `hsla(${h} ${s(76)} ${aL}% / .14)`,
@@ -144,7 +167,13 @@
     const gl = (1 + g) / 2;                 // Linien folgen nur halb, sonst
     const l = v => (Math.round(v * g * 10) / 10) + '%';   // verschwinden sie
     const ll = v => (Math.round(v * gl * 10) / 10) + '%';
-    const aL = akzentL == null ? 66 : grenze(akzentL, AKZENT_MIN, AKZENT_MAX);
+    const gewuenscht = akzentL == null ? 66 : grenze(akzentL, AKZENT_MIN, AKZENT_MAX);
+    // Auf der Fläche (nicht auf dem Grund) muss der Akzent lesbar sein. Ein
+    // tiefes Violett bei 66 % ist das knapp nicht – dann wird es so weit
+    // aufgehellt, wie nötig, und keinen Schritt weiter.
+    const flaecheLum = luminanz(h, 22 * k, Math.round(12.5 * g * 10) / 10);
+    const aL = Math.min(AKZENT_MAX,
+      kontrastHelligkeit(h, 94 * k, gewuenscht, 4.6, flaecheLum, 0.5));
     const dL = Math.max(36, aL - 14);
     // Nur bei genau #ffffff: reines Weiß mit reinem Schwarz darauf.
     // Alles andere behält die dunkle, leicht getönte Schrift.

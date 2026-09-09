@@ -161,12 +161,14 @@ Magenta, Koralle, Orange, Gold). Jedes Schema wird aus einem Farbton
 berechnet: Grund, Flächen, Linien, Text und Akzent kommen aus derselben
 Quelle, deshalb bleibt keine Farbe zurück.
 
-Im hellen Modus wird der Akzent **gerechnet, nicht geraten**: Ein fester
-Helligkeitswert reicht nicht, weil Gelb bei 50 % auf Weiß kaum zu sehen ist
-und Blau bei 50 % kräftig. Die Farbe wird deshalb so weit abgedunkelt, bis
-sie den Abstand 4,6:1 zum Grund hat (dieselbe Formel, mit der
-Barrierefreiheit gemessen wird), und keinen Schritt weiter – Farbton und
-Buntheit bleiben. `modustest.js` misst das für alle zehn Farben in beiden
+Der Akzent wird **gerechnet, nicht geraten**: Ein fester Helligkeitswert
+reicht nicht, weil Gelb bei 50 % auf Weiß kaum zu sehen ist und Blau bei
+50 % kräftig. Die Farbe wandert deshalb so weit, bis sie 4,6:1 zur Fläche
+hat (dieselbe Formel, mit der Barrierefreiheit gemessen wird), und keinen
+Schritt weiter – Farbton und Buntheit bleiben. Im hellen Modus geht es
+abwärts, im dunklen aufwärts: Ein tiefes Violett bei 66 % ist auf der
+dunklen Karte knapp zu wenig und wird leicht aufgehellt. Reines Weiß bleibt
+dabei reines Weiß. `modustest.js` misst das für alle zehn Farben in beiden
 Modi nach, dazu Schrift, Nebentext und Warnfarbe.
 
 **Eigene Farbe** – bis zu **fünf je Profil**, jederzeit wieder löschbar über
@@ -340,9 +342,15 @@ pushen. Der Klassen-Code bleibt außen vor.
 
 Weißer Grund, fast schwarze Schrift, **klare Kanten** – nichts ist gerundet
 außer den Punkten, die als Zeichen gemeint sind (der Punkt hinter jeder
-Überschrift, der Statuspunkt in der Kopfzeile, die Farbkreise). Getrennt
-wird durch **Konturen**, nicht durch Grautöne: eine Haarlinie um jede Karte,
-eine kräftige Linie dort, wo etwas aktiv ist.
+Überschrift, der Statuspunkt in der Kopfzeile, die Farbkreise).
+
+Der Grund ist Weiß, die Flächen darauf sind es nicht: Karte 96,5 %,
+Eingabefeld 92,5 %, dazu eine sichtbare Haarlinie. Ohne diese drei Stufen
+verschwimmt alles zu einem Blatt Papier – eine Kontur allein trägt nicht,
+wenn die halbe Seite aus Karten besteht. `modustest.js` misst deshalb auch,
+dass Fläche und Grund auseinanderliegen, und alle Kontraste gleich
+doppelt: gegen den Grund **und** gegen die Fläche, auf der der Text
+tatsächlich steht.
 
 Vorher lag auf jeder Fläche ein Glanzverlauf und darunter ein Schatten. Das
 sieht auf Anhieb teuer aus und nach dem dritten Blick nach Baukasten – beides
