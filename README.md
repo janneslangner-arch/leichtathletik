@@ -363,6 +363,28 @@ mit einem Punkt am Ende. Auf der Punkteseite steht die Summe in derselben
 Größe, dahinter ein angeschnittener Kreis – der einzige Kreis im ganzen
 Design, deshalb fällt er auf.
 
+## Schmal, breit, quer
+
+Entschieden wird nach **Breite und Ausrichtung**, nicht nach Gerät: Ein
+geteiltes Fenster am Rechner ist schmal wie ein Handy und soll auch so
+aussehen, ein iPad quer ist so breit wie ein kleiner Laptop.
+
+Bis 1000 px und im Hochformat bleibt alles, wie es ist: Reiterleiste unten,
+Inhalt in einer Spalte. Das gilt für Handy und iPad hochkant.
+
+Ab **1000 px im Querformat** (iPad quer, Rechner) wandert die Leiste an den
+linken Rand: 72 px schmal, nur Symbole. Ein Knopf oben klappt sie auf 212 px
+aus, dann steht die Beschriftung daneben; der Zustand bleibt auf dem Gerät
+(`la-leiste`, gehört zum Komfort). Zugeklappt ist die Beschriftung nicht
+weg, sondern nur unsichtbar – Vorlesehilfen finden sie weiter. Der Balken,
+der den aktiven Reiter markiert, sitzt dann links an der Kante statt oben.
+
+Ob die Leiste links steht, entscheidet **allein die CSS-Abfrage**. Das
+Skript kennt nur „auf" oder „zu" und setzt eine Klasse am `body` – so gibt
+es keine zweite Wahrheit, die auseinanderlaufen könnte. `leistetest.js`
+misst alle fünf Fälle nach (Handy, iPad hoch, schmales Fenster, iPad quer,
+Rechner).
+
 ## Schrift
 
 **Montserrat**, aus `assets/fonts/` – geometrisch gebaut, weite Versalien,

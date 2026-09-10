@@ -383,6 +383,67 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   background: var(--mint);
 }
 .tab.is-active svg { color: var(--mint); }
+/* Unten ist die Leiste eine Reihe: der Ausklapp-Knopf gehört dort nicht hin,
+   und die Reiter stehen direkt nebeneinander. */
+.leiste-inhalt { display: contents; }
+.leiste-knopf { display: none; }
+
+/* ---------- Leiste links: iPad quer und Rechner ----------
+   Entschieden wird nach Breite UND Ausrichtung, nicht nach Gerät. Ein
+   geteiltes Fenster auf dem Rechner ist schmal wie ein Handy und soll auch
+   so aussehen; ein iPad hochkant bleibt beim Balken unten, quer bekommt es
+   die Leiste. Zugeklappt sind es nur Symbole, ausgeklappt steht die
+   Beschriftung daneben – der Zustand bleibt auf dem Gerät gespeichert. */
+@media (min-width: 1000px) and (orientation: landscape) {
+  :root { --leiste: 72px; }
+  body.leiste-offen { --leiste: 212px; }
+
+  body { padding-bottom: 24px; padding-left: var(--leiste); }
+  .topbar { padding-left: 20px; }
+
+  .tabbar {
+    top: 0; bottom: 0; right: auto; width: var(--leiste);
+    flex-direction: column; align-items: stretch; gap: 2px;
+    padding: 14px 10px calc(14px + env(safe-area-inset-bottom));
+    padding-inline: 10px;
+    border-top: 0; border-right: 1px solid var(--line-soft);
+    background: var(--surface);
+    transition: width .18s ease;
+    overflow: hidden;
+  }
+  .leiste-inhalt { display: flex; flex-direction: column; gap: 2px; }
+
+  .leiste-knopf, .tab {
+    display: flex; align-items: center; gap: 14px;
+    flex: none; width: 100%; padding: 13px 14px;
+    background: none; border: 0; cursor: pointer;
+    font: inherit; font-size: 13.5px; font-weight: 600; letter-spacing: .01em;
+    color: var(--muted); text-align: left; white-space: nowrap;
+  }
+  .leiste-knopf { display: flex; margin-bottom: 10px; color: var(--text); }
+  .leiste-knopf svg {
+    width: 21px; height: 21px; flex: none; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round;
+  }
+  .leiste-knopf:hover { color: var(--mint); }
+  .tab svg { flex: none; }
+  .tab:hover { color: var(--text); }
+
+  /* Der Balken sitzt jetzt links an der Kante, nicht mehr oben */
+  .tab.is-active::before { top: 0; bottom: 0; left: 0; right: auto; width: 3px; height: auto; }
+
+  /* Zugeklappt: nur Symbole. Die Beschriftung bleibt im Text, damit
+     Vorlesehilfen sie finden – sie wird nur nicht angezeigt. */
+  body:not(.leiste-offen) .tab-text {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap;
+  }
+  body:not(.leiste-offen) .leiste-knopf,
+  body:not(.leiste-offen) .tab { justify-content: center; padding-inline: 0; }
+
+  /* Der Inhalt darf mitwachsen, sobald Platz da ist */
+  main { max-width: 900px; }
+}
 
 /* ---------- Toast ---------- */
 .toast {

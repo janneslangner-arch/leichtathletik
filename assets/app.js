@@ -342,7 +342,7 @@
 
   // Diese Schlüssel sind reiner Komfort: Ohne sie läuft die App, sie merkt
   // sich nur nichts von diesem Gerät. Genau darüber wird beim Start gefragt.
-  const KOMFORT_SCHLUESSEL = ['la-theme', 'la-modus', 'la-pattern', 'la-verlauf',
+  const KOMFORT_SCHLUESSEL = ['la-theme', 'la-modus', 'la-leiste', 'la-pattern', 'la-verlauf',
                               'la-profil-gewaehlt', 'la-last-disc'];
   const komfortErlaubt = () => keksLesen('la-zustimmung') !== 'noetig';
   const rolleVon = () => keksLesen('la-rolle') || 'schueler';
@@ -396,6 +396,20 @@
       .addEventListener('change', () => { if (modus === 'auto') applyModus('auto'); });
   } catch (e) { /* ältere Browser: dann eben erst beim nächsten Start */ }
 
+  /* Die linke Leiste auf- und zuklappen. Nur ein Zustand am body – ob die
+     Leiste überhaupt links steht, entscheidet allein die CSS-Abfrage nach
+     Breite und Ausrichtung. So gibt es keine zweite Wahrheit. */
+  function applyLeiste(offen, merken) {
+    document.body.classList.toggle('leiste-offen', !!offen);
+    const knopf = document.getElementById('leisteAuf');
+    if (knopf) {
+      knopf.setAttribute('aria-expanded', String(!!offen));
+      knopf.title = offen ? 'Menü zuklappen' : 'Menü ausklappen';
+      knopf.setAttribute('aria-label', knopf.title);
+    }
+    if (merken) merke('la-leiste', offen ? 'offen' : 'zu');
+  }
+
   function applyPattern(key, merken) {
     if (!PATTERNS.some(pp => pp[0] === key)) key = 'keins';
     pattern = key;
@@ -412,6 +426,7 @@
   function ladeTheme() {
     const t = gemerkt('la-theme'), m = gemerkt('la-pattern');
     applyModus(gemerkt('la-modus') || 'hell');
+    applyLeiste(gemerkt('la-leiste') === 'offen');
     applyTheme(THEMES[t] ? t : 'mint');
     applyPattern(m || 'keins');
     applyVerlauf(gemerkt('la-verlauf') || 'keins');
@@ -3135,8 +3150,11 @@
     if (profilTab) {
       // Beim Lehrer heißt der Reiter Einstellungen – der zeigt nur noch dorthin.
       const beschriftung = lehrer ? 'Einstellungen' : 'Profil';
-      const knoten = [...profilTab.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
-      if (knoten) knoten.textContent = beschriftung;
+      // Die Beschriftung steht in einem eigenen span (die linke Leiste blendet
+      // ihn zugeklappt aus); ältere Fassungen hatten dort nur einen Textknoten.
+      const feld = profilTab.querySelector('.tab-text')
+        || [...profilTab.childNodes].find(n => n.nodeType === 3 && n.textContent.trim());
+      if (feld) feld.textContent = beschriftung;
       profilTab.setAttribute('aria-label', beschriftung);
     }
     // „‹ Profil" wäre in der Lehreransicht das falsche Wort – dort gibt es keins.
@@ -3467,6 +3485,9 @@
         renderEinstellungen();
         renderThemes();
       }));
+    const leisteKnopf = document.getElementById('leisteAuf');
+    if (leisteKnopf) leisteKnopf.addEventListener('click', () =>
+      applyLeiste(!document.body.classList.contains('leiste-offen'), true));
     $('#lehrerZurueck').addEventListener('click', lehrerAbmelden);
     $('#lehrerTuer').addEventListener('click', () => {
       if (istLehrer()) { lehrerAbmelden(); return; }
