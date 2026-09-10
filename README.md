@@ -375,17 +375,22 @@ nachfedert statt zu klacken. Die Kante wird dabei nicht schwarz, sondern
 nimmt eine Spur der Akzentfarbe an – wie eine Linse, die das Licht am Rand
 sammelt.
 
-Die Ecken bleiben **eckig**. Das Vorbild (Apples „Liquid Glass") arbeitet
-mit Kapselformen, aber „klare Kanten" war die Ansage – das Material lässt
-sich von der Form trennen.
+**Die Form wandert mit.** Im Ruhezustand ist alles eckig – das gilt weiter
+für die ganze App und für jedes Handy. Unter dem Zeiger wird daraus die
+Kapsel des Vorbilds: flache Bedienelemente (Knöpfe, Chips, Zeilen,
+Abschnitts-Köpfe) werden ganz rund, hohe Kacheln zur weichen Fliese
+(24 px). Der Radius ist Teil des Übergangs – das Zerfließen **ist** die
+Bewegung. Die harte Kontur verschwindet dabei; den Rand macht dann das
+Licht: eine helle Kante oben, ein feiner Ring außen, ein weicher Schein
+nach innen.
+
+Das Ganze gibt es nur in der **Rechner-Ansicht** – dieselbe Bedingung wie
+für die linke Leiste (breit, quer, echter Zeiger). Im schmalen Fenster
+bleibt alles wie auf dem Handy.
 
 Farbige Flächen (Speichern-Knopf, aktiver Umschalter) bleiben farbig: Glas
 über einer kräftigen Farbe wäre nur Matsch. Sie bekommen das Anheben und
 die Lichtkante, sonst nichts.
-
-Das Ganze gilt nur, wo es einen **echten Zeiger** gibt (`hover: hover` und
-`pointer: fine`). Auf dem Handy gibt es kein Darüberfahren, und ein
-klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
 
 Welche Flächen mitmachen, steht **nur in der CSS-Datei**: Sie setzen
 `--glas: 1`, und das Skript fragt beim Darüberfahren danach, statt eine

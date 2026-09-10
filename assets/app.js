@@ -163,6 +163,7 @@
       '--glas-unten':  `hsla(${h} ${s(30)} 8% / .10)`,
       '--glas-innen':  'rgba(255, 255, 255, .55)',
       '--glas-licht':  'rgba(255, 255, 255, .95)',
+      '--glas-ring':   'rgba(255, 255, 255, .75)',
       '--glas-hell':   '1.06'
     };
   }
@@ -218,6 +219,7 @@
       '--glas-unten':  'rgba(255, 255, 255, .07)',
       '--glas-innen':  'rgba(255, 255, 255, .12)',
       '--glas-licht':  'rgba(255, 255, 255, .22)',
+      '--glas-ring':   'rgba(255, 255, 255, .22)',
       '--glas-hell':   '1.16'
     };
   }

@@ -55,6 +55,7 @@
   --voll-line: #DCE0E6; --voll-text: #0D1017; --voll-muted: #5C6473;
   --glas-kante: rgba(255,255,255,.92); --glas-unten: rgba(13,16,23,.10);
   --glas-innen: rgba(255,255,255,.55); --glas-licht: rgba(255,255,255,.95);
+  --glas-ring: rgba(255,255,255,.75);
   --glas-hell: 1.06;
   /* Klare Kanten: keine Rundungen. Die Marken bleiben stehen, damit ein
      einzelner Wert reicht, falls das je wieder anders sein soll. */
@@ -1603,69 +1604,84 @@ body.ist-lehrer .profile-btn { display: none; }
 .auge.ist-offen { color: var(--mint); }
 
 /* ---------------- Glas unter dem Zeiger ----------------
-   Fährt die Maus über etwas Anfassbares, wird die Fläche für den Moment zu
-   Glas: Was darunter liegt, wird weichgezeichnet und leicht aufgehellt, an
-   der Oberkante sitzt eine Lichtkante, innen ein Schein, und ein heller
-   Fleck folgt dem Zeiger über die Fläche. Dazu hebt sich das Ganze einen
-   Hauch an – mit leichtem Überschwingen, damit es nachfedert statt zu
-   klacken.
+   Nur in der Rechner-Ansicht: dieselbe Bedingung wie für die linke Leiste
+   (breit, quer, echter Zeiger). Auf dem Handy gibt es kein Darüberfahren,
+   und ein klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
 
-   Die Ecken bleiben eckig. Das Vorbild arbeitet mit Kapselformen, aber
-   „klare Kanten" war die Ansage – das Material lässt sich davon trennen.
+   Was hier passiert, ist dem Vorbild nachgebaut: Die Fläche wird für den
+   Moment zu einer Linse. Sie nimmt die Kapselform an (dafür wandert der
+   Radius mit – das Zerfließen IST die Bewegung), was darunter liegt wird
+   gebrochen und aufgehellt, oben sitzt eine helle Lichtkante, unten eine
+   weiche Gegenkante, außen ein feiner Ring, und ein Lichtfleck folgt dem
+   Zeiger über die Fläche.
 
-   Nur mit echtem Zeiger: Auf dem Handy gibt es kein Darüberfahren, und ein
-   klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
+   Im Ruhezustand bleibt alles eckig – das gilt weiter für die ganze App.
+   Rund wird nur, was gerade angefasst wird.
+
    `--glas: 1` ist zugleich die Marke, an der das Skript erkennt, welche
    Fläche das Licht mitbekommt – so gibt es nur eine Liste, nicht zwei. */
-@media (hover: hover) and (pointer: fine) {
+@media (min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine) {
   .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
   .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
     --glas: 1;
-    transition: color .18s ease, border-color .18s ease,
+    transition: color .18s ease, border-color .28s ease,
                 background-color .28s ease, box-shadow .3s ease,
-                transform .38s cubic-bezier(.34, 1.36, .36, 1);
+                border-radius .42s cubic-bezier(.34, 1.36, .36, 1),
+                transform .42s cubic-bezier(.34, 1.36, .36, 1);
   }
+
   .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
   .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
   .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
   .pscreen-close:hover {
-    background-color: color-mix(in srgb, var(--surface) 38%, transparent);
-    background-image: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 0%),
-                      var(--glas-licht) 0%, transparent 58%);
-    /* Die Kante wird nicht schwarz, sondern angeleuchtet: eine Spur der
-       Akzentfarbe, wie bei einer Linse, die das Licht am Rand sammelt. */
-    border-color: color-mix(in srgb, var(--mint) 42%, var(--line-soft));
+    /* Die harte Linie verschwindet – den Rand macht jetzt das Licht. */
+    border-color: transparent;
+    background-color: color-mix(in srgb, var(--surface) 34%, transparent);
+    background-image: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 0%),
+                      var(--glas-licht) 0%, transparent 60%);
     box-shadow:
-      inset 0 1px 0 var(--glas-kante),
-      inset 0 -1px 0 var(--glas-unten),
-      inset 0 0 26px -8px var(--glas-innen),
-      0 16px 34px -24px var(--rand-tief),
-      0 0 0 1px color-mix(in srgb, var(--mint) 12%, transparent);
-    transform: translateY(-1px) scale(1.012);
+      inset 0 1.5px 0 var(--glas-kante),
+      inset 0 0 0 1px var(--glas-ring),
+      inset 0 -6px 12px -8px var(--glas-innen),
+      inset 0 0 30px -10px var(--glas-innen),
+      0 18px 40px -26px var(--rand-tief),
+      0 0 0 1px color-mix(in srgb, var(--mint) 10%, transparent);
+    transform: translateY(-1px) scale(1.02);
   }
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
     .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
     .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
     .pscreen-close:hover {
-      -webkit-backdrop-filter: blur(14px) saturate(180%) brightness(var(--glas-hell));
-      backdrop-filter: blur(14px) saturate(180%) brightness(var(--glas-hell));
+      -webkit-backdrop-filter: blur(16px) saturate(200%) brightness(var(--glas-hell));
+      backdrop-filter: blur(16px) saturate(200%) brightness(var(--glas-hell));
     }
   }
-  /* Der gedrückte Zustand: kurz zusammensinken, wie echtes Glas nachgibt */
+
+  /* Die Form: flache, breite Bedienelemente werden zur Kapsel, hohe Kacheln
+     zur weichen Fliese. Beides ist im Vorbild zu sehen. */
+  .chip:hover, .sortier-btn:hover, .btn:hover, .seg-btn:hover,
+  .profile-btn:hover, .icon-btn:hover, .pscreen-close:hover,
+  .row:hover, .klapp > summary:hover { border-radius: 999px; }
+  .disc:hover, .menu-row:hover, .theme-card:hover, .p-tile:hover { border-radius: 24px; }
+
+  /* Gedrückt: kurz zusammensinken, wie echtes Glas nachgibt */
   .disc:active, .menu-row:active, .theme-card:active, .chip:active,
   .sortier-btn:active, .p-tile:active, .profile-btn:active, .icon-btn:active,
-  .btn:active, .seg-btn:active { transform: translateY(0) scale(.985); }
+  .btn:active, .seg-btn:active { transform: translateY(0) scale(.988); }
 
   /* Farbige Flächen behalten ihre Farbe – dort wäre Glas nur Matsch.
-     Sie bekommen nur das Anheben und die Lichtkante. */
+     Sie bekommen die Kapselform, das Anheben und die Lichtkante. */
   .btn-mint:hover, .save-btn:hover, .seg-btn.is-active:hover,
   .p-tile.is-current:hover {
     background-color: var(--mint); background-image: none;
     -webkit-backdrop-filter: none; backdrop-filter: none;
-    box-shadow: inset 0 1px 0 var(--glas-kante), 0 14px 30px -20px var(--mint-glow);
+    box-shadow: inset 0 1.5px 0 var(--glas-kante),
+                inset 0 0 0 1px var(--glas-ring),
+                0 16px 34px -22px var(--mint-glow);
   }
-  .save-btn:hover { background-color: color-mix(in srgb, var(--mint) 88%, white); }
+  .save-btn:hover { background-color: color-mix(in srgb, var(--mint) 88%, white); border-radius: 999px; }
+  .btn-mint:hover, .seg-btn.is-active:hover { border-radius: 999px; }
 
   /* In der Leiste hat der Reiter schon seinen eigenen Auftritt */
   .tabbar .tab { --glas: 0; }
