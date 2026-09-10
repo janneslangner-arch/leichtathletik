@@ -383,14 +383,30 @@
   // Vor dem ersten Profil gibt es nur die vorgegebenen Farben.
   const alleThemen = () => (typeof db !== 'undefined' && db && db.current) ? themenVon(db.current) : THEMES;
 
+  /* Die Lehreransicht ist bewusst eine andere Welt: kein Profilfarbton,
+     kein Spiel, nur Schwarz und Weiß. Hell oder dunkel (oder automatisch)
+     darf der Lehrer wählen, alles andere steht fest. Gerechnet wird
+     dieselbe Palette wie sonst, nur mit Sättigung null und einem Akzent,
+     der nicht leuchtet, sondern einfach die kräftigste Stufe der Schrift
+     ist – so bleibt jeder Kontrast erhalten, ohne dass Farbe ins Spiel
+     kommt. */
+  const istLehreransicht = () => document.body.classList.contains('ist-lehrer');
+  const lehrerVars = () => {
+    const v = themeVars(0, 0, istDunkel() ? 90 : 20);
+    // Auch das Warnrot fällt weg: „fehlt" erkennt man hier an der Kontur,
+    // nicht an der Farbe. Sonst wäre die Ansicht doch wieder bunt.
+    return Object.assign({}, v, { '--bad': v['--muted'], '--mint-glow': 'transparent' });
+  };
+
   function applyTheme(key, merken) {
     const themen = alleThemen();
     if (!themen[key]) key = 'mint';
     theme = key;
     const wurzel = document.documentElement;
-    Object.entries(themen[key].vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
+    const vars = istLehreransicht() ? lehrerVars() : themen[key].vars;
+    Object.entries(vars).forEach(([k, v]) => wurzel.style.setProperty(k, v));
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', themen[key].vars['--bg']);
+    if (meta) meta.setAttribute('content', vars['--bg']);
     if (merken) { merke('la-theme', key); setzeEinstellung('farbe', key); }
   }
   /* Hell oder dunkel umschalten. Die Farbe bleibt dieselbe – nur die Palette
@@ -579,6 +595,10 @@
       linse.style.width = b.toFixed(1) + 'px';
       linse.style.height = h.toFixed(1) + 'px';
       linse.style.borderRadius = Math.max(0, ist.r).toFixed(1) + 'px';
+      // Die Fläche darunter bekommt denselben Radius: Ihre Kontur verblasst
+      // zwar, aber solange man sie sieht, soll sie dieselbe Form haben wie
+      // das Glas darüber – sonst steht ein Quadrat um eine Kapsel.
+      if (flaeche) flaeche.style.setProperty('--rund', Math.max(0, ist.r).toFixed(1) + 'px');
       if (hatZeiger && ist.b > 1 && ist.h > 1) {
         // Das Licht sitzt beim Zeiger – die Linse läuft ihm nach, also
         // wandert der Fleck von selbst über die Fläche, ohne zweite Feder.
@@ -668,11 +688,13 @@
       clearTimeout(ausZeit);
       if (!el) {
         ausZeit = setTimeout(() => {
+          if (flaeche) flaeche.style.removeProperty('--rund');
           flaeche = null; linse.classList.remove('an'); anwerfen();
         }, 150);
         return;
       }
       const vorher = flaeche;
+      if (vorher && vorher !== el) vorher.style.removeProperty('--rund');
       flaeche = el;
       const gleicherOrt = vorher && vorher.parentElement === el.parentElement;
       einhaengen(el);
@@ -687,7 +709,8 @@
     };
 
     const glasFlaeche = ziel => {
-      if (!breit.matches) return null;
+      // In der Lehreransicht gibt es kein Glas: Die soll nüchtern bleiben.
+      if (!breit.matches || document.body.classList.contains('ist-lehrer')) return null;
       let el = ziel;
       for (let i = 0; el && el.nodeType === 1 && i < 5; i++, el = el.parentElement) {
         if (getComputedStyle(el).getPropertyValue('--glas').trim() === '1') return el;
@@ -743,6 +766,37 @@
 
   /* Das Licht unter dem Zeiger: Die Leiste bekommt nur mitgeteilt, auf
      welcher Höhe die Maus steht – den Rest macht der Verlauf in CSS. */
+  /* Wie heißt die Gruppe, in der man gerade ist? Der Name steht in der
+     eingebetteten Konfiguration der Seite (dort, wo auch der Zugangscode
+     steht) – so trägt jede veröffentlichte Fassung ihren eigenen. Fehlt er,
+     tut es der Code selbst; ohne Datenbank steht dort gar nichts. */
+  function klassenName() {
+    const fest = readEmbeddedCfg();
+    const name = fest && typeof fest.name === 'string' ? fest.name.trim() : '';
+    if (name) return name;
+    const code = (cfg && cfg.code) || (fest && fest.code) || '';
+    return code ? String(code).toUpperCase() : '';
+  }
+  // Zugeklappt ist nur Platz für ein Kürzel: das erste Wort, höchstens drei
+  // Zeichen – „Q2 Sportprofil 26/27" wird zu „Q2".
+  function klassenKuerzel(name) {
+    const wort = (name || '').split(/[\s·/-]+/)[0] || '';
+    return wort.slice(0, 3).toUpperCase();
+  }
+
+  function zeigeKlassenMarke() {
+    const marke = document.getElementById('klassenMarke');
+    if (!marke) return;
+    const name = klassenName();
+    marke.hidden = !name;
+    if (!name) return;
+    const kurz = document.getElementById('klassenKurz');
+    const lang = document.getElementById('klassenLang');
+    if (kurz) kurz.textContent = klassenKuerzel(name);
+    if (lang) lang.textContent = name;
+    marke.title = name;
+  }
+
   function richteLeisteEin() {
     const bar = document.querySelector('.tabbar');
     if (!bar || bar.dataset.fertig) return;
@@ -2241,7 +2295,7 @@
     const line = t => { const n = el('p', null, t); n.style.margin = '0 0 8px'; box.append(n); };
 
     if (usingDb()) {
-      // Steht der Klassen-Code in der Seite, ist die Verbindung fest: dann
+      // Steht der Klassen-Code in der Seite, ist d\n    // Verbindet man sich neu, kann sich auch der Gruppenname ändern.\n    zeigeKlassenMarke();ie Verbindung fest: dann
       // gibt es hier nichts zu wechseln und nichts zu trennen.
       const fest = festeVerbindung();
       line(fest
@@ -2763,8 +2817,12 @@
     const schnitt = fertig.length
       ? (fertig.reduce((a, d) => a + d.np, 0) / fertig.length) : null;
 
+    // Welche Gruppe hier eigentlich auf dem Tisch liegt, gehört in die
+    // Kopfzeile – ein Lehrer sieht vielleicht mehrere.
+    const gruppe = klassenName();
     document.getElementById('lehrerKopf').textContent =
-      `${daten.length} ${daten.length === 1 ? 'Profil' : 'Profile'} · `
+      (gruppe ? gruppe + ' · ' : '')
+      + `${daten.length} ${daten.length === 1 ? 'Profil' : 'Profile'} · `
       + `${fertig.length} mit vollständiger Wertung`
       + (schnitt != null ? ` · Schnitt ${schnitt.toFixed(1)} NP` : '')
       + ` · ${db.entries.length} Werte insgesamt`;
@@ -2941,6 +2999,9 @@
     setzeAktiv('#klasseSeg', klasse);
     setzeAktiv('#modusSeg', modus);
     setzeAlleSegKnoepfe();
+    const modusKurz = document.getElementById('modusKurz');
+    if (modusKurz) modusKurz.textContent = '· ' +
+      (MODI.find(m => m[0] === modus) || MODI[0])[1].toLowerCase();
     const modusText = document.getElementById('modusHinweis');
     if (modusText) modusText.textContent = modus === 'auto'
       ? 'Folgt dem Gerät – dort steht gerade ' + (geraetDunkel() ? 'dunkel' : 'hell') + '.'
@@ -2958,7 +3019,8 @@
     zeigen.textContent = jahrgang ? 'Anzeigen' : 'Eintragen';
     $('#pruefungInput').value = einstellung('pruefung', '');
     $('#einstellungenFuer').textContent = istLehrer()
-      ? 'Speicherort, Sicherung und Datenschutz gelten für dieses Gerät – nicht für ein einzelnes Profil.'
+      ? 'Speicherort, Sicherung und Datenschutz gelten für dieses Gerät – nicht für ein einzelnes Profil. '
+        + 'Die Klassenansicht bleibt schwarz-weiß; wählbar ist nur hell oder dunkel.'
       : 'Alles auf dieser Seite gilt für das Profil ' + db.current + ' – auch Farbe und Hintergrund.';
     $('#wertungKurz').textContent =
       `· ${g === 'w' ? 'Mädchen' : 'Jungen'} · ${zeit === 'hand' ? 'Handzeit' : 'elektronisch'} · ${klasse}`;
@@ -3514,6 +3576,9 @@
   function setzeRollenAnsicht() {
     const lehrer = istLehrer();
     document.body.classList.toggle('ist-lehrer', lehrer);
+    // Die Palette hängt an der Rolle: Beim Wechsel muss sie neu aufgetragen
+    // werden, sonst bliebe der Profilfarbton der Schüleransicht stehen.
+    applyTheme(theme);
     const zeige = (view, an) => {
       const t = document.querySelector('.tab[data-view="' + view + '"]');
       if (t) t.hidden = !an;
@@ -3786,6 +3851,7 @@
     richteAugenEin();               // das Auge gibt es schon im Startbildschirm
     richteLeisteEin();
     richteGlasEin();
+    zeigeKlassenMarke();
     setzeAlleSegKnoepfe(true);
     // Ändert sich die Breite, sitzt der Knopf sonst neben seiner Schaltfläche.
     let segDreh;

@@ -466,6 +466,60 @@ Die Feder für den gleitenden Knopf im Umschalter (`--feder` in der CSS)
 ist dieselbe Rechnung, nur als Kurve vorausberechnet – siehe
 `werkzeug/feder.py`.
 
+## Zwei Formen, eine Regel
+
+Nach dem Umbau auf Glas gilt in der **Schüleransicht**: Was man *anfasst*,
+ist eine Kapsel – Balken in einer Liste, Chips, Knöpfe, der Profilknopf,
+der Speichern-Haken (der wird zum Kreis). Was etwas *trägt*, behält klare
+Kanten – Karten, Disziplin-Kacheln, Eingabefelder, Tabellen, Reiter. So
+bleibt die Seite in Ordnung und wirkt trotzdem nicht wie ein Formular. Es
+ist außerdem dieselbe Form, die der Glaskörper unter dem Zeiger annimmt:
+Beides zusammen wirkt wie aus einem Guss.
+
+`modustest.js` hält beide Hälften der Regel fest – Kapseln müssen rund
+sein, Karten dürfen es nicht.
+
+## Die Lehreransicht ist mit Absicht anders
+
+Sie ist ein Arbeitsgerät, keine Spielwiese. Deshalb ist sie **schwarz auf
+Weiß oder weiß auf Schwarz und sonst nichts**:
+
+* **Keine Farbe.** Dieselbe Palette wie sonst, nur mit Sättigung null
+  gerechnet (`lehrerVars()` in `assets/app.js`). Der Akzent ist nicht
+  bunt, sondern die kräftigste Stufe der Schrift – alle Kontraste bleiben
+  also erhalten. Auch das Warnrot fällt weg: „fehlt" erkennt man an der
+  Kontur, nicht an der Farbe.
+* **Kein Muster, kein Verlauf.** Der Hintergrund ist eine ruhige Fläche.
+* **Kein Glas.** Der wandernde Körper bleibt aus, es gibt keinen Schimmer
+  und keine Kapseln – alles eckig.
+* **Hell, dunkel oder automatisch** kann der Lehrer wählen; der Schalter
+  steht unter *Darstellung* und gilt für beide Rollen. Alles andere am
+  Aussehen bleibt der Schüleransicht vorbehalten.
+
+Die Tabelle hat mehr Luft bekommen, jede zweite Zeile einen Hauch Grund
+(bei zwölf Spalten hilft das dem Auge), und die Kopfzeile nennt die
+Gruppe.
+
+## Welche Gruppe? Steht oben links
+
+Die Ecke über der Leiste war leer. Jetzt steht dort das Kürzel der Gruppe
+in einer kleinen Kapsel – „Q2" –, und wenn die Leiste ausfährt, steht ihr
+ganzer Name oben in der Leiste: „Q2 SPORTPROFIL 26/27". In der
+Klassenansicht steht er außerdem in der Kopfzeile über der Tabelle.
+
+Woher der Name kommt: aus der **eingebetteten Konfiguration** der Seite,
+dort, wo auch der Zugangscode steht:
+
+```html
+<script id="appConfig" type="application/json">
+{"url": "…", "key": "…", "code": "q2sp2026", "name": "Q2 Sportprofil 26/27"}
+</script>
+```
+
+So trägt jede veröffentlichte Fassung ihren eigenen Namen, ohne dass
+dafür etwas in der Datenbank stehen muss. Fehlt der Name, tritt der Code
+an seine Stelle; ohne Datenbank bleibt die Ecke leer.
+
 ## Schmal, breit, quer
 
 Entschieden wird nach **Breite und Ausrichtung**, nicht nach Gerät: Ein
@@ -474,6 +528,14 @@ aussehen, ein iPad quer ist so breit wie ein kleiner Laptop.
 
 Bis 1000 px und im Hochformat bleibt alles, wie es ist: Reiterleiste unten,
 Inhalt in einer Spalte. Das gilt für Handy und iPad hochkant.
+
+**Die Leiste schiebt den Inhalt nicht.** Er richtet sich nach der
+*zugeklappten* Breite (72 px) und bleibt dann stehen; fährt die Leiste
+aus, legt sie sich darüber – ob per Zeiger oder per Knopf. Vorher rutschte
+die halbe Seite zur Seite, sobald man das Menü öffnete, und das sah aus,
+als sei etwas verrutscht. Auch das Ausfahren selbst ist ruhiger geworden:
+Eine Schublade wippt nicht, also zieht sie jetzt an einer ruhigen Kurve
+auf statt an der überschwingenden Feder.
 
 Ab **1000 px im Querformat** (iPad quer, Rechner) wandert die Leiste an den
 linken Rand: 72 px schmal, nur Symbole. Ein Knopf oben klappt sie auf 212 px

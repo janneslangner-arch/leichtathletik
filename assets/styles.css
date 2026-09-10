@@ -442,10 +442,14 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
    die Leiste. Zugeklappt sind es nur Symbole, ausgeklappt steht die
    Beschriftung daneben – der Zustand bleibt auf dem Gerät gespeichert. */
 @media (min-width: 1000px) and (orientation: landscape) {
-  :root { --leiste: 72px; }
-  body.leiste-offen { --leiste: 212px; }
+  :root { --leiste: 72px; --leiste-breit: 212px; }
+  body.leiste-offen { --leiste: var(--leiste-breit); }
 
-  body { padding-bottom: 24px; padding-left: var(--leiste); }
+  /* Der Inhalt richtet sich nach der *zugeklappten* Breite und bleibt dann
+     stehen. Fährt die Leiste aus, legt sie sich darüber – ob per Zeiger
+     oder per Knopf. Vorher rutschte die halbe Seite zur Seite, sobald man
+     das Menü öffnete; das sah aus, als sei etwas verrutscht. */
+  body { padding-bottom: 24px; padding-left: 72px; }
   .topbar { padding-left: 20px; z-index: 45; }
 
   .tabbar {
@@ -463,8 +467,12 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
        durchsichtig – deshalb erst die volle Farbe, dann die halbe nur dort,
        wo der Weichzeichner wirklich kann. */
     background: var(--surface);
-    transition: width var(--feder-zeit) var(--feder);
+    /* Eine Schublade wippt nicht. Die Feder mit ihrem Überschwingen ist für
+       Dinge da, die springen; hier zieht eine ruhige Kurve sauber auf. */
+    transition: width .42s cubic-bezier(.32, .72, 0, 1),
+                box-shadow .42s ease;
   }
+  body.leiste-offen .tabbar { box-shadow: 22px 0 44px -34px var(--rand-tief); }
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .tabbar {
       background: color-mix(in srgb, var(--surface) 62%, transparent);
@@ -528,18 +536,66 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   /* Die Beschriftung kommt nicht auf einmal, sondern von links nachgereicht –
      Reiter für Reiter, mit ein paar Hundertstel Abstand. */
   .tab-text, .leiste-knopf .tab-text {
-    transition: opacity .26s ease var(--verzug, 0s),
-                transform .34s cubic-bezier(.32, .72, 0, 1) var(--verzug, 0s);
+    transition: opacity .2s ease var(--verzug, 0s),
+                transform .28s cubic-bezier(.32, .72, 0, 1) var(--verzug, 0s);
   }
   body:not(.leiste-offen) .tab-text { opacity: 0; transform: translateX(-10px); }
-  .leiste-inhalt .tab:nth-child(2) .tab-text { --verzug: .02s; }
-  .leiste-inhalt .tab:nth-child(3) .tab-text { --verzug: .05s; }
-  .leiste-inhalt .tab:nth-child(4) .tab-text { --verzug: .08s; }
-  .leiste-inhalt .tab:nth-child(5) .tab-text { --verzug: .11s; }
-  .leiste-inhalt .tab:nth-child(6) .tab-text { --verzug: .14s; }
+  .leiste-inhalt .tab:nth-child(2) .tab-text { --verzug: .015s; }
+  .leiste-inhalt .tab:nth-child(3) .tab-text { --verzug: .03s; }
+  .leiste-inhalt .tab:nth-child(4) .tab-text { --verzug: .045s; }
+  .leiste-inhalt .tab:nth-child(5) .tab-text { --verzug: .06s; }
+  .leiste-inhalt .tab:nth-child(6) .tab-text { --verzug: .075s; }
 
   /* Der Inhalt darf mitwachsen, sobald Platz da ist */
   main { max-width: 900px; }
+}
+
+/* ---------- Die Ecke oben links: welche Gruppe? ----------
+   Sie gehört zur Leiste, nicht zur Kopfzeile, und ist deshalb genauso
+   breit wie diese. Zugeklappt steht dort das Kürzel, ausgefahren der ganze
+   Name. Auf dem Handy gibt es die Ecke nicht – dort ist kein Platz. */
+.leiste-kopf { display: none; }
+/* „display: flex" in der Medienabfrage sticht sonst das hidden-Attribut aus –
+   dann stünde dort eine leere Kapsel, wenn es gar keinen Namen gibt. */
+.leiste-kopf[hidden] { display: none !important; }
+
+@media (min-width: 1000px) and (orientation: landscape) {
+  .leiste-kopf {
+    display: flex; align-items: center;
+    position: fixed; left: 0; top: 0; z-index: 46;
+    width: 72px; height: var(--kopf, 57px);
+    justify-content: center;
+    border-bottom: 1px solid var(--line-soft);
+    border-right: 1px solid var(--line-soft);
+    background: var(--surface);
+    overflow: hidden; white-space: nowrap;
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .leiste-kopf {
+      background: color-mix(in srgb, var(--surface) 62%, transparent);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      backdrop-filter: blur(22px) saturate(180%);
+    }
+  }
+  /* Das Kürzel steht in einer Kapsel – klein, aber ein Anker fürs Auge. */
+  .klassen-kurz {
+    flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 24px; padding: 0 8px;
+    border: 1px solid color-mix(in srgb, var(--mint) 45%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mint) 12%, transparent);
+    color: var(--mint);
+    font-size: 11.5px; font-weight: 700; letter-spacing: .06em;
+  }
+  /* Der volle Name steht oben in der Leiste und kommt mit ihr heraus. */
+  .klassen-lang {
+    margin: 0 0 12px; padding: 0 14px;
+    font-size: 11px; font-weight: 700; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .klassen-lang:empty { display: none; }
 }
 
 /* ---------- Ausfahren beim Darüberfahren ----------
@@ -553,7 +609,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
    rückt der Inhalt mit. */
 @media (min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine) {
   body:not(.leiste-offen) .tabbar:hover {
-    width: 212px;
+    width: var(--leiste-breit);
     box-shadow: 22px 0 44px -34px var(--rand-tief);
   }
   body:not(.leiste-offen) .tabbar:hover .tab-text {
@@ -1667,6 +1723,70 @@ body.ist-lehrer .profile-btn { display: none; }
   opacity: 0; pointer-events: none;
 }
 
+/* ---------------- Runde Balken, runde Knöpfe ----------------
+   Nur in der Schüleransicht. Flächen, die etwas *tragen* (Karten, Kacheln,
+   Tabellen), behalten ihre klaren Kanten – das hält die Seite in Ordnung.
+   Alles, was man *anfasst* oder was als Balken in einer Reihe liegt, wird
+   zur Kapsel: Das ist die Form, die der Glaskörper unter dem Zeiger
+   ohnehin annimmt, und beides zusammen wirkt wie aus einem Guss. */
+body:not(.ist-lehrer) .row,
+body:not(.ist-lehrer) .chip,
+body:not(.ist-lehrer) .sortier-btn,
+body:not(.ist-lehrer) .seg-btn,
+body:not(.ist-lehrer) .badge,
+body:not(.ist-lehrer) .profile-btn,
+body:not(.ist-lehrer) .icon-btn,
+body:not(.ist-lehrer) .btn,
+body:not(.ist-lehrer) .save-btn,
+body:not(.ist-lehrer) .sync-chip,
+body:not(.ist-lehrer) .pscreen-close { border-radius: 999px; }
+/* Zeilen brauchen dann etwas mehr Luft am runden Ende, sonst klebt das
+   erste Zeichen an der Kante. */
+body:not(.ist-lehrer) .row { padding-inline: 16px; }
+body:not(.ist-lehrer) .menu-row,
+body:not(.ist-lehrer) .klapp > summary { border-radius: 18px; }
+body:not(.ist-lehrer) .seg { border-radius: 999px; }
+body:not(.ist-lehrer) .seg-knopf { border-radius: 999px; }
+
+/* ---------------- Lehreransicht: nüchtern ----------------
+   Sie ist ein Arbeitsgerät, keine Spielwiese: Schwarz auf Weiß oder Weiß
+   auf Schwarz (die Palette rechnet das Skript mit Sättigung null), klare
+   Kanten, kein wanderndes Glas, kein Schimmer. Auf den ersten Blick soll
+   klar sein, dass man nicht in der Schüleransicht ist. */
+body.ist-lehrer .glaslinse { display: none !important; }
+/* Kein Muster, kein Verlauf: ein ruhiger Grund, sonst nichts. */
+body.ist-lehrer #bgfx, body.ist-lehrer #bgverlauf { display: none; }
+body.ist-lehrer .save-btn::after,
+body.ist-lehrer .btn-mint::after { content: none; }
+body.ist-lehrer .seg-knopf { box-shadow: none; border-radius: 0; }
+body.ist-lehrer .tabbar::before { display: none; }
+/* Die Tabelle ist das Herzstück – ihr gehört die Aufmerksamkeit. */
+body.ist-lehrer .klassentabelle th,
+body.ist-lehrer .klassentabelle td { padding: 11px 12px; }
+body.ist-lehrer .klassentabelle tbody tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--text) 3%, transparent);
+}
+body.ist-lehrer .klassentabelle tbody tr:nth-child(even) .sp-name {
+  background: color-mix(in srgb, var(--text) 3%, var(--surface));
+}
+body.ist-lehrer .klassentabelle tbody tr:hover td {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+body.ist-lehrer .klassentabelle .sp-name { max-width: 190px; }
+body.ist-lehrer .np-marke.ist-schwach {
+  background: transparent; color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+body.ist-lehrer .fehlt-marke {
+  background: transparent; color: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+}
+/* Der Sortierknopf ist eine Schaltfläche, kein Bonbon. */
+body.ist-lehrer .sortier-btn { border-radius: 0; }
+body.ist-lehrer .sortier-btn.is-active {
+  background: var(--text); border-color: var(--text); color: var(--bg);
+}
+
 /* ---------------- Glas unter dem Zeiger ----------------
    Nur in der Rechner-Ansicht: dieselbe Bedingung wie für die linke Leiste
    (breit, quer, echter Zeiger). Auf dem Handy gibt es kein Darüberfahren,
@@ -1902,9 +2022,25 @@ body.ist-lehrer .profile-btn { display: none; }
   body.glas-linse .pscreen-close:focus-visible {
     background-color: transparent;
     box-shadow: none;
-    border-radius: 0;
+    /* Denselben Radius wie die Linse – das Skript schreibt ihn Bild für
+       Bild. So verschmilzt die verblassende Kontur mit dem Glas, statt als
+       Quadrat um eine Kapsel stehen zu bleiben. */
+    border-radius: var(--rund, 0px);
     transform: none;
     translate: none;
+    /* Hinein geht es schnell, damit die alte Linie nicht mehr im Weg ist,
+       wenn das Glas schon da ist. Hinaus darf es dauern. */
+    transition-duration: .16s;
+  }
+  /* Der Radius kommt Bild für Bild aus dem Skript – ein Übergang darauf
+     würde ihm nur hinterherhinken. */
+  body.glas-linse .disc, body.glas-linse .row, body.glas-linse .menu-row,
+  body.glas-linse .theme-card, body.glas-linse .chip, body.glas-linse .sortier-btn,
+  body.glas-linse .p-tile, body.glas-linse .klapp > summary,
+  body.glas-linse .profile-btn, body.glas-linse .icon-btn, body.glas-linse .btn,
+  body.glas-linse .seg-btn, body.glas-linse .pscreen-close {
+    transition: color .18s ease, border-color .34s ease-out,
+                background-color .34s ease-out, box-shadow .34s ease-out;
   }
   /* Gedrückt sinkt die Linse ein, nicht die Fläche. */
   body.glas-linse .disc:active, body.glas-linse .menu-row:active,
