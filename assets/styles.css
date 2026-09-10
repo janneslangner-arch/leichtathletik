@@ -77,6 +77,34 @@
   initial-value: 0;
 }
 
+/* ---------------- Die Feder ----------------
+   Alle Bewegungen in dieser App folgen derselben Physik: einem gedämpften
+   harmonischen Oszillator, also einer echten Feder. Angehängte Masse m = 1,
+   Federkonstante k = 170, Dämpfung c = 16. Daraus folgt
+
+       Eigenfrequenz  ω₀ = √(k/m)            = 13,0 /s
+       Dämpfungsgrad  ζ  = c / (2·√(k·m))    = 0,61
+       Auslenkung     x(t) = 1 − e^(−ζω₀t)·(cos ω_d t + (ζω₀/ω_d)·sin ω_d t)
+
+   ζ liegt unter 1, die Feder schwingt also über: Sie fährt 8,7 % über das
+   Ziel hinaus, kommt zurück und steht nach 660 ms. Genau dieses kurze
+   Nachwippen lässt eine Bewegung lebendig statt mechanisch wirken.
+
+   CSS kann keine Feder rechnen, aber `linear()` kann eine Kurve stützweise
+   nachfahren. Die 27 Stützstellen unten sind aus der Formel gerechnet, nicht
+   geschätzt. Wer die Feder ändern will, ändert k und c und rechnet sie neu –
+   die Rechnung steht im Projekt (werkzeug/feder.py). */
+:root {
+  --feder: linear(0, 0.0479, 0.1653, 0.3183, 0.4813, 0.6363, 0.772, 0.8828,
+                  0.967, 1.026, 1.0629, 1.0818, 1.0871, 1.0827, 1.0724, 1.0591,
+                  1.0449, 1.0314, 1.0196, 1.01, 1.0027, 0.9976, 0.9945, 0.9929,
+                  0.9924, 0.9928, 0.9937);
+  --feder-zeit: .66s;
+  /* Dieselbe Feder, nur kürzer: für kleine Wege wie das Anheben beim
+     Darüberfahren. Gleiche Kurve, gleiches Gefühl, weniger Zeit. */
+  --feder-kurz: .38s;
+}
+
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 body {
@@ -431,7 +459,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
        durchsichtig – deshalb erst die volle Farbe, dann die halbe nur dort,
        wo der Weichzeichner wirklich kann. */
     background: var(--surface);
-    transition: width .42s cubic-bezier(.32, .72, 0, 1);
+    transition: width var(--feder-zeit) var(--feder);
   }
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .tabbar {
@@ -461,7 +489,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
     background: var(--mint);
     /* Ein Hauch Überschwingen: er kommt an, wippt einmal kurz nach und steht.
        Das ist der ganze Trick – mehr wäre Spielerei. */
-    transition: transform .46s cubic-bezier(.34, 1.32, .38, 1),
+    transition: transform var(--feder-zeit) var(--feder),
                 height .3s cubic-bezier(.32, .72, 0, 1);
   }
   .leiste-marke.ohne-schwung { transition: none; }
@@ -534,7 +562,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   }
   /* Der Reiter unter dem Zeiger hebt sich leicht heraus – eine Handbreit
      Rückmeldung, kein Karussell. */
-  .tabbar .tab { transition: color .16s ease, background-color .22s ease, transform .22s cubic-bezier(.34, 1.32, .38, 1); }
+  .tabbar .tab { transition: color .16s ease, background-color .22s ease, transform var(--feder-kurz) var(--feder); }
   .tabbar .tab:hover { background: var(--auflage); transform: translateX(2px); }
 }
 
@@ -1111,17 +1139,40 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
 }
 
 /* ---------- Punktewertung ---------- */
+/* ---------------- Umschalter mit gleitendem Knopf ----------------
+   Vorher sprang die Farbe von einer Schaltfläche zur nächsten. Jetzt gleitet
+   ein Knopf über die Bahn – wie der Schalter im Vorbild. Er hängt an der
+   Feder, schwingt also leicht über, und während er unterwegs ist, wird er
+   ein Stück breiter und flacher: das Stauchen und Strecken, an dem das Auge
+   „schwer und flüssig" erkennt. Beides sind eigene Eigenschaften
+   (`translate` und `scale`), damit sie unabhängig voneinander laufen. */
 .seg {
+  position: relative;
   display: inline-flex; gap: 4px; padding: 4px; margin-bottom: 14px;
   background: var(--surface); border: 1px solid var(--line-soft); border-radius: 0;
 }
+.seg-knopf {
+  position: absolute; top: 4px; bottom: 4px; left: 0;
+  width: var(--knopf-b, 0px);
+  translate: var(--knopf-x, 0px) 0;
+  scale: 1 1;
+  background: var(--mint);
+  pointer-events: none;
+  transition: translate var(--feder-zeit) var(--feder),
+              width var(--feder-zeit) var(--feder),
+              scale .34s var(--feder);
+}
+.seg-knopf.wandert { scale: 1.06 .9; }
+.seg-knopf.ohne-feder { transition: none; }
 .seg-btn {
+  position: relative; z-index: 1;
   border: 0; background: none; color: var(--muted); cursor: pointer;
   font: inherit; font-size: 13px; font-weight: 600;
-  padding: 8px 16px; border-radius: 0; transition: .12s;
+  padding: 8px 16px; border-radius: 0;
+  transition: color .22s ease;
 }
 .seg-btn:hover { color: var(--text); }
-.seg-btn.is-active { background: var(--mint); color: var(--ink); }
+.seg-btn.is-active { color: var(--ink); }
 
 .punkte-summe {
   position: relative; overflow: hidden;
@@ -1608,53 +1659,103 @@ body.ist-lehrer .profile-btn { display: none; }
    (breit, quer, echter Zeiger). Auf dem Handy gibt es kein Darüberfahren,
    und ein klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
 
-   Was hier passiert, ist dem Vorbild nachgebaut: Die Fläche wird für den
-   Moment zu einer Linse. Sie nimmt die Kapselform an (dafür wandert der
-   Radius mit – das Zerfließen IST die Bewegung), was darunter liegt wird
-   gebrochen und aufgehellt, oben sitzt eine helle Lichtkante, unten eine
-   weiche Gegenkante, außen ein feiner Ring, und ein Lichtfleck folgt dem
-   Zeiger über die Fläche.
+   Drei Ebenen, bewusst getrennt:
+     1. die Fläche selbst  – Brechung (backdrop-filter), Kante, Anheben
+     2. ::before           – der Lichtreflex, folgt dem Zeiger, verblasst
+     3. der Inhalt         – bleibt scharf, wird nie aufgehellt
 
-   Im Ruhezustand bleibt alles eckig – das gilt weiter für die ganze App.
-   Rund wird nur, was gerade angefasst wird.
-
-   `--glas: 1` ist zugleich die Marke, an der das Skript erkennt, welche
-   Fläche das Licht mitbekommt – so gibt es nur eine Liste, nicht zwei. */
+   Alles, was sich bewegt, hängt an derselben Feder (--feder).
+   Einstellen lässt sich die Stärke oben an den --glas-*-Marken (in app.js
+   je Modus gesetzt) und an den vier Zahlen hier: Weichzeichner, Sättigung,
+   Anheben, Nachlauf (letzterer im Skript, `NACHLAUF`). */
 @media (min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine) {
   .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
   .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
     --glas: 1;
+    position: relative;
+    /* Eigene Stapelebene: nur so landet der Lichtreflex (z-index: -1)
+       zwischen Fläche und Text und nicht über der Schrift. */
+    isolation: isolate;
     transition: color .18s ease, border-color .28s ease,
                 background-color .28s ease, box-shadow .3s ease,
-                border-radius .42s cubic-bezier(.34, 1.36, .36, 1),
-                transform .42s cubic-bezier(.34, 1.36, .36, 1);
+                border-radius var(--feder-kurz) var(--feder),
+                translate var(--feder-kurz) var(--feder),
+                transform var(--feder-kurz) var(--feder);
   }
 
+  /* Ebene 2: der Lichtreflex. Eigene Ebene, damit der Inhalt darüber scharf
+     bleibt. Einblenden 220 ms, Verblassen 420 ms – das Licht geht langsamer,
+     als es kommt, sonst wirkt das Verlassen wie ein Ausschalter. */
+  .disc::before, .row::before, .menu-row::before, .theme-card::before,
+  .chip::before, .sortier-btn::before, .p-tile::before,
+  .klapp > summary::before, .profile-btn::before, .icon-btn::before,
+  .btn::before, .seg-btn::before, .pscreen-close::before {
+    /* z-index: -1 heißt hier nicht „ganz nach hinten": Innerhalb der eigenen
+       Stapelebene liegt die Ebene über der Fläche und unter dem Inhalt.
+       Genau da gehört Licht hin – der Text bleibt schwarz und scharf. */
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    pointer-events: none; border-radius: inherit; opacity: 0;
+    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 50%),
+                var(--glas-licht) 0%, transparent 62%);
+    transition: opacity .42s ease;
+  }
+  .disc:hover::before, .row:hover::before, .menu-row:hover::before,
+  .theme-card:hover::before, .chip:hover::before, .sortier-btn:hover::before,
+  .p-tile:hover::before, .klapp > summary:hover::before,
+  .profile-btn:hover::before, .icon-btn:hover::before, .btn:hover::before,
+  .seg-btn:hover::before, .pscreen-close:hover::before,
+  .disc:focus-visible::before, .row:focus-visible::before,
+  .menu-row:focus-visible::before, .theme-card:focus-visible::before,
+  .chip:focus-visible::before, .sortier-btn:focus-visible::before,
+  .p-tile:focus-visible::before, .klapp > summary:focus-visible::before,
+  .profile-btn:focus-visible::before, .icon-btn:focus-visible::before,
+  .btn:focus-visible::before, .seg-btn:focus-visible::before,
+  .pscreen-close:focus-visible::before {
+    opacity: 1; transition-duration: .22s;
+  }
+  /* Der Inhalt liegt über dem Licht */
+  .disc > *, .row > *, .menu-row > *, .theme-card > *, .p-tile > *,
+  .klapp > summary > * { position: relative; z-index: 1; }
+
+  /* Ebene 1: die Glasfläche */
   .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
   .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
   .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
-  .pscreen-close:hover {
+  .pscreen-close:hover,
+  .disc:focus-visible, .row:focus-visible, .menu-row:focus-visible,
+  .theme-card:focus-visible, .chip:focus-visible, .sortier-btn:focus-visible,
+  .p-tile:focus-visible, .klapp > summary:focus-visible,
+  .profile-btn:focus-visible, .icon-btn:focus-visible, .btn:focus-visible,
+  .seg-btn:focus-visible, .pscreen-close:focus-visible {
     /* Die harte Linie verschwindet – den Rand macht jetzt das Licht. */
     border-color: transparent;
     background-color: color-mix(in srgb, var(--surface) 34%, transparent);
-    background-image: radial-gradient(240px circle at var(--gx, 50%) var(--gy, 0%),
-                      var(--glas-licht) 0%, transparent 60%);
     box-shadow:
+      /* feste Lichtkante oben und Ring außen … */
       inset 0 1.5px 0 var(--glas-kante),
       inset 0 0 0 1px var(--glas-ring),
-      inset 0 -6px 12px -8px var(--glas-innen),
+      /* … dazu ein Schein, der zur Seite des Zeigers wandert: die dem Licht
+         zugewandte Kante wird heller */
+      inset calc(var(--neig-x, 0) * -7px) calc(var(--neig-y, 0) * -7px) 16px -10px var(--glas-innen),
       inset 0 0 30px -10px var(--glas-innen),
       0 18px 40px -26px var(--rand-tief),
       0 0 0 1px color-mix(in srgb, var(--mint) 10%, transparent);
-    transform: translateY(-1px) scale(1.02);
+    /* Anheben und ein bis zwei Pixel dem Zeiger entgegen */
+    transform: scale(1.02);
+    translate: calc(var(--neig-x, 0) * 1.5px) calc(var(--neig-y, 0) * 1.5px - 1px);
   }
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
     .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
     .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
-    .pscreen-close:hover {
-      -webkit-backdrop-filter: blur(16px) saturate(200%) brightness(var(--glas-hell));
-      backdrop-filter: blur(16px) saturate(200%) brightness(var(--glas-hell));
+    .pscreen-close:hover,
+    .disc:focus-visible, .row:focus-visible, .menu-row:focus-visible,
+    .theme-card:focus-visible, .chip:focus-visible, .sortier-btn:focus-visible,
+    .p-tile:focus-visible, .klapp > summary:focus-visible,
+    .profile-btn:focus-visible, .icon-btn:focus-visible, .btn:focus-visible,
+    .seg-btn:focus-visible, .pscreen-close:focus-visible {
+      -webkit-backdrop-filter: blur(18px) saturate(150%) brightness(var(--glas-hell));
+      backdrop-filter: blur(18px) saturate(150%) brightness(var(--glas-hell));
     }
   }
 
@@ -1662,27 +1763,60 @@ body.ist-lehrer .profile-btn { display: none; }
      zur weichen Fliese. Beides ist im Vorbild zu sehen. */
   .chip:hover, .sortier-btn:hover, .btn:hover, .seg-btn:hover,
   .profile-btn:hover, .icon-btn:hover, .pscreen-close:hover,
-  .row:hover, .klapp > summary:hover { border-radius: 999px; }
-  .disc:hover, .menu-row:hover, .theme-card:hover, .p-tile:hover { border-radius: 24px; }
+  .row:hover, .klapp > summary:hover,
+  .chip:focus-visible, .sortier-btn:focus-visible, .btn:focus-visible,
+  .seg-btn:focus-visible, .profile-btn:focus-visible, .icon-btn:focus-visible,
+  .pscreen-close:focus-visible, .row:focus-visible,
+  .klapp > summary:focus-visible { border-radius: 999px; }
+  .disc:hover, .menu-row:hover, .theme-card:hover, .p-tile:hover,
+  .disc:focus-visible, .menu-row:focus-visible, .theme-card:focus-visible,
+  .p-tile:focus-visible { border-radius: 24px; }
 
-  /* Gedrückt: kurz zusammensinken, wie echtes Glas nachgibt */
+  /* Gedrückt: kurz zusammensinken, dann federt es zurück */
   .disc:active, .menu-row:active, .theme-card:active, .chip:active,
   .sortier-btn:active, .p-tile:active, .profile-btn:active, .icon-btn:active,
-  .btn:active, .seg-btn:active { transform: translateY(0) scale(.988); }
+  .btn:active, .seg-btn:active { transform: scale(.98); translate: 0 0; }
 
   /* Farbige Flächen behalten ihre Farbe – dort wäre Glas nur Matsch.
      Sie bekommen die Kapselform, das Anheben und die Lichtkante. */
   .btn-mint:hover, .save-btn:hover, .seg-btn.is-active:hover,
-  .p-tile.is-current:hover {
-    background-color: var(--mint); background-image: none;
+  .p-tile.is-current:hover,
+  .btn-mint:focus-visible, .save-btn:focus-visible,
+  .seg-btn.is-active:focus-visible, .p-tile.is-current:focus-visible {
+    background-color: var(--mint);
     -webkit-backdrop-filter: none; backdrop-filter: none;
     box-shadow: inset 0 1.5px 0 var(--glas-kante),
                 inset 0 0 0 1px var(--glas-ring),
                 0 16px 34px -22px var(--mint-glow);
   }
-  .save-btn:hover { background-color: color-mix(in srgb, var(--mint) 88%, white); border-radius: 999px; }
-  .btn-mint:hover, .seg-btn.is-active:hover { border-radius: 999px; }
+  .save-btn:hover, .save-btn:focus-visible {
+    background-color: color-mix(in srgb, var(--mint) 88%, white); border-radius: 999px;
+  }
+  .btn-mint:hover, .btn-mint:focus-visible { border-radius: 999px; }
+
+  /* Der gleitende Knopf ist am Rechner eine Linse: Kapselform, Lichtkante
+     oben, weiche Gegenkante unten – so wie der Schalter im Vorbild. */
+  .seg-knopf {
+    border-radius: 999px;
+    box-shadow: inset 0 1.5px 0 var(--glas-kante),
+                inset 0 0 0 1px var(--glas-ring),
+                inset 0 -4px 8px -6px var(--glas-innen),
+                0 6px 14px -8px var(--mint-glow);
+  }
+  .seg:hover .seg-knopf { scale: 1.03 1.03; }
 
   /* In der Leiste hat der Reiter schon seinen eigenen Auftritt */
   .tabbar .tab { --glas: 0; }
+}
+
+/* Auf Berührungsgeräten gibt es kein Darüberfahren – dort zählt der Druck:
+   Das Element sinkt kurz ein und kommt an derselben Feder zurück. */
+@media (hover: none), (pointer: coarse) {
+  .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
+  .profile-btn, .icon-btn, .btn, .seg-btn {
+    transition: transform var(--feder-kurz) var(--feder), color .18s ease;
+  }
+  .disc:active, .row:active, .menu-row:active, .theme-card:active,
+  .chip:active, .sortier-btn:active, .p-tile:active, .profile-btn:active,
+  .icon-btn:active, .btn:active, .seg-btn:active { transform: scale(.98); }
 }

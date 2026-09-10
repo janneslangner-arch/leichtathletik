@@ -446,13 +446,87 @@
     marke.style.setProperty('--marke-h', aktiv.offsetHeight + 'px');
   }
 
+  /* ---------------- Der gleitende Knopf der Umschalter ----------------
+     Jeder Umschalter bekommt einen Knopf, der zur gewählten Schaltfläche
+     wandert. Gemessen wird hier, bewegt wird in CSS – dort hängt er an der
+     Feder. Während er unterwegs ist, trägt er kurz die Marke „wandert“:
+     Damit staucht und streckt er sich, und genau das lässt ihn schwer und
+     flüssig wirken statt wie ein springendes Rechteck. */
+  function setzeSegKnopf(seg, ohneFeder) {
+    if (!seg) return;
+    let knopf = seg.querySelector(':scope > .seg-knopf');
+    if (!knopf) {
+      knopf = el('span', 'seg-knopf');
+      knopf.setAttribute('aria-hidden', 'true');
+      seg.prepend(knopf);
+    }
+    const aktiv = seg.querySelector('.seg-btn.is-active');
+    if (!aktiv || !aktiv.offsetWidth) { knopf.style.setProperty('--knopf-b', '0px'); return; }
+    const vorher = knopf.style.getPropertyValue('--knopf-x');
+    const jetzt = aktiv.offsetLeft + 'px';
+    if (ohneFeder || vorher === '') {
+      // Beim ersten Auftauchen soll er dort stehen, nicht hinfliegen.
+      knopf.classList.add('ohne-feder');
+      requestAnimationFrame(() => requestAnimationFrame(() => knopf.classList.remove('ohne-feder')));
+    } else if (vorher !== jetzt) {
+      knopf.classList.add('wandert');
+      clearTimeout(knopf._zeit);
+      knopf._zeit = setTimeout(() => knopf.classList.remove('wandert'), 260);
+    }
+    knopf.style.setProperty('--knopf-x', jetzt);
+    knopf.style.setProperty('--knopf-b', aktiv.offsetWidth + 'px');
+  }
+  const setzeAlleSegKnoepfe = ohneFeder =>
+    document.querySelectorAll('.seg').forEach(s => setzeSegKnopf(s, ohneFeder));
+
   /* ---------------- Glas: das Licht folgt dem Zeiger ----------------
      Welche Flächen mitmachen, steht in der CSS-Datei (`--glas: 1`) – das
      Skript fragt danach, statt eine zweite Liste zu führen, die auseinander
-     laufen könnte. Gerechnet wird höchstens einmal je Bild. */
+     laufen könnte.
+
+     Das Licht springt nicht auf den Zeiger, es läuft ihm nach: Je Bild wird
+     nur ein Teil des Restwegs zurückgelegt (`nachlauf`). Das ist dieselbe
+     Rechnung wie bei einer Feder ohne Schwingung – träge, aber ohne Wackeln,
+     und genau das lässt die Fläche schwer wirken. Gerechnet wird höchstens
+     einmal je Bild, und nur solange sich etwas ändert. */
+  const NACHLAUF = 0.16;          // 0 = klebt fest, 1 = springt sofort
+
   function richteGlasEin() {
-    if (!window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    let warten = false, letzte = null;
+    if (!window.matchMedia) return;
+    if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    // Wer weniger Bewegung eingestellt hat, bekommt kein Nachlaufen.
+    const ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let flaeche = null;                     // Fläche unter dem Zeiger
+    let zielX = 50, zielY = 50;             // wohin das Licht will (%)
+    let istX = 50, istY = 50;               // wo es gerade steht (%)
+    let laeuft = false;
+
+    const schreib = () => {
+      if (!flaeche) return;
+      flaeche.style.setProperty('--gx', istX.toFixed(1) + '%');
+      flaeche.style.setProperty('--gy', istY.toFixed(1) + '%');
+      // −1 … +1 je Achse: daraus macht CSS die hellere Kante und die
+      // ein bis zwei Pixel Bewegung dem Zeiger entgegen.
+      flaeche.style.setProperty('--neig-x', ((istX - 50) / 50).toFixed(3));
+      flaeche.style.setProperty('--neig-y', ((istY - 50) / 50).toFixed(3));
+    };
+
+    const takt = () => {
+      if (!flaeche) { laeuft = false; return; }
+      istX += (zielX - istX) * NACHLAUF;
+      istY += (zielY - istY) * NACHLAUF;
+      schreib();
+      if (Math.abs(zielX - istX) > 0.15 || Math.abs(zielY - istY) > 0.15) {
+        requestAnimationFrame(takt);
+      } else { istX = zielX; istY = zielY; schreib(); laeuft = false; }
+    };
+
+    const loslassen = el => {
+      if (!el) return;
+      ['--gx', '--gy', '--neig-x', '--neig-y'].forEach(m => el.style.removeProperty(m));
+    };
+
     const glasFlaeche = ziel => {
       let el = ziel;
       for (let i = 0; el && el.nodeType === 1 && i < 5; i++, el = el.parentElement) {
@@ -460,23 +534,44 @@
       }
       return null;
     };
+
+    let warten = false;
     document.addEventListener('pointermove', ev => {
       if (ev.pointerType !== 'mouse' || warten) return;
       warten = true;
       requestAnimationFrame(() => {
         warten = false;
         const el = glasFlaeche(ev.target);
-        if (letzte && letzte !== el) {
-          letzte.style.removeProperty('--gx');
-          letzte.style.removeProperty('--gy');
+        if (el !== flaeche) {
+          // Verlassen: die Marken bleiben stehen, das Licht verblasst in CSS.
+          // Erst danach aufräumen, sonst springt der Verlauf beim Ausblenden.
+          const alt = flaeche;
+          if (alt) setTimeout(() => { if (flaeche !== alt) loslassen(alt); }, 450);
+          flaeche = el;
+          if (el) {
+            // Auf einer neuen Fläche fängt das Licht dort an, wo der Zeiger
+            // ist – sonst käme es von der vorigen Fläche herübergeflogen.
+            const r = el.getBoundingClientRect();
+            istX = zielX = (ev.clientX - r.left) / r.width * 100;
+            istY = zielY = (ev.clientY - r.top) / r.height * 100;
+            schreib();
+            return;
+          }
         }
-        letzte = el;
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        el.style.setProperty('--gx', Math.round((ev.clientX - r.left) / r.width * 100) + '%');
-        el.style.setProperty('--gy', Math.round((ev.clientY - r.top) / r.height * 100) + '%');
+        if (!flaeche) return;
+        const r = flaeche.getBoundingClientRect();
+        zielX = (ev.clientX - r.left) / r.width * 100;
+        zielY = (ev.clientY - r.top) / r.height * 100;
+        if (ruhig) { istX = zielX; istY = zielY; schreib(); return; }
+        if (!laeuft) { laeuft = true; requestAnimationFrame(takt); }
       });
     }, { passive: true });
+
+    // Fenster verlassen: nichts soll leuchtend hängen bleiben.
+    document.addEventListener('pointerleave', () => {
+      const alt = flaeche; flaeche = null;
+      if (alt) setTimeout(() => { if (!flaeche) loslassen(alt); }, 450);
+    });
   }
 
   /* Das Licht unter dem Zeiger: Die Leiste bekommt nur mitgeteilt, auf
@@ -2335,6 +2430,8 @@
     npHinweis();
     const screen = $('#profilScreen');
     screen.hidden = false;
+    // Erst sichtbar, dann messen: Vorher wäre die Breite null.
+    requestAnimationFrame(() => setzeSegKnopf(document.getElementById('npGeschlecht'), true));
     screen.scrollTop = 0;
     document.body.style.overflow = 'hidden';
     setTimeout(() => $('#npName').focus(), 30);
@@ -2676,6 +2773,7 @@
     setzeAktiv('#zeitSeg', zeit);
     setzeAktiv('#klasseSeg', klasse);
     setzeAktiv('#modusSeg', modus);
+    setzeAlleSegKnoepfe();
     const modusText = document.getElementById('modusHinweis');
     if (modusText) modusText.textContent = modus === 'auto'
       ? 'Folgt dem Gerät – dort steht gerade ' + (geraetDunkel() ? 'dunkel' : 'hell') + '.'
@@ -3228,7 +3326,7 @@
     if (view === 'verlauf') renderVerlauf();
     if (view === 'punkte') renderPunkte();
     if (view === 'profil') renderProfil();
-    if (view === 'einstellungen') renderEinstellungen();
+    if (view === 'einstellungen') { renderEinstellungen(); requestAnimationFrame(() => setzeAlleSegKnoepfe(true)); }
     if (view === 'profile') renderProfilListe();
     if (view === 'lehrer') renderLehrer();
     window.scrollTo(0, 0);
@@ -3521,6 +3619,13 @@
     richteAugenEin();               // das Auge gibt es schon im Startbildschirm
     richteLeisteEin();
     richteGlasEin();
+    setzeAlleSegKnoepfe(true);
+    // Ändert sich die Breite, sitzt der Knopf sonst neben seiner Schaltfläche.
+    let segDreh;
+    window.addEventListener('resize', () => {
+      clearTimeout(segDreh);
+      segDreh = setTimeout(() => setzeAlleSegKnoepfe(true), 140);
+    });
 
     // Erst fragen, dann laden: Ohne Zustimmung schreibt die App nichts
     // Freiwilliges auf das Gerät.
@@ -3652,6 +3757,7 @@
         npGeschlecht = b.dataset.wert;
         document.querySelectorAll('#npGeschlecht .seg-btn').forEach(x =>
           x.classList.toggle('is-active', x === b));
+        setzeSegKnopf(document.getElementById('npGeschlecht'));
         npHinweis();
       }));
     document.addEventListener('keydown', ev => {

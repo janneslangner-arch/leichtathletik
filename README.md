@@ -400,6 +400,69 @@ Textspan in einer Kachel „ich bin Glas", und das Licht landete auf ihm
 statt auf der Fläche darunter – genau dieser Fehler steckte in der ersten
 Fassung und wird von `glastest.js` festgehalten.
 
+### Wie es sich bewegt
+
+Nichts an dieser Bewegung ist geraten – sie ist **gerechnet**. Alles, was
+federt, hängt an derselben Kurve `--feder` in `assets/styles.css`. Dahinter
+steckt ein gedämpfter harmonischer Oszillator: Masse m = 1,
+Federkonstante k = 170, Dämpfung c = 16. Daraus folgen die Eigenfrequenz
+ω₀ = √(k/m) ≈ 13,04 1/s und die Dämpfung ζ = c/(2·√(k·m)) ≈ 0,614; die
+Auslenkung ist
+
+    x(t) = 1 − e^(−ζω₀t) · (cos ω_d t + (ζω₀/ω_d) · sin ω_d t)
+
+CSS kann das nicht rechnen, `linear()` aber stützweise nachzeichnen – die
+27 Stützstellen im Wert von `--feder` sind genau diese Kurve, abgetastet von
+`werkzeug/feder.py`. Weil ζ unter 1 liegt, schwingt sie über: 8,7 % über
+das Ziel hinaus, dann zurück. Deshalb wirkt jede Bewegung wie Masse an einer
+Feder statt wie eine abgebremste Rutschpartie.
+
+Vier Dinge machen daraus Liquid Glass statt eines Hover-Effekts:
+
+1. **Das Licht läuft nach.** Der Zeiger gibt nur das Ziel vor; der Fleck
+   folgt in jedem Bild um 16 % der Reststrecke (`NACHLAUF` in
+   `assets/app.js`). Er kommt also träge hinterher, wie Licht in einer
+   dicken Scheibe, und rastet ein, sobald er nah genug dran ist – danach
+   läuft kein `requestAnimationFrame` mehr.
+2. **Die Kante weiß, wo das Licht steht.** Aus der Position wird
+   `--neig-x`/`--neig-y` (−1 … +1). Der innere Schatten wandert damit auf die
+   *abgewandte* Seite, die zugewandte hellt auf – die Fläche bekommt eine
+   Richtung, ohne sich zu kippen.
+3. **Die Fläche rückt mit.** Ein bis zwei Pixel dem Zeiger entgegen, dazu
+   `scale(1.02)`. Mehr wäre Zappeln; weniger merkt niemand.
+4. **Rein anders als raus.** Ankommen schnell (~0,22 s), Verlassen langsam
+   (~0,42 s). Genau so verhalten sich echte Reflexe – und schnelles
+   Drüberfahren wirkt dadurch nicht hektisch.
+
+Gedrückt sinkt alles auf `scale(0.98)` und kommt an derselben Feder zurück.
+Auf Geräten ohne echten Zeiger (`(hover: none)`) gibt es kein Nachlaufen,
+aber diesen Druckpunkt – dort ist er die einzige Rückmeldung. Wer im System
+weniger Bewegung eingestellt hat, bekommt das Licht ohne Nachlauf; die
+globale `prefers-reduced-motion`-Regel schaltet die Übergänge ohnehin ab.
+Tastaturbedienung führt über `:focus-visible` zum selben Glas, ohne
+Zeigerlicht. Fehlt `backdrop-filter` (alte Browser), fällt allein die
+Weichzeichnung weg – sie steht als einzige in einem `@supports`-Zweig;
+getönte Fläche, Lichtkante und Bewegung bleiben.
+
+**Der Umschalter gleitet.** Hell/Dunkel, Sortierung, Bahn/Feld: Statt dass
+die Farbe von Feld zu Feld springt, wandert ein Knopf (`.seg-knopf`)
+darunter her – an der Feder, und während er unterwegs ist, zieht er sich
+leicht in die Länge (`scale: 1.06 .9`) und wird am Ziel wieder rund. Das
+ist derselbe Trick wie beim Vorbild: Nicht der Zustand wechselt, ein
+Gegenstand bewegt sich.
+
+### Wo man die Stärke einstellt
+
+| Was | Wo |
+| --- | --- |
+| Wie stark das Licht nachläuft | `NACHLAUF` in `assets/app.js` (0 = klebt, 1 = springt sofort) |
+| Weichzeichnung und Sättigung | `blur(18px) saturate(150%)` im Glas-Block von `assets/styles.css` |
+| Helligkeit, Kante, Ring, Schein | die `--glas-*`-Marken in `themeVarsHell` / `themeVarsDunkel` in `assets/app.js` |
+| Anheben, Mitrücken, Druckpunkt | `scale(1.02)` / `1.5px` / `scale(.98)` im selben Block |
+| Schwung und Überschwingen | `--feder`, `--feder-zeit`, `--feder-kurz` in `:root` (neu rechnen mit `werkzeug/feder.py`) |
+| Ein- und Ausblendzeit des Lichts | die beiden Zeiten auf `opacity` in der Lichtebene (`::before`) |
+| Ab wann es überhaupt gilt | die Medienabfrage `(min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine)` |
+
 ## Schmal, breit, quer
 
 Entschieden wird nach **Breite und Ausrichtung**, nicht nach Gerät: Ein
