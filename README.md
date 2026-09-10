@@ -379,11 +379,37 @@ aus, dann steht die Beschriftung daneben; der Zustand bleibt auf dem Gerät
 weg, sondern nur unsichtbar – Vorlesehilfen finden sie weiter. Der Balken,
 der den aktiven Reiter markiert, sitzt dann links an der Kante statt oben.
 
+Wo ein **echter Zeiger** im Spiel ist (`hover: hover` und `pointer: fine`,
+also am Rechner), fährt die Leiste schon aus, wenn die Maus darüberfährt –
+und legt sich dabei **über** den Inhalt, statt ihn wegzuschieben. Sonst
+rutschte die halbe Seite zur Seite, nur weil die Maus vorbeikommt. Wer sie
+festhalten will, klappt sie mit dem Knopf auf; dann rückt der Inhalt mit.
+Auf dem iPad gilt das ausdrücklich nicht: Safari hält den Hover-Zustand
+nach einer Berührung fest, die Leiste hinge nach jedem Tippen offen.
+
+Drei Sachen machen die Bewegung aus:
+
+- **Glas.** Die Fläche ist durchscheinend, was darunter liegt, wird
+  weichgezeichnet (`backdrop-filter`). Wo der Browser das nicht kann, bleibt
+  sie schlicht deckend – deshalb steht die volle Farbe zuerst und die halbe
+  nur in einem `@supports`.
+- **Licht unter dem Zeiger.** Ein weicher Schein folgt der Maus. Das Skript
+  meldet nur die Höhe (`--maus-y`), gezeichnet wird in CSS; gedrosselt auf
+  ein Bild pro Frame.
+- **Ein Balken, der wandert.** Statt an jedem Reiter einen, der an- und
+  ausgeht, gibt es einen einzigen, der zum aktiven Reiter gleitet – mit
+  einem Hauch Überschwingen (`cubic-bezier(.34, 1.32, .38, 1)`). Beim
+  Umschalten der Ansicht und beim Drehen steht er sofort richtig, statt
+  durch die halbe Leiste zu fliegen.
+
 Ob die Leiste links steht, entscheidet **allein die CSS-Abfrage**. Das
 Skript kennt nur „auf" oder „zu" und setzt eine Klasse am `body` – so gibt
-es keine zweite Wahrheit, die auseinanderlaufen könnte. `leistetest.js`
-misst alle fünf Fälle nach (Handy, iPad hoch, schmales Fenster, iPad quer,
-Rechner).
+es keine zweite Wahrheit, die auseinanderlaufen könnte. Die Höhe der
+Kopfzeile, unter der die Leiste beginnt, wird gemessen statt geraten
+(`--kopf`). `leistetest.js` misst alle Fälle nach: Handy, iPad hoch,
+schmales Fenster, iPad quer, Rechner – dazu Ausfahren beim Darüberfahren,
+dass der Inhalt dabei stehen bleibt, dass auf Berührungsgeräten nichts von
+allein ausfährt, und dass der Balken wandert statt zu springen.
 
 ## Schrift
 

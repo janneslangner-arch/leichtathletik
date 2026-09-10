@@ -408,6 +408,67 @@
       knopf.setAttribute('aria-label', knopf.title);
     }
     if (merken) merke('la-leiste', offen ? 'offen' : 'zu');
+    setzeMarke();
+  }
+
+  /* ---------------- Der gleitende Balken ----------------
+     In der linken Leiste markiert ein einziger Balken den aktiven Reiter und
+     wandert zum nächsten, statt an einer Stelle zu verschwinden und an der
+     anderen aufzutauchen. Gerechnet wird hier, gezeichnet in CSS: Das Skript
+     sagt nur, wo der aktive Reiter steht. */
+  function setzeMarke(ohneSchwung) {
+    const feld = document.getElementById('leisteInhalt');
+    const marke = feld && feld.querySelector('.leiste-marke');
+    if (!marke) return;
+    const aktiv = feld.querySelector('.tab.is-active:not([hidden])');
+    if (!aktiv) { marke.style.setProperty('--marke-h', '0px'); return; }
+    // Beim ersten Setzen und beim Umschalten der Ansicht soll er nicht durch
+    // die halbe Leiste fliegen – dann steht er sofort richtig.
+    if (ohneSchwung) {
+      marke.classList.add('ohne-schwung');
+      requestAnimationFrame(() => requestAnimationFrame(() => marke.classList.remove('ohne-schwung')));
+    }
+    marke.style.setProperty('--marke-y', aktiv.offsetTop + 'px');
+    marke.style.setProperty('--marke-h', aktiv.offsetHeight + 'px');
+  }
+
+  /* Das Licht unter dem Zeiger: Die Leiste bekommt nur mitgeteilt, auf
+     welcher Höhe die Maus steht – den Rest macht der Verlauf in CSS. */
+  function richteLeisteEin() {
+    const bar = document.querySelector('.tabbar');
+    if (!bar || bar.dataset.fertig) return;
+    bar.dataset.fertig = '1';
+    // Die Leiste beginnt unter der Kopfzeile. Deren Höhe hängt an der Schrift
+    // und am Gerät, also wird sie gemessen statt geraten.
+    const kopfMessen = () => {
+      const kopf = document.querySelector('.topbar');
+      if (kopf) document.documentElement.style
+        .setProperty('--kopf', Math.round(kopf.getBoundingClientRect().height) + 'px');
+    };
+    kopfMessen();
+    if (window.ResizeObserver) {
+      const kopf = document.querySelector('.topbar');
+      if (kopf) new ResizeObserver(kopfMessen).observe(kopf);
+    }
+    let warten = false;
+    bar.addEventListener('pointermove', ev => {
+      if (ev.pointerType !== 'mouse' || warten) return;
+      warten = true;
+      requestAnimationFrame(() => {
+        warten = false;
+        bar.style.setProperty('--maus-y', (ev.clientY - bar.getBoundingClientRect().top) + 'px');
+      });
+    });
+    bar.addEventListener('pointerleave', () => bar.style.removeProperty('--maus-y'));
+    // Fährt die Leiste aus, wandern die Reiter – der Balken muss mit.
+    bar.addEventListener('transitionend', ev => {
+      if (ev.propertyName === 'width') setzeMarke();
+    });
+    let dreh;
+    window.addEventListener('resize', () => {
+      clearTimeout(dreh);
+      dreh = setTimeout(() => setzeMarke(true), 120);
+    });
   }
 
   function applyPattern(key, merken) {
@@ -3116,6 +3177,7 @@
       if (an && v.dataset.eltern) reiter = v.dataset.eltern;   // Unterseite: Reiter bleibt markiert
     });
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('is-active', t.dataset.view === reiter));
+    setzeMarke();
     if (view === 'verlauf') renderVerlauf();
     if (view === 'punkte') renderPunkte();
     if (view === 'profil') renderProfil();
@@ -3160,6 +3222,7 @@
     // „‹ Profil" wäre in der Lehreransicht das falsche Wort – dort gibt es keins.
     const zurueck = document.querySelector('#view-einstellungen .zurueck');
     if (zurueck) zurueck.textContent = lehrer ? '‹ Zurück' : '‹ Profil';
+    setzeMarke(true);
     // Steht der Lehrer gerade auf einer Seite, die es für ihn nicht gibt?
     if (lehrer && ['erfassen', 'verlauf', 'punkte'].includes(currentView)) show('lehrer');
     if (!lehrer && currentView === 'lehrer') show('erfassen');
@@ -3408,7 +3471,8 @@
     ladeTheme();
     document.getElementById('app').append(shell.content.cloneNode(true));
 
-    richteAugenEin();              // das Auge gibt es schon im Startbildschirm
+    richteAugenEin();               // das Auge gibt es schon im Startbildschirm
+    richteLeisteEin();
 
     // Erst fragen, dann laden: Ohne Zustimmung schreibt die App nichts
     // Freiwilliges auf das Gerät.

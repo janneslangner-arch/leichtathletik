@@ -387,6 +387,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
    und die Reiter stehen direkt nebeneinander. */
 .leiste-inhalt { display: contents; }
 .leiste-knopf { display: none; }
+.leiste-marke { display: none; }
 
 /* ---------- Leiste links: iPad quer und Rechner ----------
    Entschieden wird nach Breite UND Ausrichtung, nicht nach Gerät. Ein
@@ -399,19 +400,57 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   body.leiste-offen { --leiste: 212px; }
 
   body { padding-bottom: 24px; padding-left: var(--leiste); }
-  .topbar { padding-left: 20px; }
+  .topbar { padding-left: 20px; z-index: 45; }
 
   .tabbar {
-    top: 0; bottom: 0; right: auto; width: var(--leiste);
+    /* Unter der Kopfzeile, nicht über ihr: Fährt die Leiste aus, soll sie
+       nicht die Marke verdecken. Wie hoch die Kopfzeile ist, misst das
+       Skript einmal und schreibt es in --kopf. */
+    top: var(--kopf, 57px); bottom: 0; right: auto; width: var(--leiste);
     flex-direction: column; align-items: stretch; gap: 2px;
     padding: 14px 10px calc(14px + env(safe-area-inset-bottom));
     padding-inline: 10px;
     border-top: 0; border-right: 1px solid var(--line-soft);
-    background: var(--surface);
-    transition: width .18s ease;
     overflow: hidden;
+    /* Glas: die Fläche ist durchscheinend, und was darunter liegt, wird
+       weichgezeichnet. Ohne Rückfall wäre sie auf alten Browsern
+       durchsichtig – deshalb erst die volle Farbe, dann die halbe nur dort,
+       wo der Weichzeichner wirklich kann. */
+    background: var(--surface);
+    transition: width .42s cubic-bezier(.32, .72, 0, 1);
   }
-  .leiste-inhalt { display: flex; flex-direction: column; gap: 2px; }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .tabbar {
+      background: color-mix(in srgb, var(--surface) 62%, transparent);
+      -webkit-backdrop-filter: blur(22px) saturate(180%);
+      backdrop-filter: blur(22px) saturate(180%);
+    }
+  }
+  /* Das Licht, das dem Zeiger folgt. Es liegt als eigene Ebene unter den
+     Reitern, wandert weich hinterher und ist weg, sobald die Maus weg ist. */
+  .tabbar::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(150px 150px at 50% var(--maus-y, -200px),
+                color-mix(in srgb, var(--mint) 26%, transparent) 0%, transparent 72%);
+    opacity: 0; transition: opacity .35s ease;
+  }
+  .tabbar:hover::before { opacity: 1; }
+
+  .leiste-inhalt { position: relative; display: flex; flex-direction: column; gap: 2px; }
+
+  /* Der gleitende Balken übernimmt hier die Markierung */
+  .tab.is-active::before { display: none; }
+  .leiste-marke {
+    display: block; position: absolute; left: 0; top: 0; width: 3px;
+    height: var(--marke-h, 0px);
+    transform: translateY(var(--marke-y, 0px));
+    background: var(--mint);
+    /* Ein Hauch Überschwingen: er kommt an, wippt einmal kurz nach und steht.
+       Das ist der ganze Trick – mehr wäre Spielerei. */
+    transition: transform .46s cubic-bezier(.34, 1.32, .38, 1),
+                height .3s cubic-bezier(.32, .72, 0, 1);
+  }
+  .leiste-marke.ohne-schwung { transition: none; }
 
   .leiste-knopf, .tab {
     display: flex; align-items: center; gap: 14px;
@@ -440,9 +479,49 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   }
   body:not(.leiste-offen) .leiste-knopf,
   body:not(.leiste-offen) .tab { justify-content: center; padding-inline: 0; }
+  /* Die Beschriftung kommt nicht auf einmal, sondern von links nachgereicht –
+     Reiter für Reiter, mit ein paar Hundertstel Abstand. */
+  .tab-text, .leiste-knopf .tab-text {
+    transition: opacity .26s ease var(--verzug, 0s),
+                transform .34s cubic-bezier(.32, .72, 0, 1) var(--verzug, 0s);
+  }
+  body:not(.leiste-offen) .tab-text { opacity: 0; transform: translateX(-10px); }
+  .leiste-inhalt .tab:nth-child(2) .tab-text { --verzug: .02s; }
+  .leiste-inhalt .tab:nth-child(3) .tab-text { --verzug: .05s; }
+  .leiste-inhalt .tab:nth-child(4) .tab-text { --verzug: .08s; }
+  .leiste-inhalt .tab:nth-child(5) .tab-text { --verzug: .11s; }
+  .leiste-inhalt .tab:nth-child(6) .tab-text { --verzug: .14s; }
 
   /* Der Inhalt darf mitwachsen, sobald Platz da ist */
   main { max-width: 900px; }
+}
+
+/* ---------- Ausfahren beim Darüberfahren ----------
+   Nur wo es einen echten Zeiger gibt: Auf dem iPad bleibt es beim Antippen
+   des Knopfes, sonst hinge die Leiste nach jedem Tippen offen (Safari hält
+   den Hover-Zustand auf Berührung fest).
+
+   Beim Darüberfahren schiebt die Leiste den Inhalt NICHT weg, sie legt sich
+   darüber. Sonst rutschte die halbe Seite zur Seite, nur weil die Maus
+   vorbeikommt. Wer sie festhalten will, klappt sie mit dem Knopf auf – dann
+   rückt der Inhalt mit. */
+@media (min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine) {
+  body:not(.leiste-offen) .tabbar:hover {
+    width: 212px;
+    box-shadow: 22px 0 44px -34px var(--rand-tief);
+  }
+  body:not(.leiste-offen) .tabbar:hover .tab-text {
+    position: static; width: auto; height: auto; overflow: visible;
+    clip: auto; opacity: 1; transform: none;
+  }
+  body:not(.leiste-offen) .tabbar:hover .leiste-knopf,
+  body:not(.leiste-offen) .tabbar:hover .tab {
+    justify-content: flex-start; padding-inline: 14px;
+  }
+  /* Der Reiter unter dem Zeiger hebt sich leicht heraus – eine Handbreit
+     Rückmeldung, kein Karussell. */
+  .tabbar .tab { transition: color .16s ease, background-color .22s ease, transform .22s cubic-bezier(.34, 1.32, .38, 1); }
+  .tabbar .tab:hover { background: var(--auflage); transform: translateX(2px); }
 }
 
 /* ---------- Toast ---------- */
