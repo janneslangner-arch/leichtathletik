@@ -468,16 +468,28 @@ ist dieselbe Rechnung, nur als Kurve vorausberechnet – siehe
 
 ## Zwei Formen, eine Regel
 
-Nach dem Umbau auf Glas gilt in der **Schüleransicht**: Was man *anfasst*,
-ist eine Kapsel – Balken in einer Liste, Chips, Knöpfe, der Profilknopf,
-der Speichern-Haken (der wird zum Kreis). Was etwas *trägt*, behält klare
-Kanten – Karten, Disziplin-Kacheln, Eingabefelder, Tabellen, Reiter. So
-bleibt die Seite in Ordnung und wirkt trotzdem nicht wie ein Formular. Es
-ist außerdem dieselbe Form, die der Glaskörper unter dem Zeiger annimmt:
-Beides zusammen wirkt wie aus einem Guss.
+Gilt in **jeder** Ansicht, auch beim Lehrer: Was man *anfasst*, ist eine
+Kapsel – Balken in einer Liste, Chips, Knöpfe, der Profilknopf, der
+Speichern-Haken (der wird zum Kreis). Was etwas *trägt*, bekommt weiche
+Ecken – Karten, Kacheln, Klappabschnitte, Dialoge, je größer die Fläche,
+desto mehr. Eckig ist nirgends mehr etwas.
+
+Die Maße stehen als vier Marken oben in `assets/styles.css`:
+
+```css
+--r-kapsel: 999px;   /* Knöpfe, Chips, Balken, Marken */
+--r-weich:  14px;    /* der Normalfall: Felder, kleine Flächen */
+--r-karte:  22px;    /* Karten, Kacheln, Klappabschnitte, Tabellen */
+--r-gross:  28px;    /* Vollbilder und Dialoge */
+```
+
+Wer das Design straffer oder runder will, dreht an diesen vier Zahlen –
+nicht an siebzig Einzelstellen. Eine Ausnahme gibt es: das große
+Eingabefeld für den Wert. Dort ist nur eine Linie unter der Zahl, und ein
+Radius würde sie an den Enden nach oben biegen.
 
 `modustest.js` hält beide Hälften der Regel fest – Kapseln müssen rund
-sein, Karten dürfen es nicht.
+sein, Karten weiche Ecken haben, und in der Lehreransicht gilt dasselbe.
 
 ## Die Lehreransicht ist mit Absicht anders
 
@@ -490,8 +502,9 @@ Weiß oder weiß auf Schwarz und sonst nichts**:
   also erhalten. Auch das Warnrot fällt weg: „fehlt" erkennt man an der
   Kontur, nicht an der Farbe.
 * **Kein Muster, kein Verlauf.** Der Hintergrund ist eine ruhige Fläche.
-* **Kein Glas.** Der wandernde Körper bleibt aus, es gibt keinen Schimmer
-  und keine Kapseln – alles eckig.
+* **Kein Glas.** Der wandernde Körper bleibt aus, es gibt keinen Schimmer,
+  und der gleitende Knopf im Umschalter streckt sich nicht. Die Formen
+  sind dieselben wie überall – nüchtern heißt hier farblos, nicht eckig.
 * **Hell, dunkel oder automatisch** kann der Lehrer wählen; der Schalter
   steht unter *Darstellung* und gilt für beide Rollen. Alles andere am
   Aussehen bleibt der Schüleransicht vorbehalten.
@@ -499,6 +512,23 @@ Weiß oder weiß auf Schwarz und sonst nichts**:
 Die Tabelle hat mehr Luft bekommen, jede zweite Zeile einen Hauch Grund
 (bei zwölf Spalten hilft das dem Auge), und die Kopfzeile nennt die
 Gruppe.
+
+## Bei Mädchen stehen andere Strecken da
+
+Mädchen laufen in der Vorlage kürzer: **800 m statt 1500 m** und
+**2000 m statt 5000 m**. Gerechnet hat die App das immer schon richtig –
+angezeigt hat sie aber die Männer-Strecke mit einer Fußnote („5000 m Lauf
+· bei Mädchen 2000 m"). Wer 2000 m läuft, sucht die 2000 m.
+
+Jetzt trägt die Disziplin die Beschriftung, die für dieses Profil gilt:
+Kachel, Überschrift, Verlauf, Punkteseite, CSV. Auch das Beispiel im
+Eingabefeld passt sich an (9:30 statt 21:30). Gespeichert wird weiter
+unter demselben Schlüssel – ein Wechsel des Geschlechts ändert also
+Beschriftung und Wertung, nicht die Daten.
+
+In der Klassenansicht steht in der Kopfzeile beides, „5000/2000": Eine
+Klasse ist gemischt, und für die halbe Klasse wäre jede einzelne Zahl
+falsch.
 
 ## Welche Gruppe? Steht oben links
 
@@ -519,6 +549,34 @@ dort, wo auch der Zugangscode steht:
 So trägt jede veröffentlichte Fassung ihren eigenen Namen, ohne dass
 dafür etwas in der Datenbank stehen muss. Fehlt der Name, tritt der Code
 an seine Stelle; ohne Datenbank bleibt die Ecke leer.
+
+## Kann dieser Wert stimmen?
+
+Beim Eintragen passiert immer dasselbe: ein Komma zu weit links (1.285
+statt 12.85), Zentimeter statt Meter, eine Zeit in Sekunden statt in
+Minuten, ein Zahlendreher. Solche Werte fallen später kaum auf – sie
+stehen einfach als Bestleistung da und verderben die ganze Wertung.
+
+Die App kennt deshalb für jede Disziplin ein Fenster, in dem sich
+Schulsport bewegt. Die untere Grenze liegt jeweils **unter** dem
+Weltrekord, die obere weit über dem, was in einer Klasse vorkommt: Es geht
+nicht darum, schwache Werte zu bemängeln, sondern unmögliche abzufangen.
+Bei den Läufen hängt das Fenster an der Strecke – und die am Geschlecht.
+
+Was außerhalb liegt, wird **nicht abgelehnt**. Es öffnet sich ein kleines
+Fenster: der Wert, der Grund („Schneller als 9.50 s ist im 100 m Sprint
+praktisch nicht möglich"), und – wo es sich anbietet – ein Vorschlag.
+Denn ein Wert, der zehnmal größer oder kleiner genau ins Fenster passt,
+ist fast immer ein verrutschtes Komma: *Meintest du vielleicht 12.85 s?*
+Zwei Knöpfe: **Nochmal prüfen** (der Wert bleibt im Feld und ist markiert)
+oder **Ja, so eintragen**.
+
+Eine zweite Frage kommt, wenn ein Wert zwar möglich ist, aber die eigene
+Bestleistung um mehr als ein Viertel schlägt. Sprünge dieser Größe gibt es
+– nur selten, und meistens ist es ein Tippfehler.
+
+Bestätigt wird jeweils genau dieser eine Wert; beim nächsten Mal fragt die
+App wieder. `pruefwerttest.js` spielt die häufigsten Fehler durch.
 
 ## Schmal, breit, quer
 

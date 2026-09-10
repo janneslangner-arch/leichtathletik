@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0E1F27">
 <title>Leichtathletik Tracker</title>
-<link rel="stylesheet" href="assets/styles.css?v=368a9d4e">
+<link rel="stylesheet" href="assets/styles.css?v=9001ec89">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>">
 </head>
 <body>
@@ -22,6 +22,9 @@
     <span class="brand-icon" aria-hidden="true">L</span>
     <span class="brand-text">Leichtathletik&nbsp;Tracker</span>
   </div>
+  <!-- Auf dem Handy ist links neben dem Zeichen Platz: Dort steht die
+       Gruppe, gekürzt. Am Rechner übernimmt das die Ecke über der Leiste. -->
+  <span class="klassen-mini" id="klassenMini" hidden></span>
   <span id="syncChip" class="sync-chip" title="Speicherort der Werte">…</span>
   <button id="profileBtn" class="profile-btn" title="Profil wechseln oder anlegen">
     <span id="profileName">Ich</span><span class="chev" aria-hidden="true">▾</span>
@@ -708,6 +711,22 @@
   </div>
 </div>
 
+<!-- Kleines Fenster für Werte, die nicht stimmen können: Es fragt einmal
+     nach, statt den Wert stumm zu übernehmen. -->
+<dialog id="pruefDialog" class="sheet">
+  <div class="sheet-head">
+    <h2>Stimmt das?</h2>
+    <button type="button" id="pruefClose" class="icon-btn" aria-label="Schließen">✕</button>
+  </div>
+  <p id="pruefWert" class="pruef-wert"></p>
+  <p id="pruefGrund" class="hint-text"></p>
+  <p id="pruefVorschlag" class="hint-text" hidden></p>
+  <div class="data-actions">
+    <button type="button" id="pruefNein" class="btn btn-mint" autofocus>Nochmal prüfen</button>
+    <button type="button" id="pruefJa" class="btn">Ja, so eintragen</button>
+  </div>
+</dialog>
+
 <dialog id="wertLoeschDialog" class="sheet">
   <div class="sheet-head">
     <h2>Wert löschen?</h2>
@@ -776,6 +795,6 @@
 <script id="appConfig" type="application/json">{"url": "https://repzrjfejbckufpjarqv.supabase.co", "key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJlcHpyamZlamJja3VmcGphcnF2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzEwMTEsImV4cCI6MjEwMzE0NzAxMX0.fMp3BRWOEzZbjJFvqcDf-PmNkJhqoHHrA-6d14BGTbA", "code": "q2sp2026", "name": "Q2 Sportprofil 26/27"}</script>
 <script id="appState" type="application/json">null</script>
 <script id="schemaSql" type="text/plain">/* SCHEMA_SQL */</script>
-<script id="appScript" src="assets/app.js?v=28317643"></script>
+<script id="appScript" src="assets/app.js?v=2f6dee1e"></script>
 </body>
 </html>

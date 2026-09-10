@@ -784,16 +784,34 @@
     return wort.slice(0, 3).toUpperCase();
   }
 
+  /* Dazwischen liegt die Kopfzeile auf dem Handy: Dort ist Platz für mehr
+     als ein Kürzel, aber nicht für alles. Gekürzt wird nach Bedeutung, nicht
+     nach Zeichenzahl: Kurze Stücke und alles mit Ziffern bleibt (das sind
+     Stufe und Jahrgang), ausgeschriebene Wörter fallen weg.
+     „Q2 Sportprofil 26/27" wird so zu „Q2 26/27". */
+  function klassenKurzform(name) {
+    const ganz = (name || '').trim();
+    if (ganz.length <= 14) return ganz;
+    const teile = ganz.split(/\s+/);
+    const behalten = teile.filter(w => /\d/.test(w) || w.length <= 3);
+    const kurz = (behalten.length ? behalten : [teile[0]]).join(' ');
+    return kurz.length <= 16 ? kurz : kurz.slice(0, 15) + '…';
+  }
+
   function zeigeKlassenMarke() {
     const marke = document.getElementById('klassenMarke');
     if (!marke) return;
     const name = klassenName();
+    const mini0 = document.getElementById('klassenMini');
     marke.hidden = !name;
+    if (mini0) mini0.hidden = !name;
     if (!name) return;
     const kurz = document.getElementById('klassenKurz');
     const lang = document.getElementById('klassenLang');
+    const mini = document.getElementById('klassenMini');
     if (kurz) kurz.textContent = klassenKuerzel(name);
     if (lang) lang.textContent = name;
+    if (mini) { mini.textContent = klassenKurzform(name); mini.hidden = false; mini.title = name; }
     marke.title = name;
   }
 
@@ -1573,7 +1591,7 @@
     const grid = $('#discGrid');
     grid.textContent = '';
     KEYS.forEach(key => {
-      const d = DISC[key], b = best(key);
+      const d = disc(key), b = best(key);
       const card = el('button', 'disc' + (key === selDisc ? ' is-active' : ''));
       card.type = 'button';
       card.append(el('span', 'ic', d.ic), el('span', 'nm', d.name),
@@ -1601,7 +1619,7 @@
     const p = $('#parsePreview'), raw = $('#valueInput').value.trim();
     if (!raw) { p.className = 'parse-preview'; p.innerHTML = '&nbsp;'; return; }
     const v = parseValue(selDisc, raw);
-    if (v == null) { p.className = 'parse-preview err'; p.textContent = 'Format unklar – ' + DISC[selDisc].hint; return; }
+    if (v == null) { p.className = 'parse-preview err'; p.textContent = 'Format unklar – ' + disc(selDisc).hint; return; }
     const b = best(selDisc);
     let txt = '= ' + fmt(selDisc, v);
     if (b) txt += isBetter(selDisc, v, b.value)
@@ -1626,7 +1644,7 @@
 
   function rowFor(e, opts) {
     const showDisc = opts && opts.showDisc;
-    const d = DISC[e.disc], b = best(e.disc), pb = b && b.id === e.id;
+    const d = disc(e.disc), b = best(e.disc), pb = b && b.id === e.id;
     const li = el('li', 'row' + (pb ? ' is-pb' : ''));
     li.append(el('span', 'ic', d.ic));
 
@@ -1686,13 +1704,108 @@
     if (!e) return;
     Store.removeEntry(e);
     renderAll();
-    toast(`${DISC[e.disc].name} ${fmt(e.disc, e.value)} gelöscht`, {
+    toast(`${disc(e.disc).name} ${fmt(e.disc, e.value)} gelöscht`, {
       action: 'Rückgängig',
       onAction: () => { Store.addEntry(e); renderAll(); toast('Wieder da'); }
     });
   }
 
   const removeEntry = e => fragteLoeschen(e);
+
+  /* ---- Ist der Wert überhaupt möglich? --------------------------------
+     Beim Eintragen passiert immer dasselbe: ein Komma zu weit links
+     (1.285 statt 12.85), Zentimeter statt Meter, eine Zeit in Sekunden
+     statt in Minuten, oder schlicht ein Zahlendreher. Solche Werte fallen
+     später kaum auf – sie stehen einfach als Bestleistung da und
+     verderben die ganze Wertung.
+
+     Die App kennt deshalb für jede Disziplin ein Fenster, in dem sich
+     Schulsport bewegt. Die untere Grenze liegt jeweils unter dem
+     Weltrekord, die obere weit über dem, was in einer Klasse vorkommt –
+     es geht nicht darum, schwache Werte zu bemängeln, sondern unmögliche
+     abzufangen. Was außerhalb liegt, wird nicht abgelehnt: Es wird
+     einmal nachgefragt. */
+  const PLAUSIBEL = {
+    sprint100:    [9.5, 30],      // Weltrekord 9,58 s
+    sprint200:    [19, 70],
+    sprint400:    [42, 170],
+    hochsprung:   [0.6, 2.45],
+    weitsprung:   [1.2, 9],
+    kugelstossen: [1.5, 23.5],
+    speerwurf:    [3, 98]
+  };
+  // Die Läufe hängen an der Strecke, und die hängt am Geschlecht.
+  // Untere Grenze jeweils knapp unter dem Weltrekord, obere weit über dem,
+  // was in einer Klasse vorkommt: 20 Minuten für 2000 m, 45 für 5000 m.
+  const PLAUSIBEL_LAUF = { 800: [100, 600], 1500: [200, 1200],
+                           2000: [300, 1200], 5000: [700, 2700] };
+
+  function plausibelFenster(key, g) {
+    const d = (DLV[g || geschlechtVon()] || {})[key];
+    if (d && d.typ === 'lauf' && PLAUSIBEL_LAUF[d.d]) return PLAUSIBEL_LAUF[d.d];
+    return PLAUSIBEL[key] || null;
+  }
+
+  /* Wenn schon nachfragen, dann mit einem Vorschlag: Ein Wert, der zehnmal
+     größer oder kleiner ins Fenster passt, ist fast immer ein verrutschtes
+     Komma. Bei Zeiten kommt der häufige Fall dazu, dass jemand „3.42"
+     tippt und 3:42 meint. */
+  function pruefVorschlag(key, v, g) {
+    const f = plausibelFenster(key, g);
+    if (!f) return null;
+    const drin = x => x >= f[0] && x <= f[1];
+    const kind = DISC[key].kind;
+    const kandidaten = [v * 10, v / 10, v * 100, v / 100];
+    if (kind === 'mmss') kandidaten.unshift(Math.floor(v) * 60 + (v % 1) * 100);
+    for (const k of kandidaten) if (drin(k)) return k;
+    return null;
+  }
+
+  function pruefeWert(key, v, g) {
+    const f = plausibelFenster(key, g);
+    const d = disc(key, g);     // mit der Strecke, die für dieses Profil gilt
+    if (!f) return null;
+    if (v >= f[0] && v <= f[1]) {
+      // Innerhalb des Fensters: Nur ein unglaublicher Sprung fällt noch auf.
+      const b = best(key);
+      if (b && isBetter(key, v, b.value)) {
+        const besser = d.better === 'low' ? (b.value - v) / b.value : (v - b.value) / b.value;
+        if (besser > 0.25) return {
+          grund: `Das wäre ${(besser * 100).toFixed(0)} % besser als die bisherige `
+            + `Bestleistung (${fmt(key, b.value)}). So ein Sprung ist selten – `
+            + 'steckt vielleicht ein Tippfehler dahinter?'
+        };
+      }
+      return null;
+    }
+    const zuKlein = v < f[0];
+    const grenze = fmt(key, zuKlein ? f[0] : f[1]);
+    const grund = d.better === 'low'
+      ? (zuKlein ? `Schneller als ${grenze} ist im ${d.name} praktisch nicht möglich.`
+                 : `Langsamer als ${grenze} kommt im ${d.name} kaum vor.`)
+      : (zuKlein ? `Weniger als ${grenze} kommt im ${d.name} kaum vor.`
+                 : `Weiter als ${grenze} ist im ${d.name} praktisch nicht möglich.`);
+    return { grund, vorschlag: pruefVorschlag(key, v, g) };
+  }
+
+  // Einmal bestätigt, wird nicht noch einmal gefragt – sonst käme man aus
+  // dem Fenster nicht heraus, wenn der Wert wirklich so stimmt.
+  let pruefOk = null;
+  let pruefFall = null;      // der Wert, über den gerade gefragt wird
+
+  function zeigePruefung(key, v, befund, weiter) {
+    const dlg = document.getElementById('pruefDialog');
+    if (!dlg || !dlg.showModal) { weiter(); return; }   // ganz alte Browser
+    document.getElementById('pruefWert').textContent =
+      `${fmt(key, v)} · ${disc(key).name}`;
+    document.getElementById('pruefGrund').textContent = befund.grund;
+    const vs = document.getElementById('pruefVorschlag');
+    vs.hidden = !befund.vorschlag;
+    if (befund.vorschlag) vs.textContent =
+      `Meintest du vielleicht ${fmt(key, befund.vorschlag)}?`;
+    dlg.dataset.wert = String(v);
+    dlg.showModal();
+  }
 
   // Warnung vor Dopplungen: derselbe Wert, dieselbe Disziplin, derselbe Tag,
   // dasselbe Profil. Zwei Leute tragen denselben Sprung ein, ohne es zu merken.
@@ -1712,10 +1825,17 @@
     ev.preventDefault();
     const raw = $('#valueInput').value.trim();
     const v = parseValue(selDisc, raw);
-    if (v == null) { toast('Wert nicht lesbar: ' + DISC[selDisc].hint, { warn: true }); return; }
+    if (v == null) { toast('Wert nicht lesbar: ' + disc(selDisc).hint, { warn: true }); return; }
 
     const datum = $('#dateInput').value || todayISO();
     const merkmal = [db.current, selDisc, datum, v.toFixed(3)].join('|');
+
+    // Erst die Frage, ob der Wert überhaupt sein kann – vor allem anderen.
+    if (pruefOk !== merkmal) {
+      const befund = pruefeWert(selDisc, v, geschlechtVon());
+      if (befund) { zeigePruefung(selDisc, v, befund, () => {}); pruefFall = merkmal; return; }
+    }
+    pruefOk = null;
     if (dopplungOk !== merkmal) {
       const schon = db.entries.find(e =>
         e.athlete === db.current && e.disc === selDisc && e.date === datum &&
@@ -1749,7 +1869,7 @@
 
   function buildChart(key, list) {
     const W = 640, H = 280, PL = 52, PR = 14, PT = 16, PB = 30;
-    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Verlauf ${DISC[key].name}` });
+    const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, role: 'img', 'aria-label': `Verlauf ${disc(key).name}` });
 
     const defs = svgEl('defs');
     const grad = svgEl('linearGradient', { id: 'mintFade', x1: '0', y1: '0', x2: '0', y2: '1' });
@@ -1819,7 +1939,7 @@
     const tabs = $('#chartTabs');
     tabs.textContent = '';
     KEYS.forEach(key => tabs.append(
-      btn('chip' + (key === chartDisc ? ' is-active' : ''), DISC[key].short, () => { chartDisc = key; renderVerlauf(); })));
+      btn('chip' + (key === chartDisc ? ' is-active' : ''), disc(key).short, () => { chartDisc = key; renderVerlauf(); })));
 
     const key = chartDisc, d = DISC[key], list = entriesOf(key);
     $('#chartTitle').textContent = d.name;
@@ -2096,6 +2216,27 @@
     return s ? s + ' Lauf' : DISC[key].name;
   };
 
+  /* Mädchen laufen kürzer: 800 m statt 1500 m, 2000 m statt 5000 m. Das
+     stand bisher nur als Fußnote unter dem Männer-Namen – wer 2000 m läuft,
+     sucht aber die 2000 m und nicht „5000 m Lauf (bei Mädchen 2000 m)".
+     Deshalb liefert `disc()` die Disziplin mit der Beschriftung, die für
+     dieses Profil wirklich gilt. Gerechnet wurde schon immer richtig; hier
+     ändert sich nur, was dasteht. */
+  const LAUF_BEISPIEL = { '800 m': '2:45', '2000 m': '9:30' };
+  function disc(key, g) {
+    const basis = DISC[key];
+    const s = ((DLV[g || geschlechtVon()] || {})[key] || {}).strecke;
+    if (!s || !basis) return basis;
+    const bsp = LAUF_BEISPIEL[s] || basis.ph;
+    return Object.assign({}, basis, {
+      name: s + ' Lauf',
+      short: s,
+      ic: s.replace(/[^0-9]/g, ''),
+      ph: bsp,
+      hint: bsp + ' oder kurz ' + bsp.replace(':', '')
+    });
+  }
+
   function renderPunkte() {
     const g = geschlechtVon(), zeit = zeitmessungVon(), klasse = klasseVon();
     const hand = zeit === 'hand';
@@ -2163,7 +2304,7 @@
       const mitte = el('div', 'vor-text');
       mitte.append(el('span', 'vor-name', gruppe));
       mitte.append(el('span', 'vor-sub', beste
-        ? `${DISC[beste].name} · ${fmt(beste, bestwerte[beste].value)}`
+        ? `${disc(beste).name} · ${fmt(beste, bestwerte[beste].value)}`
         : keys.map(k => strecke(k, g)).join(' oder ')));
       li.append(mitte);
 
@@ -2191,7 +2332,7 @@
         if (p == null || !offen[gruppe] || !offen[gruppe].includes(p)) return;
         offen[gruppe].splice(offen[gruppe].indexOf(p), 1);
         gezaehlteKeys.push(key);
-        liste.append(zeile(key, DISC[key].name, true));
+        liste.append(zeile(key, disc(key).name, true));
       });
     });
     if (!gezaehlteKeys.length)
@@ -2211,9 +2352,8 @@
           li.querySelector('.punkte-wert').append(
             el('span', 'p-note', `einzeln ${np} NP · ${noteZuPunkten(np)}`));
         }
-        const strecke = ((DLV[g] || {})[key] || {}).strecke;
-        li.querySelector('.main .nm').textContent =
-          DISC[key].name + (strecke ? ` · bei Mädchen ${strecke}` : '');
+        // Die Strecke steht jetzt im Namen selbst – keine Fußnote mehr.
+        li.querySelector('.main .nm').textContent = disc(key, g).name;
         alle.append(li);
       });
     });
@@ -2226,7 +2366,7 @@
       li.classList.add('ist-ungewertet');
       li.querySelector('.punkte-wert').append(
         el('span', 'p-note', 'keine Tabelle vorhanden'));
-      li.querySelector('.main .nm').textContent = DISC[key].name;
+      li.querySelector('.main .nm').textContent = disc(key).name;
       alle.append(li);
     });
 
@@ -2849,7 +2989,14 @@
     kopf.textContent = '';
     const kz = el('tr');
     kz.append(el('th', 'sp-name', 'Name'), el('th', null, 'Σ'), el('th', null, 'NP'), el('th', null, 'Verlauf'));
-    KEYS.forEach(key => kz.append(el('th', null, DISC[key].ic)));
+    // Eine Klasse ist gemischt: Wo Mädchen und Jungen verschiedene Strecken
+    // laufen, nennt die Kopfzeile beide („5000/2000"), sonst wäre sie für
+    // die halbe Klasse falsch.
+    KEYS.forEach(key => {
+      const w = ((DLV.w || {})[key] || {}).strecke;
+      const kurz = DISC[key].ic + (w ? '/' + w.replace(/[^0-9]/g, '') : '');
+      kz.append(el('th', null, kurz));
+    });
     kopf.append(kz);
 
     // Eine Zeile je Profil
@@ -2863,9 +3010,13 @@
       });
 
       const name = el('td', 'sp-name');
-      name.append(el('span', null, d.name));
+      // Die Zahl der offenen Bereiche steht VOR dem Namen: So stehen alle
+      // Marken untereinander in einer Spalte und man sieht auf einen Blick,
+      // bei wem noch etwas fehlt – hinter dem Namen sprang sie mit dessen
+      // Länge hin und her.
       const fehlt = d.ergebnis.summe == null ? (d.ergebnis.fehlend || []) : [];
       if (fehlt.length) name.append(el('span', 'fehlt-marke', fehlt.length + '×'));
+      name.append(el('span', null, d.name));
       tr.append(name);
 
       const summe = el('td', 'sp-summe');
@@ -2926,7 +3077,7 @@
       const b = d.bestwerte[key], erst = d.erste[key];
       if (!b) return;
       const zeile = el('div', 'detail-zeile');
-      zeile.append(el('span', 'detail-name', DISC[key].ic));
+      zeile.append(el('span', 'detail-name', disc(key, d.g).ic));
       const weg = el('span', 'detail-weg');
       if (erst && erst.id !== b.id) {
         weg.textContent = `${fmt(key, erst.value)} (${datumKurz(erst.date)})`
@@ -3505,7 +3656,8 @@
   async function exportCSV() {
     const rows = [['Profil', 'Disziplin', 'Wert', 'Einheit', 'Datum', 'Uhrzeit', 'Notiz']];
     db.entries.slice().sort((a, b) => zeitpunkt(a) < zeitpunkt(b) ? -1 : 1).forEach(e => {
-      rows.push([e.athlete, DISC[e.disc].name, fmt(e.disc, e.value, false), DISC[e.disc].unit,
+      const dg = disc(e.disc, einstellungVon(e.athlete, 'geschlecht', 'm'));
+      rows.push([e.athlete, dg.name, fmt(e.disc, e.value, false), dg.unit,
                  e.date, e.zeit || '', e.note || '']);
     });
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
@@ -3915,6 +4067,27 @@
       versteckeDopplung();
       $('#valueInput').value = ''; preview(); $('#valueInput').focus();
     });
+
+    // Das kleine Fenster für unmögliche Werte
+    const pruefDlg = document.getElementById('pruefDialog');
+    const pruefZu = () => { if (pruefDlg && pruefDlg.open) pruefDlg.close(); };
+    if (pruefDlg) {
+      $('#pruefJa').addEventListener('click', () => {
+        pruefOk = pruefFall;              // dieser eine Wert ist jetzt bestätigt
+        pruefZu();
+        $('#entryForm').requestSubmit();
+      });
+      const nochmal = () => {
+        pruefZu();
+        // Der Wert bleibt stehen und ist markiert: ein Tastendruck genügt,
+        // um ihn zu ersetzen, ein Blick, um ihn zu prüfen.
+        const feld = $('#valueInput');
+        feld.focus(); feld.select();
+      };
+      $('#pruefNein').addEventListener('click', nochmal);
+      $('#pruefClose').addEventListener('click', nochmal);
+      pruefDlg.addEventListener('cancel', ev => { ev.preventDefault(); nochmal(); });
+    }
     $('#valueInput').addEventListener('input', () => { versteckeDopplung(); preview(); });
     document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
       flushSave(); if (usingDb()) { flush(); pull(); }
@@ -3925,7 +4098,15 @@
 
     [['#genderSeg', 'geschlecht'], ['#zeitSeg', 'zeit'], ['#klasseSeg', 'klasse']].forEach(([id, name]) => {
       document.querySelectorAll(id + ' .seg-btn').forEach(b =>
-        b.addEventListener('click', () => { setzeEinstellung(name, b.dataset.wert); renderEinstellungen(); }));
+        b.addEventListener('click', () => {
+          setzeEinstellung(name, b.dataset.wert);
+          renderEinstellungen();
+          // Das Geschlecht ändert die Strecken (800/2000 statt 1500/5000)
+          // und damit die Beschriftung der Kacheln; Zeitmessung und
+          // Altersklasse ändern die Punkte. Beides muss neu gezeichnet
+          // werden, sonst steht die halbe App noch auf dem alten Stand.
+          renderAll();
+        }));
     });
     // Der Modus geht nicht über setzeEinstellung: Er muss die Palette sofort
     // neu auftragen, sonst stünde die halbe Seite noch im alten Licht.
