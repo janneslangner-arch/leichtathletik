@@ -365,125 +365,106 @@ Design, deshalb fällt er auf.
 
 ## Glas unter dem Zeiger
 
-Fährt die Maus über etwas Anfassbares – Disziplin-Kachel, Zeile, Knopf,
-Farbkachel, aufklappbarer Abschnitt –, wird die Fläche für den Moment zu
-Glas: Was darunter liegt, wird weichgezeichnet und leicht aufgehellt
-(`backdrop-filter`), an der Oberkante sitzt eine Lichtkante, innen ein
-Schein, und ein heller Fleck folgt dem Zeiger über die Fläche. Dazu hebt
-sich das Ganze einen Hauch an, mit leichtem Überschwingen, damit es
-nachfedert statt zu klacken. Die Kante wird dabei nicht schwarz, sondern
-nimmt eine Spur der Akzentfarbe an – wie eine Linse, die das Licht am Rand
-sammelt.
+Am Rechner liegt unter dem Zeiger **ein einziger Glaskörper** – nicht auf
+jeder Fläche einer. Er wandert von Kachel zu Kachel, verformt sich dabei
+und zieht sich in Fahrtrichtung in die Länge, so wie ein Tropfen es täte.
+Das ist der ganze Unterschied zu einem gewöhnlichen Hover-Effekt: Dort
+verlischt etwas hier und geht dort neu an; hier bewegt sich ein
+Gegenstand.
 
-**Die Form wandert mit.** Im Ruhezustand ist alles eckig – das gilt weiter
-für die ganze App und für jedes Handy. Unter dem Zeiger wird daraus die
-Kapsel des Vorbilds: flache Bedienelemente (Knöpfe, Chips, Zeilen,
-Abschnitts-Köpfe) werden ganz rund, hohe Kacheln zur weichen Fliese
-(24 px). Der Radius ist Teil des Übergangs – das Zerfließen **ist** die
-Bewegung. Die harte Kontur verschwindet dabei; den Rand macht dann das
-Licht: eine helle Kante oben, ein feiner Ring außen, ein weicher Schein
-nach innen.
+**Wo er liegt.** Die Linse hängt im Behälter der Fläche – im Kachelraster,
+in der Liste, in der Kopfzeile –, und zwar als dessen erstes Kind. Damit
+malt sie über den Grund des Behälters (sonst verschwände sie hinter einer
+Karte), aber unter den Flächen selbst: Die tragen alle
+`position: relative` und kommen im Dokument nach ihr, werden also über
+sie gezeichnet. **Die Schrift bleibt dadurch scharf und ungetrübt** – der
+Weichzeichner sieht nur, was hinter dem Glas liegt, nie den Text darauf.
+Die berührte Fläche selbst wird durchsichtig und gibt nur noch Schrift
+und Kontur her.
 
-**Warum der Radius gemessen wird.** „Rund" schreibt man in CSS gern als
-`border-radius: 999px` – der Browser kappt das ohnehin bei der halben
-Höhe. Für einen *Übergang* ist das fatal: Bei einem 34 px hohen Knopf ist
-die sichtbare Verwandlung nach 17 von 999 px vorbei, also nach rund 2 %
-der Strecke. Die Ecke schnappt in 20 ms um, während Anheben, Licht und
-Weichzeichner noch 380 ms laufen – es hakt. Deshalb misst das Skript beim
-Betreten die Fläche und setzt `--rund` auf ihre halbe Höhe; der Radius
-läuft dann über seinen ganzen wirklich sichtbaren Weg. `--rund` ist über
-`@property` als **nicht vererbend** erklärt, sonst nähme ein Knopf in
-einer Zeile deren Radius. Gemessen wird bei `pointerover` (und bei
-`focusin`), nicht bei jeder Mausbewegung – das Maß steht, bevor der
-Übergang losläuft.
+**Wie er sich bewegt.** Nicht mit CSS-Übergängen. Die fangen bei jedem
+neuen Ziel von vorn an – fährt man schnell über mehrere Kacheln, sieht
+man genau das, ein Stocken bei jedem Wechsel. Stattdessen rechnet das
+Skript in jedem Bild eine gedämpfte Feder (ω₀ ≈ 13, ζ ≈ 0,66, dieselbe
+wie in der CSS) für fünf Größen zugleich: x, y, Breite, Höhe und Radius.
+Eine Feder lässt sich jederzeit unterbrechen und umlenken, ohne neu zu
+beginnen – deshalb bleibt die Bewegung auch bei hastigen Zeigern
+zusammenhängend. Für einen langen Weg braucht sie genauso lange wie für
+einen kurzen, sie wird nur schneller.
 
-**Auch die Brechung blendet über.** `backdrop-filter` steht im Ruhezustand
-auf `blur(0px) saturate(100%)`; nur so kann der Browser sie überblenden
-statt sie anzuknipsen. Der Weichzeichner wächst damit in denselben 380 ms
-von 0 auf 18 px wie die Form. Das kostet einmalig ein paar Bilder, wenn
-die Ebenen zum ersten Mal angelegt werden, danach nichts mehr (gemessen:
-Mittel 16,7 ms je Bild, gleich mit und ohne).
+**Die Dehnung** hängt allein an der Geschwindigkeit und steht außerhalb
+der Feder: quer zur Fahrt schrumpft der Körper um knapp die Hälfte
+dessen, was er in Fahrtrichtung zulegt. Sobald er steht, ist sie von
+selbst wieder weg.
 
-Das Ganze gibt es nur in der **Rechner-Ansicht** – dieselbe Bedingung wie
-für die linke Leiste (breit, quer, echter Zeiger). Im schmalen Fenster
-bleibt alles wie auf dem Handy.
+**Die Lücke zwischen zwei Kacheln** hätte das Ganze fast zunichtegemacht:
+Wer zügig hinüberfährt, ist einen Moment lang auf keiner von beiden
+Flächen. Ohne Gnadenfrist gäbe die Linse dort auf und finge am Ziel neu
+an – aus dem Wandern würde ein Sprung. Sie wartet deshalb 150 ms, ob
+gleich etwas Neues kommt. Innerhalb desselben Behälters wird gewandert,
+beim Wechsel der Gruppe an Ort und Stelle auf- und abgeblendet.
 
-Farbige Flächen (Speichern-Knopf, aktiver Umschalter) bleiben farbig: Glas
-über einer kräftigen Farbe wäre nur Matsch. Sie bekommen das Anheben und
-die Lichtkante, sonst nichts.
+**Die Form** entscheidet die CSS, ausrechnen kann sie nur der Browser:
+Jede Fläche sagt über `--glas-rund`, was sie sein will – `999px` heißt
+„so rund es geht" (Kapsel), `24px` macht eine weiche Fliese. Die Linse
+liest das aus und setzt für die Kapsel die halbe kürzere Seite ein. Das
+ist wichtig, weil `border-radius: 999px` vom Browser ohnehin dort gekappt
+wird: Als Ziel eines Übergangs wäre die Verwandlung nach 2 % der Strecke
+vorbei – die Ecke schnappte in 20 ms um, während alles andere noch liefe.
 
-Welche Flächen mitmachen, steht **nur in der CSS-Datei**: Sie setzen
-`--glas: 1`, und das Skript fragt beim Darüberfahren danach, statt eine
-zweite Liste zu führen. Wichtig dabei: `--glas` ist über `@property`
-ausdrücklich als **nicht vererbend** erklärt. Sonst meldete auch der
-Textspan in einer Kachel „ich bin Glas", und das Licht landete auf ihm
-statt auf der Fläche darunter – genau dieser Fehler steckte in der ersten
-Fassung und wird von `glastest.js` festgehalten.
+**Licht und Kante.** Der helle Fleck sitzt beim Zeiger, nicht in der
+Mitte. Weil die Linse dem Zeiger nachläuft, wandert er von selbst über
+die Fläche – dafür braucht es keine zweite Feder. Aus seiner Lage folgen
+`--neig-x/--neig-y` und daraus die Richtung des inneren Scheins: Die dem
+Licht zugewandte Kante hellt auf, die abgewandte bekommt den Schatten.
 
-### Wie es sich bewegt
+**Auch das Auf- und Abblenden** rechnet das Skript selbst statt es der
+CSS zu überlassen: Als Übergang hing es daran, dass der Browser überhaupt
+Bilder zeichnet – bei Tastaturbedienung läuft aber keine Schleife, und
+dann blieb die Deckung mitten im Verlauf stehen. Jetzt hat alles dieselbe
+Uhr: Ankommen in 0,2 s, Verlassen in 0,34 s.
 
-Nichts an dieser Bewegung ist geraten – sie ist **gerechnet**. Alles, was
-federt, hängt an derselben Kurve `--feder` in `assets/styles.css`. Dahinter
-steckt ein gedämpfter harmonischer Oszillator: Masse m = 1,
-Federkonstante k = 170, Dämpfung c = 16. Daraus folgen die Eigenfrequenz
-ω₀ = √(k/m) ≈ 13,04 1/s und die Dämpfung ζ = c/(2·√(k·m)) ≈ 0,614; die
-Auslenkung ist
+**Gedrückt** sinkt die Linse auf 97,5 % und federt zurück; die Fläche
+darunter bewegt sich nicht. **Mit der Tabulatortaste** wandert sie
+genauso mit, dann sitzt das Licht mittig statt beim Zeiger.
 
-    x(t) = 1 − e^(−ζω₀t) · (cos ω_d t + (ζω₀/ω_d) · sin ω_d t)
+**Wo es sie nicht gibt:** auf Berührungsgeräten (dort zählt der
+Druckpunkt), im schmalen Fenster, bei `prefers-reduced-motion` – und über
+farbigen Knöpfen (Speichern, aktiver Umschalter, aktuelles Profil). Die
+sind undurchsichtig, dahinter wäre Glas nur unsichtbar; dort zieht die
+Linse sich zurück und der Knopf behält seinen eigenen Auftritt.
 
-CSS kann das nicht rechnen, `linear()` aber stützweise nachzeichnen – die
-27 Stützstellen im Wert von `--feder` sind genau diese Kurve, abgetastet von
-`werkzeug/feder.py`. Weil ζ unter 1 liegt, schwingt sie über: 8,7 % über
-das Ziel hinaus, dann zurück. Deshalb wirkt jede Bewegung wie Masse an einer
-Feder statt wie eine abgebremste Rutschpartie.
-
-Vier Dinge machen daraus Liquid Glass statt eines Hover-Effekts:
-
-1. **Das Licht läuft nach.** Der Zeiger gibt nur das Ziel vor; der Fleck
-   folgt in jedem Bild um 16 % der Reststrecke (`NACHLAUF` in
-   `assets/app.js`). Er kommt also träge hinterher, wie Licht in einer
-   dicken Scheibe, und rastet ein, sobald er nah genug dran ist – danach
-   läuft kein `requestAnimationFrame` mehr.
-2. **Die Kante weiß, wo das Licht steht.** Aus der Position wird
-   `--neig-x`/`--neig-y` (−1 … +1). Der innere Schatten wandert damit auf die
-   *abgewandte* Seite, die zugewandte hellt auf – die Fläche bekommt eine
-   Richtung, ohne sich zu kippen.
-3. **Die Fläche rückt mit.** Ein bis zwei Pixel dem Zeiger entgegen, dazu
-   `scale(1.02)`. Mehr wäre Zappeln; weniger merkt niemand.
-4. **Rein anders als raus.** Ankommen schnell (~0,22 s), Verlassen langsam
-   (~0,42 s). Genau so verhalten sich echte Reflexe – und schnelles
-   Drüberfahren wirkt dadurch nicht hektisch.
-
-Gedrückt sinkt alles auf `scale(0.98)` und kommt an derselben Feder zurück.
-Auf Geräten ohne echten Zeiger (`(hover: none)`) gibt es kein Nachlaufen,
-aber diesen Druckpunkt – dort ist er die einzige Rückmeldung. Wer im System
-weniger Bewegung eingestellt hat, bekommt das Licht ohne Nachlauf; die
-globale `prefers-reduced-motion`-Regel schaltet die Übergänge ohnehin ab.
-Tastaturbedienung führt über `:focus-visible` zum selben Glas, ohne
-Zeigerlicht. Fehlt `backdrop-filter` (alte Browser), fällt allein die
-Weichzeichnung weg – sie steht als einzige in einem `@supports`-Zweig;
-getönte Fläche, Lichtkante und Bewegung bleiben.
-
-**Der Umschalter gleitet.** Hell/Dunkel, Sortierung, Bahn/Feld: Statt dass
-die Farbe von Feld zu Feld springt, wandert ein Knopf (`.seg-knopf`)
-darunter her – an der Feder, und während er unterwegs ist, zieht er sich
-leicht in die Länge (`scale: 1.06 .9`) und wird am Ziel wieder rund. Das
-ist derselbe Trick wie beim Vorbild: Nicht der Zustand wechselt, ein
-Gegenstand bewegt sich.
+**Ohne Skript** bleibt alles beim Alten: Dann fehlt `body.glas-linse`,
+und die reine CSS-Fassung greift, in der jede Fläche für sich zu Glas
+wird. Dasselbe gilt bei „weniger Bewegung".
 
 ### Wo man die Stärke einstellt
 
+Alles in `assets/app.js`, oben in `richteGlasEin()`:
+
+| Was | Marke |
+| --- | --- |
+| Schwung und Überschwingen | `OMEGA` (Eigenfrequenz), `ZETA` (Dämpfung, unter 1 schwingt über) |
+| Wie weit die Linse über die Fläche hinauswächst | `HEBEN` |
+| Wie tief sie beim Klicken einsinkt | `DRUCK` |
+| Wie stark sie sich unterwegs dehnt | `DEHNUNG` |
+| Gnadenfrist über der Lücke | die 150 ms in `uebernehmen` |
+
+In `assets/styles.css`, im Block `.glaslinse`:
+
 | Was | Wo |
 | --- | --- |
-| Wie stark das Licht nachläuft | `NACHLAUF` in `assets/app.js` (0 = klebt, 1 = springt sofort) |
-| Weichzeichnung und Sättigung | `blur(18px) saturate(150%)` im Glas-Block von `assets/styles.css` |
-| Helligkeit, Kante, Ring, Schein | die `--glas-*`-Marken in `themeVarsHell` / `themeVarsDunkel` in `assets/app.js` |
-| Anheben, Mitrücken, Druckpunkt | `scale(1.02)` / `1.5px` / `scale(.98)` im selben Block |
-| Schwung und Überschwingen | `--feder`, `--feder-zeit`, `--feder-kurz` in `:root` (neu rechnen mit `werkzeug/feder.py`) |
-| Ein- und Ausblendzeit des Lichts | die beiden Zeiten auf `opacity` in der Lichtebene (`::before`) |
-| Wie rund die Kapsel wird | `rundEinzeln()` in `assets/app.js` – halbe Höhe ist voll rund |
-| Wie rund die Kacheln werden | die `24px` in der Formregel von `assets/styles.css` |
-| Ab wann es überhaupt gilt | die Medienabfrage `(min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine)` |
+| Weichzeichnung und Sättigung | `blur(18px) saturate(150%)` |
+| Tönung des Glases | `color-mix(in srgb, var(--surface) 34%, transparent)` |
+| Größe des Lichtflecks | die `240px` im `radial-gradient` |
+| Helligkeit, Kante, Ring, Schein | die `--glas-*`-Marken (in `app.js` je Modus gesetzt) |
+| Auf- und Abblenden | die beiden Zeiten in `takt` (0,2 s hin, 0,34 s zurück) |
+| Form je Fläche | `--glas-rund` an der jeweiligen Fläche |
+| Ab wann es das gibt | `(min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine)` |
+
+Die Feder für den gleitenden Knopf im Umschalter (`--feder` in der CSS)
+ist dieselbe Rechnung, nur als Kurve vorausberechnet – siehe
+`werkzeug/feder.py`.
 
 ## Schmal, breit, quer
 

@@ -71,16 +71,6 @@
    unter dem Zeiger bekommt. Sie darf sich NICHT vererben: Sonst meldete auch
    der Textspan in einer Kachel „ich bin Glas", und das Licht landete auf ihm
    statt auf der Fläche darunter. Genau dafür gibt es @property. */
-/* Der Kapselradius jeder Fläche, vom Skript gemessen. Nicht vererbend:
-   Sonst nähme ein Knopf in einer Zeile deren Radius statt seines eigenen.
-   999px als Ausgangswert heißt „so rund es geht" – das gilt, solange kein
-   Skript läuft, und ist dann eben ein Sprung statt eines Flusses. */
-@property --rund {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 999px;
-}
-
 @property --glas {
   syntax: "<number>";
   inherits: false;
@@ -394,7 +384,11 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .klapp > summary:hover { color: var(--mint); }
 .klapp > summary .sub { font-size: 12.5px; font-weight: 400; color: var(--muted); }
 .klapp-body { padding: 2px 15px 16px; }
-.klapp-body > .section-title:first-child { margin-top: 4px; }
+/* Der wandernde Glaskörper hängt sich als erstes Kind in den Behälter –
+   damit ist die Überschrift nicht mehr „:first-child". Beide Fälle
+   nennen, sonst rutscht der Abstand weg, sobald der Zeiger vorbeikommt. */
+.klapp-body > .section-title:first-child,
+.klapp-body > .glaslinse:first-child + .section-title { margin-top: 4px; }
 .klapp-body .hint-text { margin-top: 10px; }
 
 .feld-paar { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
@@ -1238,7 +1232,8 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
   color: var(--muted); font-weight: 700;
 }
-.punkte-gruppe:first-child { margin-top: 2px; }
+.punkte-gruppe:first-child,
+.glaslinse:first-child + .punkte-gruppe { margin-top: 2px; }
 .row.is-gezaehlt { border-color: color-mix(in srgb, var(--mint) 55%, var(--line-soft)); }
 
 /* Profil anlegen: Vollbild-Formular */
@@ -1664,6 +1659,14 @@ body.ist-lehrer .profile-btn { display: none; }
 .auge.ist-zu .auge-strich { display: inline; }
 .auge.ist-offen { color: var(--mint); }
 
+/* Der wandernde Glaskörper. Die Grundstellung steht außerhalb der
+   Rechner-Abfrage, damit er auch dort, wo es ihn nicht gibt, garantiert
+   nichts verschiebt: fixiert, ohne Größe, unsichtbar. */
+.glaslinse {
+  position: fixed; left: 0; top: 0; width: 0; height: 0;
+  opacity: 0; pointer-events: none;
+}
+
 /* ---------------- Glas unter dem Zeiger ----------------
    Nur in der Rechner-Ansicht: dieselbe Bedingung wie für die linke Leiste
    (breit, quer, echter Zeiger). Auf dem Handy gibt es kein Darüberfahren,
@@ -1682,6 +1685,9 @@ body.ist-lehrer .profile-btn { display: none; }
   .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
   .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
     --glas: 1;
+    /* Welche Form die Linse über dieser Fläche annimmt: „999px" heißt
+       „so rund es geht" (Kapsel), eine kleinere Zahl gibt eine Fliese. */
+    --glas-rund: 999px;
     position: relative;
     /* Eigene Stapelebene: nur so landet der Lichtreflex (z-index: -1)
        zwischen Fläche und Text und nicht über der Schrift. */
@@ -1790,10 +1796,11 @@ body.ist-lehrer .profile-btn { display: none; }
   .chip:focus-visible, .sortier-btn:focus-visible, .btn:focus-visible,
   .seg-btn:focus-visible, .profile-btn:focus-visible, .icon-btn:focus-visible,
   .pscreen-close:focus-visible, .row:focus-visible,
-  .klapp > summary:focus-visible { border-radius: var(--rund, 999px); }
+  .klapp > summary:focus-visible { border-radius: 999px; }
   .disc:hover, .menu-row:hover, .theme-card:hover, .p-tile:hover,
   .disc:focus-visible, .menu-row:focus-visible, .theme-card:focus-visible,
   .p-tile:focus-visible { border-radius: 24px; }
+  .disc, .menu-row, .theme-card, .p-tile { --glas-rund: 24px; }
 
   /* Gedrückt: kurz zusammensinken, dann federt es zurück */
   .disc:active, .menu-row:active, .theme-card:active, .chip:active,
@@ -1814,9 +1821,9 @@ body.ist-lehrer .profile-btn { display: none; }
   }
   .save-btn:hover, .save-btn:focus-visible {
     background-color: color-mix(in srgb, var(--mint) 88%, white);
-    border-radius: var(--rund, 999px);
+    border-radius: 999px;
   }
-  .btn-mint:hover, .btn-mint:focus-visible { border-radius: var(--rund, 999px); }
+  .btn-mint:hover, .btn-mint:focus-visible { border-radius: 999px; }
 
   /* Der gleitende Knopf ist am Rechner eine Linse: Kapselform, Lichtkante
      oben, weiche Gegenkante unten – so wie der Schalter im Vorbild. */
@@ -1831,6 +1838,109 @@ body.ist-lehrer .profile-btn { display: none; }
 
   /* In der Leiste hat der Reiter schon seinen eigenen Auftritt */
   .tabbar .tab { --glas: 0; }
+
+  /* ---- Der wandernde Glaskörper ----
+     Läuft das Skript, übernimmt eine einzige Linse die Arbeit: Sie liegt
+     im Behälter der Fläche – über dessen Grund, unter deren Schrift – und
+     fließt von Kachel zu Kachel, statt hier zu verlöschen und dort neu
+     anzugehen. Die Flächen selbst werden dann durchsichtig und geben nur
+     noch Schrift und Kontur her. Ohne Skript (oder bei „weniger
+     Bewegung") greift alles darüber und jede Fläche leuchtet für sich. */
+  .glaslinse {
+    position: fixed; left: 0; top: 0; width: 0; height: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(240px circle at var(--gx, 50%) var(--gy, 50%),
+                      var(--glas-licht) 0%, transparent 64%),
+      color-mix(in srgb, var(--surface) 34%, transparent);
+    box-shadow:
+      inset 0 1.5px 0 var(--glas-kante),
+      inset 0 0 0 1px var(--glas-ring),
+      inset calc(var(--neig-x, 0) * -7px) calc(var(--neig-y, 0) * -7px) 16px -10px var(--glas-innen),
+      inset 0 0 30px -10px var(--glas-innen),
+      0 18px 40px -26px var(--rand-tief),
+      0 0 0 1px color-mix(in srgb, var(--mint) 10%, transparent);
+    will-change: transform, width, height;
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .glaslinse {
+      -webkit-backdrop-filter: blur(18px) saturate(150%) brightness(var(--glas-hell));
+      backdrop-filter: blur(18px) saturate(150%) brightness(var(--glas-hell));
+    }
+  }
+
+  /* Mit Linse braucht die Fläche selbst kein Glas mehr – sonst läge es
+     doppelt übereinander und die wandernde Form käme gar nicht zur
+     Geltung. Übrig bleiben Schriftfarbe und das Verschwinden der Linie. */
+  body.glas-linse .disc, body.glas-linse .row, body.glas-linse .menu-row,
+  body.glas-linse .theme-card, body.glas-linse .chip, body.glas-linse .sortier-btn,
+  body.glas-linse .p-tile, body.glas-linse .klapp > summary,
+  body.glas-linse .profile-btn, body.glas-linse .icon-btn, body.glas-linse .btn,
+  body.glas-linse .seg-btn, body.glas-linse .pscreen-close {
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  body.glas-linse .disc::before, body.glas-linse .row::before,
+  body.glas-linse .menu-row::before, body.glas-linse .theme-card::before,
+  body.glas-linse .chip::before, body.glas-linse .sortier-btn::before,
+  body.glas-linse .p-tile::before, body.glas-linse .klapp > summary::before,
+  body.glas-linse .profile-btn::before, body.glas-linse .icon-btn::before,
+  body.glas-linse .btn::before, body.glas-linse .seg-btn::before,
+  body.glas-linse .pscreen-close::before { content: none; }
+  body.glas-linse .disc:hover, body.glas-linse .row:hover,
+  body.glas-linse .menu-row:hover, body.glas-linse .theme-card:hover,
+  body.glas-linse .chip:hover, body.glas-linse .sortier-btn:hover,
+  body.glas-linse .p-tile:hover, body.glas-linse .klapp > summary:hover,
+  body.glas-linse .profile-btn:hover, body.glas-linse .icon-btn:hover,
+  body.glas-linse .btn:hover, body.glas-linse .seg-btn:hover,
+  body.glas-linse .pscreen-close:hover,
+  body.glas-linse .disc:focus-visible, body.glas-linse .row:focus-visible,
+  body.glas-linse .menu-row:focus-visible, body.glas-linse .theme-card:focus-visible,
+  body.glas-linse .chip:focus-visible, body.glas-linse .sortier-btn:focus-visible,
+  body.glas-linse .p-tile:focus-visible, body.glas-linse .klapp > summary:focus-visible,
+  body.glas-linse .profile-btn:focus-visible, body.glas-linse .icon-btn:focus-visible,
+  body.glas-linse .btn:focus-visible, body.glas-linse .seg-btn:focus-visible,
+  body.glas-linse .pscreen-close:focus-visible {
+    background-color: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    transform: none;
+    translate: none;
+  }
+  /* Gedrückt sinkt die Linse ein, nicht die Fläche. */
+  body.glas-linse .disc:active, body.glas-linse .menu-row:active,
+  body.glas-linse .theme-card:active, body.glas-linse .chip:active,
+  body.glas-linse .sortier-btn:active, body.glas-linse .p-tile:active,
+  body.glas-linse .profile-btn:active, body.glas-linse .icon-btn:active,
+  body.glas-linse .btn:active, body.glas-linse .seg-btn:active {
+    transform: none; translate: none;
+  }
+  /* Farbige Flächen sind undurchsichtig – dahinter wäre die Linse
+     unsichtbar. Sie bleiben bei ihrem eigenen Auftritt, und die Linse
+     verabschiedet sich, solange der Zeiger auf ihnen steht. */
+  body.glas-linse .btn-mint, body.glas-linse .save-btn,
+  body.glas-linse .seg-btn.is-active, body.glas-linse .p-tile.is-current { --glas: 0; }
+  body.glas-linse .btn-mint:hover, body.glas-linse .save-btn:hover,
+  body.glas-linse .seg-btn.is-active:hover, body.glas-linse .p-tile.is-current:hover,
+  body.glas-linse .btn-mint:focus-visible, body.glas-linse .save-btn:focus-visible,
+  body.glas-linse .seg-btn.is-active:focus-visible,
+  body.glas-linse .p-tile.is-current:focus-visible {
+    background-color: var(--mint);
+    box-shadow: inset 0 1.5px 0 var(--glas-kante),
+                inset 0 0 0 1px var(--glas-ring),
+                0 16px 34px -22px var(--mint-glow);
+    border-radius: 999px;
+  }
+  body.glas-linse .save-btn:hover, body.glas-linse .save-btn:focus-visible {
+    background-color: color-mix(in srgb, var(--mint) 88%, white);
+  }
+  /* „999px" würde der Browser bei der halben Höhe kappen – der Übergang
+     wäre nach 2 % der Strecke vorbei und sähe aus wie ein Umschnappen.
+     22px liegen nah genug an der Kapsel und fließen ganz. */
+  body.glas-linse .btn-mint:hover, body.glas-linse .save-btn:hover,
+  body.glas-linse .seg-btn.is-active:hover, body.glas-linse .p-tile.is-current:hover,
+  body.glas-linse .btn-mint:focus-visible, body.glas-linse .save-btn:focus-visible,
+  body.glas-linse .seg-btn.is-active:focus-visible,
+  body.glas-linse .p-tile.is-current:focus-visible { border-radius: 22px; }
 }
 
 /* Auf Berührungsgeräten gibt es kein Darüberfahren – dort zählt der Druck:

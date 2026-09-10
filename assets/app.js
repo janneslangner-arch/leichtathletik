@@ -494,59 +494,200 @@
   function richteGlasEin() {
     if (!window.matchMedia) return;
     if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-    // Wer weniger Bewegung eingestellt hat, bekommt kein Nachlaufen.
-    const ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Ohne echten Zeiger oder mit „weniger Bewegung" bleibt die reine
+    // CSS-Fassung stehen: jede Fläche leuchtet für sich, nichts wandert.
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    let flaeche = null;                     // Fläche unter dem Zeiger
-    let zielX = 50, zielY = 50;             // wohin das Licht will (%)
-    let istX = 50, istY = 50;               // wo es gerade steht (%)
-    let laeuft = false;
+    /* Die Linse ist ein einziger Glaskörper. Er liegt im Behälter der
+       Fläche, über deren Grund und unter deren Schrift, und wandert von
+       Kachel zu Kachel, statt hier zu verlöschen und dort neu anzugehen.
+       Bewegt wird er nicht von CSS-Übergängen: Die fangen bei jedem neuen
+       Ziel von vorn an und wirken deshalb hakelig, wenn man schnell über
+       mehrere Kacheln fährt. Stattdessen rechnet das Skript jedes Bild
+       eine Feder – dieselbe wie in der CSS (ω₀ ≈ 13, ζ ≈ 0,66) –, die
+       jederzeit unterbrochen und umgelenkt werden kann. */
+    const OMEGA = 13.04;            // Eigenfrequenz der Feder
+    const ZETA = 0.66;              // Dämpfung: knapp unter 1, schwingt leicht über
+    const HEBEN = 1.02;             // wie weit die Linse über die Fläche hinauswächst
+    const DRUCK = 0.975;            // und wie weit sie beim Klicken einsinkt
+    const DEHNUNG = 0.011;          // wie stark sie sich unterwegs in die Länge zieht
+
+    // Nur in der Rechner-Ansicht, und zwar geprüft statt einmal gemerkt:
+    // Wer das Fenster schmal zieht, soll wieder die Handy-Fassung bekommen.
+    const breit = matchMedia('(min-width: 1000px) and (orientation: landscape)');
+
+    const linse = document.createElement('div');
+    linse.className = 'glaslinse';
+    linse.setAttribute('aria-hidden', 'true');
+    document.body.classList.add('glas-linse');
+
+    let flaeche = null;                       // Fläche unter dem Zeiger
+    let behaelter = null;                     // wo die Linse gerade hängt
+    let zeigerX = 0, zeigerY = 0, hatZeiger = false;
+    let gedrueckt = false;
+    let laeuft = false, letzte = 0;
+    let deck = 0;                   // Deckung, von Hand geblendet (siehe takt)
+    const ist = { x: 0, y: 0, b: 0, h: 0, r: 0 };
+    const tempo = { x: 0, y: 0, b: 0, h: 0, r: 0 };
+
+    // Wie rund wird die Fläche? Die Entscheidung steht in der CSS
+    // (--glas-rund), die Zahl dahinter kann nur der Browser kennen:
+    // „999px" heißt „so rund es geht", also die halbe kürzere Seite.
+    const radius = (el, b, h) => {
+      const wunsch = getComputedStyle(el).getPropertyValue('--glas-rund').trim();
+      const zahl = parseFloat(wunsch);
+      const anschlag = Math.min(b, h) / 2;
+      return !zahl || zahl > anschlag ? anschlag : zahl;
+    };
+
+    /* Woran hängt die Linse eigentlich? „position: fixed" heißt nur solange
+       „am Bildschirm", wie kein Vorfahr eine transform trägt – und unsere
+       Ansichten tragen eine, und sei es die Einheitsmatrix. Dann ist der
+       Vorfahr der Bezugsrahmen. Statt das zu erraten, messen wir es: Die
+       Linse weiß, welche Verschiebung sie zuletzt bekommen hat; wo sie
+       trotzdem steht, verrät den Ursprung. Beim Rollen wandert der mit,
+       also wird er jedes Bild neu bestimmt. */
+    let ursprungX = 0, ursprungY = 0;
+    const zielMass = () => {
+      const eigen = linse.getBoundingClientRect();
+      ursprungX = eigen.left - ist.x;
+      ursprungY = eigen.top - ist.y;
+      // Beim Wechsel der Ansicht wird die Fläche einfach aus der Seite
+      // genommen – dann hat die Linse nichts mehr zu umfassen.
+      if (flaeche && !flaeche.isConnected) { flaeche = null; linse.classList.remove('an'); }
+      if (!flaeche) return null;
+      const r = flaeche.getBoundingClientRect();
+      const f = gedrueckt ? DRUCK : HEBEN;
+      const b = r.width * f, h = r.height * f;
+      return { x: r.left - ursprungX - (b - r.width) / 2,
+               y: r.top - ursprungY - (h - r.height) / 2,
+               b: b, h: h, r: radius(flaeche, b, h) };
+    };
 
     const schreib = () => {
-      if (!flaeche) return;
-      flaeche.style.setProperty('--gx', istX.toFixed(1) + '%');
-      flaeche.style.setProperty('--gy', istY.toFixed(1) + '%');
-      // −1 … +1 je Achse: daraus macht CSS die hellere Kante und die
-      // ein bis zwei Pixel Bewegung dem Zeiger entgegen.
-      flaeche.style.setProperty('--neig-x', ((istX - 50) / 50).toFixed(3));
-      flaeche.style.setProperty('--neig-y', ((istY - 50) / 50).toFixed(3));
-    };
-
-    const takt = () => {
-      if (!flaeche) { laeuft = false; return; }
-      istX += (zielX - istX) * NACHLAUF;
-      istY += (zielY - istY) * NACHLAUF;
-      schreib();
-      if (Math.abs(zielX - istX) > 0.15 || Math.abs(zielY - istY) > 0.15) {
-        requestAnimationFrame(takt);
-      } else { istX = zielX; istY = zielY; schreib(); laeuft = false; }
-    };
-
-    const loslassen = el => {
-      if (!el) return;
-      ['--gx', '--gy', '--neig-x', '--neig-y', '--rund'].forEach(m => el.style.removeProperty(m));
-    };
-
-    /* Die Kapselform ist keine feste Zahl: „999px" ist zwar rund genug für
-       alles, aber der Browser kappt den Radius bei der halben Höhe. Ein
-       Übergang von 0 auf 999 px ist deshalb nach 2 % der Strecke fertig –
-       die Ecke schnappt in 20 ms rund, während der Rest 380 ms braucht.
-       Genau das sah abgehackt aus. Also messen wir die Fläche und lassen
-       den Radius von 0 bis zu seinem tatsächlichen Anschlag laufen. */
-    const rundEinzeln = el => {
-      const r = el.getBoundingClientRect();
-      el.style.setProperty('--rund', (Math.min(r.width, r.height) / 2).toFixed(1) + 'px');
-    };
-    /* Auch die Flächen darüber bekommen ihr Maß: Fährt man von außen direkt
-       auf einen Knopf in einer Zeile, ist die Zeile mit ihm zusammen „hover",
-       hat aber nie ein eigenes pointerover gesehen. */
-    const rundSetzen = el => {
-      for (let i = 0; el && el.nodeType === 1 && i < 6; i++, el = el.parentElement) {
-        if (getComputedStyle(el).getPropertyValue('--glas').trim() === '1') rundEinzeln(el);
+      /* Ein Tropfen, der schnell unterwegs ist, zieht sich in Fahrtrichtung
+         in die Länge und wird quer dazu schmaler – das Volumen bleibt ja.
+         Genau das macht aus einem gleitenden Rechteck eine Flüssigkeit.
+         Die Dehnung hängt nur an der Geschwindigkeit und steht deshalb
+         außerhalb der Feder: Sie verschwindet von selbst, sobald er steht. */
+      const dehnX = Math.min(18, Math.abs(tempo.x) * DEHNUNG);
+      const dehnY = Math.min(18, Math.abs(tempo.y) * DEHNUNG);
+      const b = Math.max(0, ist.b + dehnX - dehnY * .45);
+      const h = Math.max(0, ist.h + dehnY - dehnX * .45);
+      linse.style.transform = 'translate3d(' + (ist.x - (b - ist.b) / 2).toFixed(1) + 'px,'
+        + (ist.y - (h - ist.h) / 2).toFixed(1) + 'px,0)';
+      linse.style.width = b.toFixed(1) + 'px';
+      linse.style.height = h.toFixed(1) + 'px';
+      linse.style.borderRadius = Math.max(0, ist.r).toFixed(1) + 'px';
+      if (hatZeiger && ist.b > 1 && ist.h > 1) {
+        // Das Licht sitzt beim Zeiger – die Linse läuft ihm nach, also
+        // wandert der Fleck von selbst über die Fläche, ohne zweite Feder.
+        // Der Zeiger zählt am Bildschirm, die Linse im Behälter: umrechnen.
+        const gx = Math.max(-30, Math.min(130, (zeigerX - ursprungX - ist.x) / ist.b * 100));
+        const gy = Math.max(-30, Math.min(130, (zeigerY - ursprungY - ist.y) / ist.h * 100));
+        linse.style.setProperty('--gx', gx.toFixed(1) + '%');
+        linse.style.setProperty('--gy', gy.toFixed(1) + '%');
+        linse.style.setProperty('--neig-x', ((gx - 50) / 50).toFixed(3));
+        linse.style.setProperty('--neig-y', ((gy - 50) / 50).toFixed(3));
       }
     };
 
+    // Ein Schritt der gedämpften Feder, von Hand integriert.
+    const feder = (name, ziel, dt) => {
+      const a = -OMEGA * OMEGA * (ist[name] - ziel) - 2 * ZETA * OMEGA * tempo[name];
+      tempo[name] += a * dt;
+      ist[name] += tempo[name] * dt;
+    };
+
+    const takt = jetzt => {
+      const dt = Math.min(0.032, letzte ? (jetzt - letzte) / 1000 : 0.016);
+      letzte = jetzt;
+      const ziel = zielMass();
+      let ruht = true;
+      if (ziel) {
+        feder('x', ziel.x, dt); feder('y', ziel.y, dt);
+        feder('b', ziel.b, dt); feder('h', ziel.h, dt);
+        feder('r', ziel.r, dt);
+        schreib();
+        ruht = ['x', 'y', 'b', 'h', 'r'].every(n =>
+          Math.abs(ist[n] - ziel[n]) < 0.2 && Math.abs(tempo[n]) < 0.6);
+      }
+      /* Auch das Auf- und Abblenden rechnet das Skript selbst. Als
+         CSS-Übergang hing es daran, dass der Browser überhaupt Bilder
+         zeichnet – bei Tastaturbedienung läuft aber keine Schleife, und
+         dann blieb die Deckung mitten im Verlauf stehen. Hier gehört sie
+         ohnehin hin: Ankommen schnell, Verlassen langsam. */
+      const deckZiel = flaeche ? 1 : 0;
+      const schritt = dt / (deckZiel > deck ? 0.2 : 0.34);
+      if (Math.abs(deckZiel - deck) <= schritt) deck = deckZiel;
+      else deck += deckZiel > deck ? schritt : -schritt;
+      linse.style.opacity = deck.toFixed(3);
+      if (ruht && deck === deckZiel) { laeuft = false; letzte = 0; return; }
+      requestAnimationFrame(takt);
+    };
+
+    const anwerfen = () => { if (!laeuft) { laeuft = true; letzte = 0; requestAnimationFrame(takt); } };
+
+    const setzen = ziel => {   // ohne Feder an die Stelle springen
+      Object.assign(ist, ziel);
+      tempo.x = tempo.y = tempo.b = tempo.h = tempo.r = 0;
+      schreib();
+    };
+
+    /* In eine Liste oder Tabelle gehört kein fremdes <div> – das bricht
+       ihre Bedeutung für Vorleseprogramme. In solchen Fällen hängt sich
+       die Linse eine Ebene höher ein; gezeichnet wird sie dann immer noch
+       über dem Grund und unter den Flächen, denn die Liste selbst ist
+       nicht positioniert, ihre Einträge aber schon. */
+    const KEIN_PLATZ = /^(UL|OL|DL|TABLE|THEAD|TBODY|TFOOT|TR|SELECT|OPTGROUP|FIELDSET)$/;
+    const platzFuer = el => {
+      let c = el.parentElement || document.body;
+      while (c !== document.body && c.parentElement && KEIN_PLATZ.test(c.tagName)) c = c.parentElement;
+      return c;
+    };
+
+    const einhaengen = el => {
+      // Die Linse hängt im Behälter der Fläche: So liegt sie über dessen
+      // Grund (sonst verschwände sie hinter einer Karte) und unter den
+      // Flächen selbst, die alle „position: relative" haben – die Schrift
+      // bleibt also scharf und ungetrübt.
+      const neu = platzFuer(el);
+      // Nicht nur beim Wechsel einhängen: Wird ein Bereich neu gezeichnet,
+      // ist die Linse aus ihm verschwunden, der Behälter aber derselbe.
+      if (neu !== behaelter || linse.parentElement !== neu) {
+        behaelter = neu; neu.insertBefore(linse, neu.firstChild);
+      }
+    };
+
+    /* Zwischen zwei Kacheln liegt eine Lücke, und wer zügig hinüberfährt,
+       ist einen Moment lang auf keiner von beiden. Ohne Gnadenfrist gäbe
+       die Linse dort auf und finge am Ziel neu an – aus dem Wandern würde
+       ein Sprung. Also wartet sie kurz, ob gleich etwas Neues kommt. */
+    let ausZeit = 0;
+    const uebernehmen = el => {
+      clearTimeout(ausZeit);
+      if (!el) {
+        ausZeit = setTimeout(() => {
+          flaeche = null; linse.classList.remove('an'); anwerfen();
+        }, 150);
+        return;
+      }
+      const vorher = flaeche;
+      flaeche = el;
+      const gleicherOrt = vorher && vorher.parentElement === el.parentElement;
+      einhaengen(el);
+      const ziel = zielMass();
+      /* Im selben Behälter wird gewandert – über die ganze Reihe, nicht nur
+         zum Nachbarn: Die Feder braucht für den langen Weg genauso lange
+         wie für den kurzen, sie wird nur schneller. Nur wer die Gruppe
+         wechselt oder ganz neu ankommt, geht an Ort und Stelle auf. */
+      if (!gleicherOrt || !linse.classList.contains('an')) setzen(ziel);
+      linse.classList.add('an');
+      anwerfen();
+    };
+
     const glasFlaeche = ziel => {
+      if (!breit.matches) return null;
       let el = ziel;
       for (let i = 0; el && el.nodeType === 1 && i < 5; i++, el = el.parentElement) {
         if (getComputedStyle(el).getPropertyValue('--glas').trim() === '1') return el;
@@ -554,58 +695,50 @@
       return null;
     };
 
-    // pointerover kommt genau dann, wenn der Zeiger etwas Neues betritt –
-    // billiger als jede Bewegung zu prüfen, und vor allem sofort: Der Radius
-    // steht, bevor der Übergang losläuft.
     document.addEventListener('pointerover', ev => {
       if (ev.pointerType !== 'mouse') return;
-      rundSetzen(glasFlaeche(ev.target));
-    }, { passive: true });
-
-    // Dasselbe für die Tastatur: Auch der Fokus lässt die Form fließen.
-    document.addEventListener('focusin', ev => rundSetzen(glasFlaeche(ev.target)));
-    document.addEventListener('focusout', ev => {
+      hatZeiger = true; zeigerX = ev.clientX; zeigerY = ev.clientY;
       const el = glasFlaeche(ev.target);
-      if (el && el !== flaeche) setTimeout(() => { if (el !== flaeche) loslassen(el); }, 450);
-    });
-
-    let warten = false;
-    document.addEventListener('pointermove', ev => {
-      if (ev.pointerType !== 'mouse' || warten) return;
-      warten = true;
-      requestAnimationFrame(() => {
-        warten = false;
-        const el = glasFlaeche(ev.target);
-        if (el !== flaeche) {
-          // Verlassen: die Marken bleiben stehen, das Licht verblasst in CSS.
-          // Erst danach aufräumen, sonst springt der Verlauf beim Ausblenden.
-          const alt = flaeche;
-          if (alt) setTimeout(() => { if (flaeche !== alt) loslassen(alt); }, 450);
-          flaeche = el;
-          if (el) {
-            // Auf einer neuen Fläche fängt das Licht dort an, wo der Zeiger
-            // ist – sonst käme es von der vorigen Fläche herübergeflogen.
-            const r = el.getBoundingClientRect();
-            istX = zielX = (ev.clientX - r.left) / r.width * 100;
-            istY = zielY = (ev.clientY - r.top) / r.height * 100;
-            schreib();
-            return;
-          }
-        }
-        if (!flaeche) return;
-        const r = flaeche.getBoundingClientRect();
-        zielX = (ev.clientX - r.left) / r.width * 100;
-        zielY = (ev.clientY - r.top) / r.height * 100;
-        if (ruhig) { istX = zielX; istY = zielY; schreib(); return; }
-        if (!laeuft) { laeuft = true; requestAnimationFrame(takt); }
-      });
+      if (el !== flaeche) uebernehmen(el);
     }, { passive: true });
 
-    // Fenster verlassen: nichts soll leuchtend hängen bleiben.
-    document.addEventListener('pointerleave', () => {
-      const alt = flaeche; flaeche = null;
-      if (alt) setTimeout(() => { if (!flaeche) loslassen(alt); }, 450);
+    document.addEventListener('pointermove', ev => {
+      if (ev.pointerType !== 'mouse') return;
+      hatZeiger = true; zeigerX = ev.clientX; zeigerY = ev.clientY;
+      if (flaeche) anwerfen();
+    }, { passive: true });
+
+    document.addEventListener('pointerdown', ev => {
+      if (ev.pointerType !== 'mouse' || !flaeche) return;
+      gedrueckt = true; anwerfen();
+    }, { passive: true });
+    const loslassen = () => { if (gedrueckt) { gedrueckt = false; anwerfen(); } };
+    document.addEventListener('pointerup', loslassen, { passive: true });
+    document.addEventListener('pointercancel', loslassen, { passive: true });
+
+    // Tastatur: dieselbe Linse, nur ohne Zeigerlicht.
+    document.addEventListener('focusin', ev => {
+      const el = glasFlaeche(ev.target);
+      if (!el || el === flaeche) return;
+      hatZeiger = false;
+      linse.style.setProperty('--gx', '50%'); linse.style.setProperty('--gy', '50%');
+      linse.style.setProperty('--neig-x', '0'); linse.style.setProperty('--neig-y', '0');
+      uebernehmen(el);
     });
+    document.addEventListener('focusout', ev => {
+      if (glasFlaeche(ev.target) === flaeche && !hatZeiger) uebernehmen(null);
+    });
+
+    document.addEventListener('pointerleave', () => {
+      hatZeiger = false;
+      // Wer die Fläche mit der Tastatur angesteuert hat, soll sie nicht
+      // verlieren, bloß weil der Zeiger das Fenster verlässt.
+      if (!flaeche || !flaeche.matches(':focus-visible')) uebernehmen(null);
+    });
+    // Beim Rollen und beim Umbauen der Seite sitzt die Fläche woanders –
+    // das Ziel wird ohnehin jedes Bild neu gemessen, es muss nur laufen.
+    addEventListener('scroll', () => { if (flaeche) anwerfen(); }, { passive: true, capture: true });
+    addEventListener('resize', () => { if (flaeche) anwerfen(); }, { passive: true });
   }
 
   /* Das Licht unter dem Zeiger: Die Leiste bekommt nur mitgeteilt, auf
