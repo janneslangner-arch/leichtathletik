@@ -71,6 +71,16 @@
    unter dem Zeiger bekommt. Sie darf sich NICHT vererben: Sonst meldete auch
    der Textspan in einer Kachel „ich bin Glas", und das Licht landete auf ihm
    statt auf der Fläche darunter. Genau dafür gibt es @property. */
+/* Der Kapselradius jeder Fläche, vom Skript gemessen. Nicht vererbend:
+   Sonst nähme ein Knopf in einer Zeile deren Radius statt seines eigenen.
+   999px als Ausgangswert heißt „so rund es geht" – das gilt, solange kein
+   Skript läuft, und ist dann eben ein Sprung statt eines Flusses. */
+@property --rund {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 999px;
+}
+
 @property --glas {
   syntax: "<number>";
   inherits: false;
@@ -1676,9 +1686,13 @@ body.ist-lehrer .profile-btn { display: none; }
     /* Eigene Stapelebene: nur so landet der Lichtreflex (z-index: -1)
        zwischen Fläche und Text und nicht über der Schrift. */
     isolation: isolate;
-    transition: color .18s ease, border-color .28s ease,
-                background-color .28s ease, box-shadow .3s ease,
+    transition: color .18s ease,
+                border-color var(--feder-kurz) ease-out,
+                background-color var(--feder-kurz) ease-out,
+                box-shadow var(--feder-kurz) ease-out,
                 border-radius var(--feder-kurz) var(--feder),
+                -webkit-backdrop-filter var(--feder-kurz) ease-out,
+                backdrop-filter var(--feder-kurz) ease-out,
                 translate var(--feder-kurz) var(--feder),
                 transform var(--feder-kurz) var(--feder);
   }
@@ -1745,6 +1759,15 @@ body.ist-lehrer .profile-btn { display: none; }
     translate: calc(var(--neig-x, 0) * 1.5px) calc(var(--neig-y, 0) * 1.5px - 1px);
   }
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    /* Ruhezustand mit Nullwerten: Nur so kann der Weichzeichner überblenden
+       statt anzuspringen. Ohne diese Zeile geht die Brechung schlagartig an,
+       während Form und Licht noch unterwegs sind – das war der zweite Grund,
+       warum der Übergang hakelig wirkte. */
+    .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
+    .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
+      -webkit-backdrop-filter: blur(0px) saturate(100%) brightness(1);
+      backdrop-filter: blur(0px) saturate(100%) brightness(1);
+    }
     .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
     .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
     .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
@@ -1767,7 +1790,7 @@ body.ist-lehrer .profile-btn { display: none; }
   .chip:focus-visible, .sortier-btn:focus-visible, .btn:focus-visible,
   .seg-btn:focus-visible, .profile-btn:focus-visible, .icon-btn:focus-visible,
   .pscreen-close:focus-visible, .row:focus-visible,
-  .klapp > summary:focus-visible { border-radius: 999px; }
+  .klapp > summary:focus-visible { border-radius: var(--rund, 999px); }
   .disc:hover, .menu-row:hover, .theme-card:hover, .p-tile:hover,
   .disc:focus-visible, .menu-row:focus-visible, .theme-card:focus-visible,
   .p-tile:focus-visible { border-radius: 24px; }
@@ -1790,9 +1813,10 @@ body.ist-lehrer .profile-btn { display: none; }
                 0 16px 34px -22px var(--mint-glow);
   }
   .save-btn:hover, .save-btn:focus-visible {
-    background-color: color-mix(in srgb, var(--mint) 88%, white); border-radius: 999px;
+    background-color: color-mix(in srgb, var(--mint) 88%, white);
+    border-radius: var(--rund, 999px);
   }
-  .btn-mint:hover, .btn-mint:focus-visible { border-radius: 999px; }
+  .btn-mint:hover, .btn-mint:focus-visible { border-radius: var(--rund, 999px); }
 
   /* Der gleitende Knopf ist am Rechner eine Linse: Kapselform, Lichtkante
      oben, weiche Gegenkante unten – so wie der Schalter im Vorbild. */

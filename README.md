@@ -384,6 +384,26 @@ Bewegung. Die harte Kontur verschwindet dabei; den Rand macht dann das
 Licht: eine helle Kante oben, ein feiner Ring außen, ein weicher Schein
 nach innen.
 
+**Warum der Radius gemessen wird.** „Rund" schreibt man in CSS gern als
+`border-radius: 999px` – der Browser kappt das ohnehin bei der halben
+Höhe. Für einen *Übergang* ist das fatal: Bei einem 34 px hohen Knopf ist
+die sichtbare Verwandlung nach 17 von 999 px vorbei, also nach rund 2 %
+der Strecke. Die Ecke schnappt in 20 ms um, während Anheben, Licht und
+Weichzeichner noch 380 ms laufen – es hakt. Deshalb misst das Skript beim
+Betreten die Fläche und setzt `--rund` auf ihre halbe Höhe; der Radius
+läuft dann über seinen ganzen wirklich sichtbaren Weg. `--rund` ist über
+`@property` als **nicht vererbend** erklärt, sonst nähme ein Knopf in
+einer Zeile deren Radius. Gemessen wird bei `pointerover` (und bei
+`focusin`), nicht bei jeder Mausbewegung – das Maß steht, bevor der
+Übergang losläuft.
+
+**Auch die Brechung blendet über.** `backdrop-filter` steht im Ruhezustand
+auf `blur(0px) saturate(100%)`; nur so kann der Browser sie überblenden
+statt sie anzuknipsen. Der Weichzeichner wächst damit in denselben 380 ms
+von 0 auf 18 px wie die Form. Das kostet einmalig ein paar Bilder, wenn
+die Ebenen zum ersten Mal angelegt werden, danach nichts mehr (gemessen:
+Mittel 16,7 ms je Bild, gleich mit und ohne).
+
 Das Ganze gibt es nur in der **Rechner-Ansicht** – dieselbe Bedingung wie
 für die linke Leiste (breit, quer, echter Zeiger). Im schmalen Fenster
 bleibt alles wie auf dem Handy.
@@ -461,6 +481,8 @@ Gegenstand bewegt sich.
 | Anheben, Mitrücken, Druckpunkt | `scale(1.02)` / `1.5px` / `scale(.98)` im selben Block |
 | Schwung und Überschwingen | `--feder`, `--feder-zeit`, `--feder-kurz` in `:root` (neu rechnen mit `werkzeug/feder.py`) |
 | Ein- und Ausblendzeit des Lichts | die beiden Zeiten auf `opacity` in der Lichtebene (`::before`) |
+| Wie rund die Kapsel wird | `rundEinzeln()` in `assets/app.js` – halbe Höhe ist voll rund |
+| Wie rund die Kacheln werden | die `24px` in der Formregel von `assets/styles.css` |
 | Ab wann es überhaupt gilt | die Medienabfrage `(min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine)` |
 
 ## Schmal, breit, quer

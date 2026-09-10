@@ -524,7 +524,26 @@
 
     const loslassen = el => {
       if (!el) return;
-      ['--gx', '--gy', '--neig-x', '--neig-y'].forEach(m => el.style.removeProperty(m));
+      ['--gx', '--gy', '--neig-x', '--neig-y', '--rund'].forEach(m => el.style.removeProperty(m));
+    };
+
+    /* Die Kapselform ist keine feste Zahl: „999px" ist zwar rund genug für
+       alles, aber der Browser kappt den Radius bei der halben Höhe. Ein
+       Übergang von 0 auf 999 px ist deshalb nach 2 % der Strecke fertig –
+       die Ecke schnappt in 20 ms rund, während der Rest 380 ms braucht.
+       Genau das sah abgehackt aus. Also messen wir die Fläche und lassen
+       den Radius von 0 bis zu seinem tatsächlichen Anschlag laufen. */
+    const rundEinzeln = el => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--rund', (Math.min(r.width, r.height) / 2).toFixed(1) + 'px');
+    };
+    /* Auch die Flächen darüber bekommen ihr Maß: Fährt man von außen direkt
+       auf einen Knopf in einer Zeile, ist die Zeile mit ihm zusammen „hover",
+       hat aber nie ein eigenes pointerover gesehen. */
+    const rundSetzen = el => {
+      for (let i = 0; el && el.nodeType === 1 && i < 6; i++, el = el.parentElement) {
+        if (getComputedStyle(el).getPropertyValue('--glas').trim() === '1') rundEinzeln(el);
+      }
     };
 
     const glasFlaeche = ziel => {
@@ -534,6 +553,21 @@
       }
       return null;
     };
+
+    // pointerover kommt genau dann, wenn der Zeiger etwas Neues betritt –
+    // billiger als jede Bewegung zu prüfen, und vor allem sofort: Der Radius
+    // steht, bevor der Übergang losläuft.
+    document.addEventListener('pointerover', ev => {
+      if (ev.pointerType !== 'mouse') return;
+      rundSetzen(glasFlaeche(ev.target));
+    }, { passive: true });
+
+    // Dasselbe für die Tastatur: Auch der Fokus lässt die Form fließen.
+    document.addEventListener('focusin', ev => rundSetzen(glasFlaeche(ev.target)));
+    document.addEventListener('focusout', ev => {
+      const el = glasFlaeche(ev.target);
+      if (el && el !== flaeche) setTimeout(() => { if (el !== flaeche) loslassen(el); }, 450);
+    });
 
     let warten = false;
     document.addEventListener('pointermove', ev => {
