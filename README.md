@@ -363,6 +363,38 @@ mit einem Punkt am Ende. Auf der Punkteseite steht die Summe in derselben
 Größe, dahinter ein angeschnittener Kreis – der einzige Kreis im ganzen
 Design, deshalb fällt er auf.
 
+## Glas unter dem Zeiger
+
+Fährt die Maus über etwas Anfassbares – Disziplin-Kachel, Zeile, Knopf,
+Farbkachel, aufklappbarer Abschnitt –, wird die Fläche für den Moment zu
+Glas: Was darunter liegt, wird weichgezeichnet und leicht aufgehellt
+(`backdrop-filter`), an der Oberkante sitzt eine Lichtkante, innen ein
+Schein, und ein heller Fleck folgt dem Zeiger über die Fläche. Dazu hebt
+sich das Ganze einen Hauch an, mit leichtem Überschwingen, damit es
+nachfedert statt zu klacken. Die Kante wird dabei nicht schwarz, sondern
+nimmt eine Spur der Akzentfarbe an – wie eine Linse, die das Licht am Rand
+sammelt.
+
+Die Ecken bleiben **eckig**. Das Vorbild (Apples „Liquid Glass") arbeitet
+mit Kapselformen, aber „klare Kanten" war die Ansage – das Material lässt
+sich von der Form trennen.
+
+Farbige Flächen (Speichern-Knopf, aktiver Umschalter) bleiben farbig: Glas
+über einer kräftigen Farbe wäre nur Matsch. Sie bekommen das Anheben und
+die Lichtkante, sonst nichts.
+
+Das Ganze gilt nur, wo es einen **echten Zeiger** gibt (`hover: hover` und
+`pointer: fine`). Auf dem Handy gibt es kein Darüberfahren, und ein
+klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
+
+Welche Flächen mitmachen, steht **nur in der CSS-Datei**: Sie setzen
+`--glas: 1`, und das Skript fragt beim Darüberfahren danach, statt eine
+zweite Liste zu führen. Wichtig dabei: `--glas` ist über `@property`
+ausdrücklich als **nicht vererbend** erklärt. Sonst meldete auch der
+Textspan in einer Kachel „ich bin Glas", und das Licht landete auf ihm
+statt auf der Fläche darunter – genau dieser Fehler steckte in der ersten
+Fassung und wird von `glastest.js` festgehalten.
+
 ## Schmal, breit, quer
 
 Entschieden wird nach **Breite und Ausrichtung**, nicht nach Gerät: Ein

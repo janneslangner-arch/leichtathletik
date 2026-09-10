@@ -156,7 +156,14 @@
       '--voll-flaeche': '#FAFBFC',
       '--voll-line':    '#DCE0E6',
       '--voll-text':    '#0D1017',
-      '--voll-muted':   '#5C6473'
+      '--voll-muted':   '#5C6473',
+      // Glas: die Lichtkante oben, die Gegenkante unten, der innere Schein
+      // und das Licht, das dem Zeiger folgt.
+      '--glas-kante':  'rgba(255, 255, 255, .92)',
+      '--glas-unten':  `hsla(${h} ${s(30)} 8% / .10)`,
+      '--glas-innen':  'rgba(255, 255, 255, .55)',
+      '--glas-licht':  'rgba(255, 255, 255, .95)',
+      '--glas-hell':   '1.06'
     };
   }
 
@@ -206,7 +213,12 @@
       '--voll-flaeche': '#15171A',
       '--voll-line':    '#2B3034',
       '--voll-text':    '#F2F5F4',
-      '--voll-muted':   '#93999B'
+      '--voll-muted':   '#93999B',
+      '--glas-kante':  'rgba(255, 255, 255, .30)',
+      '--glas-unten':  'rgba(255, 255, 255, .07)',
+      '--glas-innen':  'rgba(255, 255, 255, .12)',
+      '--glas-licht':  'rgba(255, 255, 255, .22)',
+      '--glas-hell':   '1.16'
     };
   }
 
@@ -430,6 +442,39 @@
     }
     marke.style.setProperty('--marke-y', aktiv.offsetTop + 'px');
     marke.style.setProperty('--marke-h', aktiv.offsetHeight + 'px');
+  }
+
+  /* ---------------- Glas: das Licht folgt dem Zeiger ----------------
+     Welche Flächen mitmachen, steht in der CSS-Datei (`--glas: 1`) – das
+     Skript fragt danach, statt eine zweite Liste zu führen, die auseinander
+     laufen könnte. Gerechnet wird höchstens einmal je Bild. */
+  function richteGlasEin() {
+    if (!window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    let warten = false, letzte = null;
+    const glasFlaeche = ziel => {
+      let el = ziel;
+      for (let i = 0; el && el.nodeType === 1 && i < 5; i++, el = el.parentElement) {
+        if (getComputedStyle(el).getPropertyValue('--glas').trim() === '1') return el;
+      }
+      return null;
+    };
+    document.addEventListener('pointermove', ev => {
+      if (ev.pointerType !== 'mouse' || warten) return;
+      warten = true;
+      requestAnimationFrame(() => {
+        warten = false;
+        const el = glasFlaeche(ev.target);
+        if (letzte && letzte !== el) {
+          letzte.style.removeProperty('--gx');
+          letzte.style.removeProperty('--gy');
+        }
+        letzte = el;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--gx', Math.round((ev.clientX - r.left) / r.width * 100) + '%');
+        el.style.setProperty('--gy', Math.round((ev.clientY - r.top) / r.height * 100) + '%');
+      });
+    }, { passive: true });
   }
 
   /* Das Licht unter dem Zeiger: Die Leiste bekommt nur mitgeteilt, auf
@@ -3473,6 +3518,7 @@
 
     richteAugenEin();               // das Auge gibt es schon im Startbildschirm
     richteLeisteEin();
+    richteGlasEin();
 
     // Erst fragen, dann laden: Ohne Zustimmung schreibt die App nichts
     // Freiwilliges auf das Gerät.

@@ -53,6 +53,9 @@
   --rand-tief: rgba(13, 16, 23, .30);
   --voll-bg: #FFFFFF; --voll-glanz: #F1F3F6; --voll-flaeche: #FAFBFC;
   --voll-line: #DCE0E6; --voll-text: #0D1017; --voll-muted: #5C6473;
+  --glas-kante: rgba(255,255,255,.92); --glas-unten: rgba(13,16,23,.10);
+  --glas-innen: rgba(255,255,255,.55); --glas-licht: rgba(255,255,255,.95);
+  --glas-hell: 1.06;
   /* Klare Kanten: keine Rundungen. Die Marken bleiben stehen, damit ein
      einzelner Wert reicht, falls das je wieder anders sein soll. */
   --r:  0px;
@@ -61,6 +64,16 @@
      Sonst sähe die App auf jedem Gerät anders aus – auf dem iPhone wie jede
      andere iPhone-App. Genau das soll sie nicht. */
   --font: Montserrat, "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+/* `--glas` ist die Marke, an der das Skript erkennt, welche Fläche das Licht
+   unter dem Zeiger bekommt. Sie darf sich NICHT vererben: Sonst meldete auch
+   der Textspan in einer Kachel „ich bin Glas", und das Licht landete auf ihm
+   statt auf der Fläche darunter. Genau dafür gibt es @property. */
+@property --glas {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
 }
 
 * { box-sizing: border-box; }
@@ -1588,3 +1601,72 @@ body.ist-lehrer .profile-btn { display: none; }
 .auge .auge-strich { display: none; }
 .auge.ist-zu .auge-strich { display: inline; }
 .auge.ist-offen { color: var(--mint); }
+
+/* ---------------- Glas unter dem Zeiger ----------------
+   Fährt die Maus über etwas Anfassbares, wird die Fläche für den Moment zu
+   Glas: Was darunter liegt, wird weichgezeichnet und leicht aufgehellt, an
+   der Oberkante sitzt eine Lichtkante, innen ein Schein, und ein heller
+   Fleck folgt dem Zeiger über die Fläche. Dazu hebt sich das Ganze einen
+   Hauch an – mit leichtem Überschwingen, damit es nachfedert statt zu
+   klacken.
+
+   Die Ecken bleiben eckig. Das Vorbild arbeitet mit Kapselformen, aber
+   „klare Kanten" war die Ansage – das Material lässt sich davon trennen.
+
+   Nur mit echtem Zeiger: Auf dem Handy gibt es kein Darüberfahren, und ein
+   klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
+   `--glas: 1` ist zugleich die Marke, an der das Skript erkennt, welche
+   Fläche das Licht mitbekommt – so gibt es nur eine Liste, nicht zwei. */
+@media (hover: hover) and (pointer: fine) {
+  .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
+  .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
+    --glas: 1;
+    transition: color .18s ease, border-color .18s ease,
+                background-color .28s ease, box-shadow .3s ease,
+                transform .38s cubic-bezier(.34, 1.36, .36, 1);
+  }
+  .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
+  .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
+  .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
+  .pscreen-close:hover {
+    background-color: color-mix(in srgb, var(--surface) 38%, transparent);
+    background-image: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 0%),
+                      var(--glas-licht) 0%, transparent 58%);
+    /* Die Kante wird nicht schwarz, sondern angeleuchtet: eine Spur der
+       Akzentfarbe, wie bei einer Linse, die das Licht am Rand sammelt. */
+    border-color: color-mix(in srgb, var(--mint) 42%, var(--line-soft));
+    box-shadow:
+      inset 0 1px 0 var(--glas-kante),
+      inset 0 -1px 0 var(--glas-unten),
+      inset 0 0 26px -8px var(--glas-innen),
+      0 16px 34px -24px var(--rand-tief),
+      0 0 0 1px color-mix(in srgb, var(--mint) 12%, transparent);
+    transform: translateY(-1px) scale(1.012);
+  }
+  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+    .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
+    .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
+    .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
+    .pscreen-close:hover {
+      -webkit-backdrop-filter: blur(14px) saturate(180%) brightness(var(--glas-hell));
+      backdrop-filter: blur(14px) saturate(180%) brightness(var(--glas-hell));
+    }
+  }
+  /* Der gedrückte Zustand: kurz zusammensinken, wie echtes Glas nachgibt */
+  .disc:active, .menu-row:active, .theme-card:active, .chip:active,
+  .sortier-btn:active, .p-tile:active, .profile-btn:active, .icon-btn:active,
+  .btn:active, .seg-btn:active { transform: translateY(0) scale(.985); }
+
+  /* Farbige Flächen behalten ihre Farbe – dort wäre Glas nur Matsch.
+     Sie bekommen nur das Anheben und die Lichtkante. */
+  .btn-mint:hover, .save-btn:hover, .seg-btn.is-active:hover,
+  .p-tile.is-current:hover {
+    background-color: var(--mint); background-image: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    box-shadow: inset 0 1px 0 var(--glas-kante), 0 14px 30px -20px var(--mint-glow);
+  }
+  .save-btn:hover { background-color: color-mix(in srgb, var(--mint) 88%, white); }
+
+  /* In der Leiste hat der Reiter schon seinen eigenen Auftritt */
+  .tabbar .tab { --glas: 0; }
+}
