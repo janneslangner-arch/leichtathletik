@@ -136,7 +136,10 @@ body {
 }
 h1, h2, h3 { margin: 0; font-weight: 700; letter-spacing: -.02em; text-wrap: balance; }
 button, input, select { font-family: inherit; font-size: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; border-radius: var(--r-weich); }
+/* Der Rahmen folgt der Form des Elements ganz von allein – wer hier einen
+   Radius setzt, verformt das Element selbst. Genau das ließ Kacheln beim
+   Anklicken kurz eckig werden. */
+:focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .num { font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -566,6 +569,10 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
    Sie gehört zur Leiste, nicht zur Kopfzeile, und ist deshalb genauso
    breit wie diese. Zugeklappt steht dort das Kürzel, ausgefahren der ganze
    Name. Auf dem Handy gibt es die Ecke nicht – dort ist kein Platz. */
+/* Handy-Browser blenden beim Antippen einen grauen Kasten ein – rechteckig,
+   auch über runden Flächen. Den machen wir selbst, und zwar in Form. */
+* { -webkit-tap-highlight-color: transparent; }
+
 .leiste-kopf { display: none; }
 /* Der Gruppenname gehört in die linke Leiste. Auf dem Handy steht die
    Leiste unten und quer – dort hat er nichts zu suchen, dort übernimmt die
@@ -1778,9 +1785,39 @@ body.ist-lehrer .profile-btn { display: none; }
 
 .sheet, .pscreen-inner, .toast { border-radius: var(--r-gross); }
 
-/* Der Fokusrahmen folgt der Form des Elements – deshalb hier nichts mehr
-   erzwingen. */
-:focus-visible { border-radius: inherit; }
+/* ---------------- Der Druckpunkt ----------------
+   Alles, was man anfassen kann, sinkt beim Drücken kurz ein und kommt an
+   der Feder zurück – in jeder Ansicht, auf jedem Gerät. Vorher gab es das
+   nur dort, wo der Glaskörper wandert (Rechner) oder wo getippt wird
+   (Handy); im schmalen Fenster am Rechner passierte gar nichts.
+
+   Am Rechner mit Glas übernimmt die Linse den Druck: Dort steht weiter
+   unten „transform: none" für dieselben Flächen. */
+.disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
+.klapp > summary, .profile-btn, .icon-btn, .btn, .btn-sm, .save-btn,
+.seg-btn, .pscreen-close, .pscreen-link, .tab, .lehrer-link, .auge,
+.sync-chip, .theme-swatch, .pattern-swatch {
+  transition: transform var(--feder-kurz) var(--feder), color .18s ease,
+              background-color .28s ease, border-color .28s ease,
+              box-shadow .28s ease;
+}
+.disc:active, .row:active, .menu-row:active, .theme-card:active,
+.chip:active, .sortier-btn:active, .p-tile:active, .klapp > summary:active,
+.profile-btn:active, .icon-btn:active, .btn:active, .btn-sm:active,
+.save-btn:active, .seg-btn:active, .pscreen-close:active,
+.pscreen-link:active, .tab:active, .lehrer-link:active, .auge:active,
+.sync-chip:active, .theme-swatch:active, .pattern-swatch:active {
+  transform: scale(.965);
+}
+/* Wer weniger Bewegung eingestellt hat, bekommt trotzdem eine Rückmeldung –
+   nur ohne Weg: Die Fläche wird für den Moment etwas heller. */
+@media (prefers-reduced-motion: reduce) {
+  .disc:active, .row:active, .menu-row:active, .theme-card:active,
+  .chip:active, .p-tile:active, .btn:active, .save-btn:active,
+  .profile-btn:active, .icon-btn:active, .tab:active {
+    transform: none; filter: brightness(1.12);
+  }
+}
 
 /* ---------------- Lehreransicht: nüchtern ----------------
    Sie ist ein Arbeitsgerät, keine Spielwiese: Schwarz auf Weiß oder Weiß
@@ -2132,4 +2169,20 @@ body.ist-lehrer .sortier-btn.is-active {
   .disc:active, .row:active, .menu-row:active, .theme-card:active,
   .chip:active, .sortier-btn:active, .p-tile:active, .profile-btn:active,
   .icon-btn:active, .btn:active, .seg-btn:active { transform: scale(.98); }
+}
+
+/* ---------------- Nachtrag: der Abschnittskopf ----------------
+   Ein <summary> kann den Glaskörper nicht tragen: Der müsste als erstes
+   Kind im <details> hängen, und dort gilt das erste Kind als Inhalt, der
+   zugeklappt verschwindet – die Zeile stünde dann leer da (genau das war
+   der leere Glasbalken bei „Alle Werte"). Der Abschnittskopf bekommt
+   deshalb seinen eigenen, einfachen Hover. Er steht hier ganz am Ende,
+   weil er den allgemeinen Glasregeln widersprechen muss. */
+body.glas-linse .klapp > summary { --glas: 0; }
+body.glas-linse .klapp > summary:hover,
+body.glas-linse .klapp > summary:focus-visible {
+  background-color: color-mix(in srgb, var(--text) 7%, transparent);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
+  border-radius: var(--r-karte);
+  border-color: transparent;
 }

@@ -550,6 +550,33 @@ So trägt jede veröffentlichte Fassung ihren eigenen Namen, ohne dass
 dafür etwas in der Datenbank stehen muss. Fehlt der Name, tritt der Code
 an seine Stelle; ohne Datenbank bleibt die Ecke leer.
 
+## Der Druckpunkt
+
+Alles, was man anfassen kann, sinkt beim Drücken kurz ein und kommt an der
+Feder zurück – in **jeder** Ansicht, auf jedem Gerät. Vorher gab es das nur
+dort, wo der Glaskörper wandert (Rechner) oder wo getippt wird (Handy); im
+schmalen Fenster am Rechner passierte gar nichts. Wo die Linse arbeitet,
+übernimmt sie den Druck; sonst bewegt sich die Fläche selbst. Bei „weniger
+Bewegung" wird sie stattdessen kurz heller.
+
+Zwei Dinge, die dabei stumm dazwischenfunkten:
+
+* **`:focus-visible` verformte das Element.** Dort stand ein
+  `border-radius` – einmal fest, einmal als `inherit`, also der Wert des
+  *Elternteils*. Bei den Disziplin-Kacheln ist der null: Beim Anklicken
+  wurde die runde Kachel für einen Moment eckig. Der Rahmen folgt der Form
+  ohnehin von selbst; jetzt steht dort nichts mehr.
+* **Handy-Browser blenden beim Antippen einen grauen Kasten ein** –
+  rechteckig, auch über runden Flächen. `-webkit-tap-highlight-color:
+  transparent` schaltet ihn ab, die Rückmeldung macht die App selbst.
+
+Und noch eine Stelle, an der die Form gewann: Ein `<summary>` kann den
+Glaskörper **nicht** tragen. Der müsste als erstes Kind im `<details>`
+hängen, und dort gilt das erste Kind als Inhalt, der zugeklappt
+verschwindet – die Zeile stand dann leer da, nur der Glasbalken blieb
+übrig. Abschnittsköpfe haben deshalb ihren eigenen, einfachen Hover, und
+die Linse hängt sich nie in eine Liste, eine Tabelle oder ein `<details>`.
+
 ## Kann dieser Wert stimmen?
 
 Beim Eintragen passiert immer dasselbe: ein Komma zu weit links (1.285

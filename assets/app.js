@@ -671,7 +671,7 @@
        die Linse eine Ebene höher ein; gezeichnet wird sie dann immer noch
        über dem Grund und unter den Flächen, denn die Liste selbst ist
        nicht positioniert, ihre Einträge aber schon. */
-    const KEIN_PLATZ = /^(UL|OL|DL|TABLE|THEAD|TBODY|TFOOT|TR|SELECT|OPTGROUP|FIELDSET)$/;
+    const KEIN_PLATZ = /^(UL|OL|DL|TABLE|THEAD|TBODY|TFOOT|TR|SELECT|OPTGROUP|FIELDSET|DETAILS)$/;
     const platzFuer = el => {
       let c = el.parentElement || document.body;
       while (c !== document.body && c.parentElement && KEIN_PLATZ.test(c.tagName)) c = c.parentElement;
