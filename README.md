@@ -587,6 +587,13 @@ aussehen, ein iPad quer ist so breit wie ein kleiner Laptop.
 Bis 1000 px und im Hochformat bleibt alles, wie es ist: Reiterleiste unten,
 Inhalt in einer Spalte. Das gilt für Handy und iPad hochkant.
 
+**Am Rechner gibt es keinen Menüknopf mehr.** Wo ein echter Zeiger ist,
+fährt die Leiste aus, sobald man sie berührt – ein Knopf zum Festklemmen
+wäre dort nur im Weg. Auf Geräten ohne Hover (iPad quer) bleibt er, sonst
+käme man dort nicht mehr an die Beschriftungen. Ein gemerktes „offen" aus
+früheren Besuchen wird am Rechner ignoriert: Sonst stünde die Leiste für
+immer offen, ohne Knopf, um sie zu schließen.
+
 **Die Leiste schiebt den Inhalt nicht.** Er richtet sich nach der
 *zugeklappten* Breite (72 px) und bleibt dann stehen; fährt die Leiste
 aus, legt sie sich darüber – ob per Zeiger oder per Knopf. Vorher rutschte

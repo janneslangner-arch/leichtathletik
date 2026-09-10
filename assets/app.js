@@ -429,7 +429,19 @@
   /* Die linke Leiste auf- und zuklappen. Nur ein Zustand am body – ob die
      Leiste überhaupt links steht, entscheidet allein die CSS-Abfrage nach
      Breite und Ausrichtung. So gibt es keine zweite Wahrheit. */
+  /* Am Rechner gibt es den Menüknopf nicht mehr – dort fährt die Leiste
+     aus, sobald der Zeiger sie berührt. Ein festgeklemmter Zustand aus
+     früheren Besuchen wäre dann eine Falle: Die Leiste stünde für immer
+     offen, ohne Knopf, um sie zu schließen. Also gilt sie dort als zu. */
+  const knopfLos = () => {
+    try {
+      return matchMedia('(hover: hover) and (pointer: fine)').matches
+        && matchMedia('(min-width: 1000px) and (orientation: landscape)').matches;
+    } catch (e) { return false; }
+  };
+
   function applyLeiste(offen, merken) {
+    if (knopfLos()) offen = false;
     document.body.classList.toggle('leiste-offen', !!offen);
     const knopf = document.getElementById('leisteAuf');
     if (knopf) {
