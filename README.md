@@ -646,18 +646,52 @@ allein ausfährt, und dass der Balken wandert statt zu springen.
 
 ## Schrift
 
-**Montserrat**, aus `assets/fonts/` – geometrisch gebaut, weite Versalien,
-kräftige Schnitte bis 900. Genau das trägt die großen Überschriften, um die
-herum dieses Design gebaut ist. Zwei woff2-Dateien als variable Schrift für
-alle Stärken von 400 bis 900; die zweite (latin-ext) lädt der Browser nur,
-wenn ein Zeichen daraus vorkommt. Umlaute stecken schon in der ersten.
+**Poppins**, aus `assets/fonts/` – geometrisch gebaut, die Rundungen sind
+fast echte Kreise. Das passt zu den runden Ecken, die das Design tragen,
+und es trägt die großen Überschriften, um die herum es gebaut ist.
+
+**Die Ziffern sind geblieben, wo sie waren.** Nur die Buchstaben sind neu;
+0–9 kommen weiter aus **Montserrat**. Möglich macht das die `unicode-range`:
+Eine eigene Schriftfamilie `Ziffern` steht in `--font` **vor** Poppins und
+bietet ausschließlich die zehn Zeichen `U+0030-0039` an – alles andere
+reicht der Browser an die nächste Schrift weiter.
+
+Der Grund ist nicht Nostalgie: In dieser App ist fast jede Zahl eine
+Messung, die mit anderen verglichen wird, und Montserrats Ziffern stehen
+schmaler und ruhiger in einer Spalte. Die Datei dafür ist auf genau diese
+zehn Zeichen eingedampft (`fontTools.subset`) – 8,7 statt 38 KB – und
+bleibt variabel, deckt also weiter alle Stärken ab.
+
+**Zehn Dateien statt zwei.** Anders als Montserrat gibt es Poppins nicht als
+variable Schrift; jeder Schnitt ist eine eigene Datei. Hier liegen deshalb
+400, 500, 600, 700 und 800 – die fünf Stärken, die im Stylesheet wirklich
+vorkommen –, jede einmal als Latin und einmal als Latin-ext. Latin-ext holt
+der Browser nur, wenn ein Zeichen daraus vorkommt (ł, ő, ș in Namen);
+Umlaute stecken schon in der ersten. Mit der Ziffernschrift zusammen sind
+das 76 KB – gut das Doppelte der einen variablen Datei vorher, aber der
+Browser lädt nie alles davon.
+
+Wer eine Stärke benutzt, die hier nicht liegt, bekommt vom Browser eine
+gerechnete Fälschung: Er zieht den vorhandenen Schnitt künstlich fett. Das
+sieht auf den ersten Blick aus wie Fettschrift und auf den zweiten matschig.
+`modustest.js` prüft deshalb nicht nur, dass Poppins ankommt, sondern dass
+jede der fünf Stärken wirklich als eigene Datei geladen ist.
 
 Sie steht **vor** der Systemschrift, nicht dahinter. Vorher war es
 umgekehrt: Auf dem iPhone lief die App in San Francisco, auf Android in
 etwas anderem – dieselbe App sah auf jedem Gerät anders aus und nach nichts
 Eigenem. Eine zweite mitgelieferte Schrift als Rückfall gibt es nicht mehr:
 Sie käme aus derselben Datei­ablage und wäre dasselbe Format, würde also
-genau dann fehlen, wenn Montserrat fehlt.
+genau dann fehlen, wenn Poppins fehlt.
+
+**Eine Zahl musste nachziehen.** Poppins setzt den Wortzwischenraum enger
+als die vorige Schrift – 8,5 statt 11,3 px bei 40 px, also ein Viertel
+weniger. Die Überschriften laufen ohnehin eng (`letter-spacing: -.02em` bis
+`-.04em`), und zusammen klebte „Neuer Wert." fast zu einem Wort. Die Marke
+`--wortluft: .07em` gibt den Abstand zwischen den Wörtern zurück, ohne die
+Buchstaben wieder auseinanderzuziehen; sie hängt an `h1, h2, h3` und am
+Gruß auf dem Ladebild. Im Übrigen läuft Poppins 2–3 % schmaler als die
+Vorgängerin, es wird also nirgends enger als vorher.
 
 Die Schrift liegt im Projekt statt bei Google: kein fremder Server, keine
 Wartezeit, und sie ist auch ohne Netz da. `build.py` bettet sie für die
