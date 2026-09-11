@@ -87,32 +87,14 @@
   initial-value: 0;
 }
 
-/* ---------------- Die Feder ----------------
-   Alle Bewegungen in dieser App folgen derselben Physik: einem gedämpften
-   harmonischen Oszillator, also einer echten Feder. Angehängte Masse m = 1,
-   Federkonstante k = 170, Dämpfung c = 16. Daraus folgt
-
-       Eigenfrequenz  ω₀ = √(k/m)            = 13,0 /s
-       Dämpfungsgrad  ζ  = c / (2·√(k·m))    = 0,61
-       Auslenkung     x(t) = 1 − e^(−ζω₀t)·(cos ω_d t + (ζω₀/ω_d)·sin ω_d t)
-
-   ζ liegt unter 1, die Feder schwingt also über: Sie fährt 8,7 % über das
-   Ziel hinaus, kommt zurück und steht nach 660 ms. Genau dieses kurze
-   Nachwippen lässt eine Bewegung lebendig statt mechanisch wirken.
-
-   CSS kann keine Feder rechnen, aber `linear()` kann eine Kurve stützweise
-   nachfahren. Die 27 Stützstellen unten sind aus der Formel gerechnet, nicht
-   geschätzt. Wer die Feder ändern will, ändert k und c und rechnet sie neu –
-   die Rechnung steht im Projekt (werkzeug/feder.py). */
+/* ---------------- Bewegung, sparsam ----------------
+   Es gibt nur noch zwei Zeiten in dieser App: eine kurze für alles, was
+   auf eine Berührung antwortet, und eine etwas längere für Flächen, die
+   sich öffnen oder schließen. Beide ohne Überschwingen – was hier
+   passiert, soll man bemerken, nicht bestaunen. */
 :root {
-  --feder: linear(0, 0.0479, 0.1653, 0.3183, 0.4813, 0.6363, 0.772, 0.8828,
-                  0.967, 1.026, 1.0629, 1.0818, 1.0871, 1.0827, 1.0724, 1.0591,
-                  1.0449, 1.0314, 1.0196, 1.01, 1.0027, 0.9976, 0.9945, 0.9929,
-                  0.9924, 0.9928, 0.9937);
-  --feder-zeit: .66s;
-  /* Dieselbe Feder, nur kürzer: für kleine Wege wie das Anheben beim
-     Darüberfahren. Gleiche Kurve, gleiches Gefühl, weniger Zeit. */
-  --feder-kurz: .38s;
+  --weg:      .14s cubic-bezier(.2, .6, .3, 1);
+  --weg-lang: .22s cubic-bezier(.2, .6, .3, 1);
 }
 
 * { box-sizing: border-box; }
@@ -206,8 +188,7 @@ button, input, select { font-family: inherit; font-size: inherit; color: inherit
 /* ---------- Views ---------- */
 main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .view { display: none; }
-.view.is-active { display: block; animation: rise .2s ease both; }
-@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.view.is-active { display: block; }
 /* Die Überschrift trägt die Seite: groß, eng gesetzt, mit einem Punkt am
    Ende – dieselbe Geste wie in der Vorlage, wo der Punkt über dem i sitzt. */
 .view-title {
@@ -399,11 +380,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .klapp > summary:hover { color: var(--mint); }
 .klapp > summary .sub { font-size: 12.5px; font-weight: 400; color: var(--muted); }
 .klapp-body { padding: 2px 15px 16px; }
-/* Der wandernde Glaskörper hängt sich als erstes Kind in den Behälter –
-   damit ist die Überschrift nicht mehr „:first-child". Beide Fälle
-   nennen, sonst rutscht der Abstand weg, sobald der Zeiger vorbeikommt. */
-.klapp-body > .section-title:first-child,
-.klapp-body > .glaslinse:first-child + .section-title { margin-top: 4px; }
+.klapp-body > .section-title:first-child { margin-top: 4px; }
 .klapp-body .hint-text { margin-top: 10px; }
 
 .feld-paar { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; }
@@ -482,8 +459,8 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
        durchsichtig – deshalb erst die volle Farbe, dann die halbe nur dort,
        wo der Weichzeichner wirklich kann. */
     background: var(--surface);
-    /* Eine Schublade wippt nicht. Die Feder mit ihrem Überschwingen ist für
-       Dinge da, die springen; hier zieht eine ruhige Kurve sauber auf. */
+    /* Eine Schublade wippt nicht: eine ruhige Kurve, die zügig anfängt und
+       weich ausläuft – kein Nachwippen am Ende. */
     transition: width .42s cubic-bezier(.32, .72, 0, 1),
                 box-shadow .42s ease;
   }
@@ -495,16 +472,6 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
       backdrop-filter: blur(22px) saturate(180%);
     }
   }
-  /* Das Licht, das dem Zeiger folgt. Es liegt als eigene Ebene unter den
-     Reitern, wandert weich hinterher und ist weg, sobald die Maus weg ist. */
-  .tabbar::before {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(150px 150px at 50% var(--maus-y, -200px),
-                color-mix(in srgb, var(--mint) 26%, transparent) 0%, transparent 72%);
-    opacity: 0; transition: opacity .35s ease;
-  }
-  .tabbar:hover::before { opacity: 1; }
-
   .leiste-inhalt { position: relative; display: flex; flex-direction: column; gap: 2px; }
 
   /* Der gleitende Balken übernimmt hier die Markierung */
@@ -514,9 +481,9 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
     height: var(--marke-h, 0px);
     transform: translateY(var(--marke-y, 0px));
     background: var(--mint);
-    /* Ein Hauch Überschwingen: er kommt an, wippt einmal kurz nach und steht.
-       Das ist der ganze Trick – mehr wäre Spielerei. */
-    transition: transform var(--feder-zeit) var(--feder),
+    /* Er gleitet zum aktiven Reiter, statt dass an jedem Reiter einer an-
+       und ausgeht. Ohne Nachwippen: er kommt an und steht. */
+    transition: transform var(--weg-lang),
                 height .3s cubic-bezier(.32, .72, 0, 1);
   }
   .leiste-marke.ohne-schwung { transition: none; }
@@ -548,18 +515,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   }
   body:not(.leiste-offen) .leiste-knopf,
   body:not(.leiste-offen) .tab { justify-content: center; padding-inline: 0; }
-  /* Die Beschriftung kommt nicht auf einmal, sondern von links nachgereicht –
-     Reiter für Reiter, mit ein paar Hundertstel Abstand. */
-  .tab-text, .leiste-knopf .tab-text {
-    transition: opacity .2s ease var(--verzug, 0s),
-                transform .28s cubic-bezier(.32, .72, 0, 1) var(--verzug, 0s);
-  }
   body:not(.leiste-offen) .tab-text { opacity: 0; transform: translateX(-10px); }
-  .leiste-inhalt .tab:nth-child(2) .tab-text { --verzug: .015s; }
-  .leiste-inhalt .tab:nth-child(3) .tab-text { --verzug: .03s; }
-  .leiste-inhalt .tab:nth-child(4) .tab-text { --verzug: .045s; }
-  .leiste-inhalt .tab:nth-child(5) .tab-text { --verzug: .06s; }
-  .leiste-inhalt .tab:nth-child(6) .tab-text { --verzug: .075s; }
 
   /* Der Inhalt darf mitwachsen, sobald Platz da ist */
   main { max-width: 900px; }
@@ -663,7 +619,7 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   }
   /* Der Reiter unter dem Zeiger hebt sich leicht heraus – eine Handbreit
      Rückmeldung, kein Karussell. */
-  .tabbar .tab { transition: color .16s ease, background-color .22s ease, transform var(--feder-kurz) var(--feder); }
+  .tabbar .tab { transition: color .16s ease, background-color .22s ease, transform var(--weg); }
   .tabbar .tab:hover { background: var(--auflage); transform: translateX(2px); }
 }
 
@@ -955,37 +911,29 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .sync-box { display: grid; justify-items: center; gap: 18px; text-align: center; }
 
 /* ---------- Lade-Anzeige: HUD-Ringe ----------
-   Punkte, Bögen und Strichkranz drehen unterschiedlich schnell und teils
-   gegenläufig; die Schrift steht ruhig in der Mitte. Alle Maße stammen aus
-   einem Skript, damit die Punkte exakt auf dem Kreis sitzen. */
+   Punkte, Bögen und Strichkranz stehen still; nur der äußere Bogen dreht
+   sich, langsam. Fünf Kreisel, die sich gegenläufig überholen, waren eine
+   Sekunde lang hübsch und danach Unruhe. Alle Maße stammen aus einem
+   Skript, damit die Punkte exakt auf dem Kreis sitzen. */
 .hud-feld {
   position: relative;
   width: min(248px, 68vw); aspect-ratio: 1;
   display: grid; place-items: center;
-  /* Auftritt: klein und unscharf herein, dann auf Normalmaß.
-     Bewusst ohne fill-mode – danach gilt wieder der Grundzustand,
-     sonst käme der Übergang beim Abgang nicht mehr durch. */
-  animation: hud-auf .82s cubic-bezier(.16, .84, .3, 1);
-  transition: transform .75s cubic-bezier(.4, 0, .2, 1),
-              opacity .75s cubic-bezier(.4, 0, .5, 1),
-              filter .75s ease-in;
-}
-@keyframes hud-auf {
-  from { transform: scale(.5); opacity: 0; filter: blur(12px); }
-  55%  { opacity: 1; }
-  to   { transform: scale(1); opacity: 1; filter: blur(0); }
+  /* Kein Auftritt mehr – die Anzeige ist einfach da. Der Abgang bleibt:
+     Sie wächst auf und verschwimmt mit der Seite, wenn geladen ist. */
+  transition: transform .45s cubic-bezier(.4, 0, .2, 1),
+              opacity .45s ease,
+              filter .45s ease-in;
 }
 .hud { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .hud circle, .hud line { transform-origin: 120px 120px; }
 .hud-punkte circle, .hud-punkte-fein circle { fill: var(--mint); }
-.hud-punkte { animation: hud-dreh 19s linear infinite; transform-origin: 120px 120px; }
+.hud-punkte { transform-origin: 120px 120px; }
 .hud-punkte-fein {
-  animation: hud-dreh 13s linear infinite reverse; transform-origin: 120px 120px;
-  opacity: .55;
+  transform-origin: 120px 120px; opacity: .55;
 }
 .hud-striche {
-  animation: hud-dreh 30s linear infinite; transform-origin: 120px 120px;
-  opacity: .4;
+  transform-origin: 120px 120px; opacity: .4;
 }
 .hud-striche line { stroke: var(--mint); stroke-width: 1.6; }
 
@@ -993,11 +941,12 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 /* Umfang bei r=82 ist 515, bei r=74 ist 465 – daraus die Lücken */
 .hud-bogen-1 {
   stroke-width: 2.4; stroke-dasharray: 128 44 62 44 128 109;
-  animation: hud-dreh 7.5s linear infinite;
+  /* Der einzige Kreisel, der bleibt: Ein Ladebildschirm ohne jede Regung
+     sieht eingefroren aus. Langsam genug, um nicht zu zappeln. */
+  animation: hud-dreh 14s linear infinite;
 }
 .hud-bogen-2 {
   stroke-width: 1.4; stroke-dasharray: 26 18; opacity: .5;
-  animation: hud-dreh 11s linear infinite reverse;
 }
 .hud-ring {
   fill: none; stroke: var(--mint); stroke-width: 1; opacity: .28;
@@ -1015,8 +964,6 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
   opacity: 0; transition: opacity .2s ease;
 }
 @media (prefers-reduced-motion: reduce) {
-  .hud-punkte, .hud-punkte-fein, .hud-striche, .hud-bogen { animation: none; }
-  .hud-feld { animation: none; }
   .syncscreen.is-done .hud-feld { transform: none; filter: none; }
 }
 .sync-text {
@@ -1049,23 +996,6 @@ main { max-width: 780px; margin: 0 auto; padding: 18px 16px 8px; }
 .sheet { box-shadow: var(--schatten); }
 .disc.is-active { box-shadow: 0 0 0 1px var(--mint) inset; }
 
-/* Der Schimmer: ein schräger Lichtstreif, der einmal über den Knopf läuft,
-   wenn man ihn berührt. Kein Dauerglanz – ein Lebenszeichen. */
-.save-btn, .btn-mint { position: relative; overflow: hidden; }
-.save-btn::after, .btn-mint::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(105deg, transparent 35%,
-              color-mix(in srgb, var(--ink) 26%, transparent) 50%, transparent 65%);
-  transform: translateX(-120%);
-}
-.save-btn:hover::after, .btn-mint:hover::after,
-.save-btn:focus-visible::after, .btn-mint:focus-visible::after,
-.save-btn:active::after, .btn-mint:active::after {
-  /* :active ist wichtig – auf dem Handy gibt es kein hover, und dort wird
-     dieser Knopf am häufigsten gedrückt. */
-  animation: schimmer .75s ease-out;
-}
-@keyframes schimmer { to { transform: translateX(120%); } }
 
 .topbar { box-shadow: none; }
 .tabbar { box-shadow: none; }
@@ -1256,15 +1186,11 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   position: absolute; top: 4px; bottom: 4px; left: 0;
   width: var(--knopf-b, 0px);
   translate: var(--knopf-x, 0px) 0;
-  scale: 1 1;
   background: var(--mint);
   pointer-events: none;
-  transition: translate var(--feder-zeit) var(--feder),
-              width var(--feder-zeit) var(--feder),
-              scale .34s var(--feder);
+  transition: translate var(--weg-lang), width var(--weg-lang);
 }
-.seg-knopf.wandert { scale: 1.06 .9; }
-.seg-knopf.ohne-feder { transition: none; }
+.seg-knopf.ohne-weg { transition: none; }
 .seg-btn {
   position: relative; z-index: 1;
   border: 0; background: none; color: var(--muted); cursor: pointer;
@@ -1329,8 +1255,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   font-size: 11px; text-transform: uppercase; letter-spacing: .12em;
   color: var(--muted); font-weight: 700;
 }
-.punkte-gruppe:first-child,
-.glaslinse:first-child + .punkte-gruppe { margin-top: 2px; }
+.punkte-gruppe:first-child { margin-top: 2px; }
 .row.is-gezaehlt { border-color: color-mix(in srgb, var(--mint) 55%, var(--line-soft)); }
 
 /* Profil anlegen: Vollbild-Formular */
@@ -1451,7 +1376,7 @@ body[data-pattern="strahlen"] #bgfx, .pattern-swatch[data-pattern="strahlen"] {
   animation: warnung-auf .16s ease both;
 }
 .warnung[hidden] { display: none; }
-@keyframes warnung-auf { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+@keyframes warnung-auf { from { opacity: 0; } to { opacity: 1; } }
 .warnung-text {
   margin: 0 0 11px; font-size: 13.5px; line-height: 1.45; color: #F6E9E7;
 }
@@ -1756,14 +1681,6 @@ body.ist-lehrer .profile-btn { display: none; }
 .auge.ist-zu .auge-strich { display: inline; }
 .auge.ist-offen { color: var(--mint); }
 
-/* Der wandernde Glaskörper. Die Grundstellung steht außerhalb der
-   Rechner-Abfrage, damit er auch dort, wo es ihn nicht gibt, garantiert
-   nichts verschiebt: fixiert, ohne Größe, unsichtbar. */
-.glaslinse {
-  position: fixed; left: 0; top: 0; width: 0; height: 0;
-  opacity: 0; pointer-events: none;
-}
-
 /* ---------------- Die Formen ----------------
    Gilt in jeder Ansicht, auch beim Lehrer: Was man *anfasst*, ist eine
    Kapsel – Knöpfe, Chips, Balken, Marken. Was etwas *trägt*, bekommt
@@ -1786,20 +1703,17 @@ body.ist-lehrer .profile-btn { display: none; }
 .sheet, .pscreen-inner, .toast { border-radius: var(--r-gross); }
 
 /* ---------------- Der Druckpunkt ----------------
-   Alles, was man anfassen kann, sinkt beim Drücken kurz ein und kommt an
-   der Feder zurück – in jeder Ansicht, auf jedem Gerät. Vorher gab es das
-   nur dort, wo der Glaskörper wandert (Rechner) oder wo getippt wird
-   (Handy); im schmalen Fenster am Rechner passierte gar nichts.
-
-   Am Rechner mit Glas übernimmt die Linse den Druck: Dort steht weiter
-   unten „transform: none" für dieselben Flächen. */
+   Alles, was man anfassen kann, sinkt beim Drücken kurz ein und kommt
+   zurück – in jeder Ansicht, auf jedem Gerät, in 0,14 s. Das ist die
+   einzige Bewegung, die auf eine Handlung antwortet; alles andere
+   bewegt sich nur noch, wenn es wirklich den Ort wechselt. */
 .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
 .klapp > summary, .profile-btn, .icon-btn, .btn, .btn-sm, .save-btn,
 .seg-btn, .pscreen-close, .pscreen-link, .tab, .lehrer-link, .auge,
 .sync-chip, .theme-swatch, .pattern-swatch {
-  transition: transform var(--feder-kurz) var(--feder), color .18s ease,
-              background-color .28s ease, border-color .28s ease,
-              box-shadow .28s ease;
+  transition: transform var(--weg), color var(--weg),
+              background-color var(--weg), border-color var(--weg),
+              box-shadow var(--weg);
 }
 .disc:active, .row:active, .menu-row:active, .theme-card:active,
 .chip:active, .sortier-btn:active, .p-tile:active, .klapp > summary:active,
@@ -1822,23 +1736,17 @@ body.ist-lehrer .profile-btn { display: none; }
 /* ---------------- Lehreransicht: nüchtern ----------------
    Sie ist ein Arbeitsgerät, keine Spielwiese: Schwarz auf Weiß oder Weiß
    auf Schwarz (die Palette rechnet das Skript mit Sättigung null), klare
-   Kanten, kein wanderndes Glas, kein Schimmer. Auf den ersten Blick soll
-   klar sein, dass man nicht in der Schüleransicht ist. */
-body.ist-lehrer .glaslinse { display: none !important; }
+   Kanten, kein Muster, kein Glanz. Auf den ersten Blick soll klar sein,
+   dass man nicht in der Schüleransicht ist. */
 /* Kein Muster, kein Verlauf: ein ruhiger Grund, sonst nichts. */
 body.ist-lehrer #bgfx, body.ist-lehrer #bgverlauf { display: none; }
-body.ist-lehrer .save-btn::after,
-body.ist-lehrer .btn-mint::after { content: none; }
 /* Nüchtern heißt nicht eckig: Die Formen sind dieselben wie überall, nur
-   ohne Glanz. Der gleitende Knopf verzichtet auf Schatten – und darauf,
-   sich unterwegs zu strecken; das wirkte hier wie ein Fremdkörper. */
+   ohne Glanz. Der gleitende Knopf verzichtet zusätzlich auf den Schatten. */
 body.ist-lehrer .seg-knopf {
   box-shadow: none;
   transition: translate .34s cubic-bezier(.32, .72, 0, 1),
               width .34s cubic-bezier(.32, .72, 0, 1);
 }
-body.ist-lehrer .seg-knopf.wandert { scale: 1 1; }
-body.ist-lehrer .tabbar::before { display: none; }
 /* Die Tabelle ist das Herzstück – ihr gehört die Aufmerksamkeit. */
 body.ist-lehrer .klassentabelle th,
 body.ist-lehrer .klassentabelle td { padding: 11px 12px; }
@@ -1872,52 +1780,34 @@ body.ist-lehrer .sortier-btn.is-active {
    (breit, quer, echter Zeiger). Auf dem Handy gibt es kein Darüberfahren,
    und ein klebender Hover-Zustand nach dem Tippen sähe aus wie ein Fehler.
 
-   Drei Ebenen, bewusst getrennt:
-     1. die Fläche selbst  – Brechung (backdrop-filter), Kante, Anheben
-     2. ::before           – der Lichtreflex, folgt dem Zeiger, verblasst
-     3. der Inhalt         – bleibt scharf, wird nie aufgehellt
-
-   Alles, was sich bewegt, hängt an derselben Feder (--feder).
-   Einstellen lässt sich die Stärke oben an den --glas-*-Marken (in app.js
-   je Modus gesetzt) und an den vier Zahlen hier: Weichzeichner, Sättigung,
-   Anheben, Nachlauf (letzterer im Skript, `NACHLAUF`). */
+   Es bewegt sich dabei nichts. Die Fläche wird zu Glas und wieder zurück,
+   in 0,14 s: Was darunter liegt, wird weichgezeichnet, an der Oberkante
+   sitzt eine Lichtkante, innen ein weicher Schein. Kein Anheben, kein
+   Verformen, kein Licht, das dem Zeiger nachläuft – den Unterschied macht
+   das Material, nicht die Bewegung. */
 @media (min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine) {
   .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
   .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
-    --glas: 1;
-    /* Welche Form die Linse über dieser Fläche annimmt: „999px" heißt
-       „so rund es geht" (Kapsel), eine kleinere Zahl gibt eine Fliese. */
-    --glas-rund: 999px;
     position: relative;
-    /* Eigene Stapelebene: nur so landet der Lichtreflex (z-index: -1)
-       zwischen Fläche und Text und nicht über der Schrift. */
+    /* Eigene Stapelebene: nur so landet der Schein (z-index: -1) zwischen
+       Fläche und Text und nicht über der Schrift. */
     isolation: isolate;
-    transition: color .18s ease,
-                border-color var(--feder-kurz) ease-out,
-                background-color var(--feder-kurz) ease-out,
-                box-shadow var(--feder-kurz) ease-out,
-                border-radius var(--feder-kurz) var(--feder),
-                -webkit-backdrop-filter var(--feder-kurz) ease-out,
-                backdrop-filter var(--feder-kurz) ease-out,
-                translate var(--feder-kurz) var(--feder),
-                transform var(--feder-kurz) var(--feder);
+    transition: color var(--weg), border-color var(--weg),
+                background-color var(--weg), box-shadow var(--weg),
+                -webkit-backdrop-filter var(--weg), backdrop-filter var(--weg);
   }
 
-  /* Ebene 2: der Lichtreflex. Eigene Ebene, damit der Inhalt darüber scharf
-     bleibt. Einblenden 220 ms, Verblassen 420 ms – das Licht geht langsamer,
-     als es kommt, sonst wirkt das Verlassen wie ein Ausschalter. */
+  /* Der Schein liegt auf einer eigenen Ebene, damit der Inhalt darüber
+     scharf bleibt und nie aufgehellt wird. */
   .disc::before, .row::before, .menu-row::before, .theme-card::before,
   .chip::before, .sortier-btn::before, .p-tile::before,
   .klapp > summary::before, .profile-btn::before, .icon-btn::before,
   .btn::before, .seg-btn::before, .pscreen-close::before {
-    /* z-index: -1 heißt hier nicht „ganz nach hinten": Innerhalb der eigenen
-       Stapelebene liegt die Ebene über der Fläche und unter dem Inhalt.
-       Genau da gehört Licht hin – der Text bleibt schwarz und scharf. */
     content: ""; position: absolute; inset: 0; z-index: -1;
     pointer-events: none; border-radius: inherit; opacity: 0;
-    background: radial-gradient(220px circle at var(--gx, 50%) var(--gy, 50%),
+    background: radial-gradient(220px circle at 50% 50%,
                 var(--glas-licht) 0%, transparent 62%);
-    transition: opacity .42s ease;
+    transition: opacity var(--weg);
   }
   .disc:hover::before, .row:hover::before, .menu-row:hover::before,
   .theme-card:hover::before, .chip:hover::before, .sortier-btn:hover::before,
@@ -1930,14 +1820,13 @@ body.ist-lehrer .sortier-btn.is-active {
   .p-tile:focus-visible::before, .klapp > summary:focus-visible::before,
   .profile-btn:focus-visible::before, .icon-btn:focus-visible::before,
   .btn:focus-visible::before, .seg-btn:focus-visible::before,
-  .pscreen-close:focus-visible::before {
-    opacity: 1; transition-duration: .22s;
-  }
-  /* Der Inhalt liegt über dem Licht */
+  .pscreen-close:focus-visible::before { opacity: 1; }
+
+  /* Der Inhalt liegt über dem Schein */
   .disc > *, .row > *, .menu-row > *, .theme-card > *, .p-tile > *,
   .klapp > summary > * { position: relative; z-index: 1; }
 
-  /* Ebene 1: die Glasfläche */
+  /* Die Glasfläche selbst */
   .disc:hover, .row:hover, .menu-row:hover, .theme-card:hover, .chip:hover,
   .sortier-btn:hover, .p-tile:hover, .klapp > summary:hover,
   .profile-btn:hover, .icon-btn:hover, .btn:hover, .seg-btn:hover,
@@ -1951,24 +1840,15 @@ body.ist-lehrer .sortier-btn.is-active {
     border-color: transparent;
     background-color: color-mix(in srgb, var(--surface) 34%, transparent);
     box-shadow:
-      /* feste Lichtkante oben und Ring außen … */
       inset 0 1.5px 0 var(--glas-kante),
       inset 0 0 0 1px var(--glas-ring),
-      /* … dazu ein Schein, der zur Seite des Zeigers wandert: die dem Licht
-         zugewandte Kante wird heller */
-      inset calc(var(--neig-x, 0) * -7px) calc(var(--neig-y, 0) * -7px) 16px -10px var(--glas-innen),
       inset 0 0 30px -10px var(--glas-innen),
       0 18px 40px -26px var(--rand-tief),
       0 0 0 1px color-mix(in srgb, var(--mint) 10%, transparent);
-    /* Anheben und ein bis zwei Pixel dem Zeiger entgegen */
-    transform: scale(1.02);
-    translate: calc(var(--neig-x, 0) * 1.5px) calc(var(--neig-y, 0) * 1.5px - 1px);
   }
   @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
     /* Ruhezustand mit Nullwerten: Nur so kann der Weichzeichner überblenden
-       statt anzuspringen. Ohne diese Zeile geht die Brechung schlagartig an,
-       während Form und Licht noch unterwegs sind – das war der zweite Grund,
-       warum der Übergang hakelig wirkte. */
+       statt anzuspringen. */
     .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
     .klapp > summary, .profile-btn, .icon-btn, .btn, .seg-btn, .pscreen-close {
       -webkit-backdrop-filter: blur(0px) saturate(100%) brightness(1);
@@ -1988,27 +1868,8 @@ body.ist-lehrer .sortier-btn.is-active {
     }
   }
 
-  /* Die Form: flache, breite Bedienelemente werden zur Kapsel, hohe Kacheln
-     zur weichen Fliese. Beides ist im Vorbild zu sehen. */
-  .chip:hover, .sortier-btn:hover, .btn:hover, .seg-btn:hover,
-  .profile-btn:hover, .icon-btn:hover, .pscreen-close:hover,
-  .row:hover, .klapp > summary:hover,
-  .chip:focus-visible, .sortier-btn:focus-visible, .btn:focus-visible,
-  .seg-btn:focus-visible, .profile-btn:focus-visible, .icon-btn:focus-visible,
-  .pscreen-close:focus-visible, .row:focus-visible,
-  .klapp > summary:focus-visible { border-radius: 999px; }
-  .disc:hover, .menu-row:hover, .theme-card:hover, .p-tile:hover,
-  .disc:focus-visible, .menu-row:focus-visible, .theme-card:focus-visible,
-  .p-tile:focus-visible { border-radius: 24px; }
-  .disc, .menu-row, .theme-card, .p-tile { --glas-rund: 24px; }
-
-  /* Gedrückt: kurz zusammensinken, dann federt es zurück */
-  .disc:active, .menu-row:active, .theme-card:active, .chip:active,
-  .sortier-btn:active, .p-tile:active, .profile-btn:active, .icon-btn:active,
-  .btn:active, .seg-btn:active { transform: scale(.98); translate: 0 0; }
-
   /* Farbige Flächen behalten ihre Farbe – dort wäre Glas nur Matsch.
-     Sie bekommen die Kapselform, das Anheben und die Lichtkante. */
+     Sie bekommen nur die Lichtkante. */
   .btn-mint:hover, .save-btn:hover, .seg-btn.is-active:hover,
   .p-tile.is-current:hover,
   .btn-mint:focus-visible, .save-btn:focus-visible,
@@ -2021,168 +1882,14 @@ body.ist-lehrer .sortier-btn.is-active {
   }
   .save-btn:hover, .save-btn:focus-visible {
     background-color: color-mix(in srgb, var(--mint) 88%, white);
-    border-radius: 999px;
   }
-  .btn-mint:hover, .btn-mint:focus-visible { border-radius: 999px; }
 
-  /* Der gleitende Knopf ist am Rechner eine Linse: Kapselform, Lichtkante
-     oben, weiche Gegenkante unten – so wie der Schalter im Vorbild. */
+  /* Der Knopf im Umschalter ist eine kleine Linse: Lichtkante oben, weiche
+     Gegenkante unten. Er gleitet, aber er verformt sich nicht. */
   .seg-knopf {
-    border-radius: 999px;
     box-shadow: inset 0 1.5px 0 var(--glas-kante),
                 inset 0 0 0 1px var(--glas-ring),
                 inset 0 -4px 8px -6px var(--glas-innen),
                 0 6px 14px -8px var(--mint-glow);
   }
-  .seg:hover .seg-knopf { scale: 1.03 1.03; }
-
-  /* In der Leiste hat der Reiter schon seinen eigenen Auftritt */
-  .tabbar .tab { --glas: 0; }
-
-  /* ---- Der wandernde Glaskörper ----
-     Läuft das Skript, übernimmt eine einzige Linse die Arbeit: Sie liegt
-     im Behälter der Fläche – über dessen Grund, unter deren Schrift – und
-     fließt von Kachel zu Kachel, statt hier zu verlöschen und dort neu
-     anzugehen. Die Flächen selbst werden dann durchsichtig und geben nur
-     noch Schrift und Kontur her. Ohne Skript (oder bei „weniger
-     Bewegung") greift alles darüber und jede Fläche leuchtet für sich. */
-  .glaslinse {
-    position: fixed; left: 0; top: 0; width: 0; height: 0;
-    pointer-events: none;
-    background:
-      radial-gradient(240px circle at var(--gx, 50%) var(--gy, 50%),
-                      var(--glas-licht) 0%, transparent 64%),
-      color-mix(in srgb, var(--surface) 34%, transparent);
-    box-shadow:
-      inset 0 1.5px 0 var(--glas-kante),
-      inset 0 0 0 1px var(--glas-ring),
-      inset calc(var(--neig-x, 0) * -7px) calc(var(--neig-y, 0) * -7px) 16px -10px var(--glas-innen),
-      inset 0 0 30px -10px var(--glas-innen),
-      0 18px 40px -26px var(--rand-tief),
-      0 0 0 1px color-mix(in srgb, var(--mint) 10%, transparent);
-    will-change: transform, width, height;
-  }
-  @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-    .glaslinse {
-      -webkit-backdrop-filter: blur(18px) saturate(150%) brightness(var(--glas-hell));
-      backdrop-filter: blur(18px) saturate(150%) brightness(var(--glas-hell));
-    }
-  }
-
-  /* Mit Linse braucht die Fläche selbst kein Glas mehr – sonst läge es
-     doppelt übereinander und die wandernde Form käme gar nicht zur
-     Geltung. Übrig bleiben Schriftfarbe und das Verschwinden der Linie. */
-  body.glas-linse .disc, body.glas-linse .row, body.glas-linse .menu-row,
-  body.glas-linse .theme-card, body.glas-linse .chip, body.glas-linse .sortier-btn,
-  body.glas-linse .p-tile, body.glas-linse .klapp > summary,
-  body.glas-linse .profile-btn, body.glas-linse .icon-btn, body.glas-linse .btn,
-  body.glas-linse .seg-btn, body.glas-linse .pscreen-close {
-    -webkit-backdrop-filter: none; backdrop-filter: none;
-  }
-  body.glas-linse .disc::before, body.glas-linse .row::before,
-  body.glas-linse .menu-row::before, body.glas-linse .theme-card::before,
-  body.glas-linse .chip::before, body.glas-linse .sortier-btn::before,
-  body.glas-linse .p-tile::before, body.glas-linse .klapp > summary::before,
-  body.glas-linse .profile-btn::before, body.glas-linse .icon-btn::before,
-  body.glas-linse .btn::before, body.glas-linse .seg-btn::before,
-  body.glas-linse .pscreen-close::before { content: none; }
-  body.glas-linse .disc:hover, body.glas-linse .row:hover,
-  body.glas-linse .menu-row:hover, body.glas-linse .theme-card:hover,
-  body.glas-linse .chip:hover, body.glas-linse .sortier-btn:hover,
-  body.glas-linse .p-tile:hover, body.glas-linse .klapp > summary:hover,
-  body.glas-linse .profile-btn:hover, body.glas-linse .icon-btn:hover,
-  body.glas-linse .btn:hover, body.glas-linse .seg-btn:hover,
-  body.glas-linse .pscreen-close:hover,
-  body.glas-linse .disc:focus-visible, body.glas-linse .row:focus-visible,
-  body.glas-linse .menu-row:focus-visible, body.glas-linse .theme-card:focus-visible,
-  body.glas-linse .chip:focus-visible, body.glas-linse .sortier-btn:focus-visible,
-  body.glas-linse .p-tile:focus-visible, body.glas-linse .klapp > summary:focus-visible,
-  body.glas-linse .profile-btn:focus-visible, body.glas-linse .icon-btn:focus-visible,
-  body.glas-linse .btn:focus-visible, body.glas-linse .seg-btn:focus-visible,
-  body.glas-linse .pscreen-close:focus-visible {
-    background-color: transparent;
-    box-shadow: none;
-    /* Denselben Radius wie die Linse – das Skript schreibt ihn Bild für
-       Bild. So verschmilzt die verblassende Kontur mit dem Glas, statt als
-       Quadrat um eine Kapsel stehen zu bleiben. */
-    border-radius: var(--rund, 0px);
-    transform: none;
-    translate: none;
-    /* Hinein geht es schnell, damit die alte Linie nicht mehr im Weg ist,
-       wenn das Glas schon da ist. Hinaus darf es dauern. */
-    transition-duration: .16s;
-  }
-  /* Der Radius kommt Bild für Bild aus dem Skript – ein Übergang darauf
-     würde ihm nur hinterherhinken. */
-  body.glas-linse .disc, body.glas-linse .row, body.glas-linse .menu-row,
-  body.glas-linse .theme-card, body.glas-linse .chip, body.glas-linse .sortier-btn,
-  body.glas-linse .p-tile, body.glas-linse .klapp > summary,
-  body.glas-linse .profile-btn, body.glas-linse .icon-btn, body.glas-linse .btn,
-  body.glas-linse .seg-btn, body.glas-linse .pscreen-close {
-    transition: color .18s ease, border-color .34s ease-out,
-                background-color .34s ease-out, box-shadow .34s ease-out;
-  }
-  /* Gedrückt sinkt die Linse ein, nicht die Fläche. */
-  body.glas-linse .disc:active, body.glas-linse .menu-row:active,
-  body.glas-linse .theme-card:active, body.glas-linse .chip:active,
-  body.glas-linse .sortier-btn:active, body.glas-linse .p-tile:active,
-  body.glas-linse .profile-btn:active, body.glas-linse .icon-btn:active,
-  body.glas-linse .btn:active, body.glas-linse .seg-btn:active {
-    transform: none; translate: none;
-  }
-  /* Farbige Flächen sind undurchsichtig – dahinter wäre die Linse
-     unsichtbar. Sie bleiben bei ihrem eigenen Auftritt, und die Linse
-     verabschiedet sich, solange der Zeiger auf ihnen steht. */
-  body.glas-linse .btn-mint, body.glas-linse .save-btn,
-  body.glas-linse .seg-btn.is-active, body.glas-linse .p-tile.is-current { --glas: 0; }
-  body.glas-linse .btn-mint:hover, body.glas-linse .save-btn:hover,
-  body.glas-linse .seg-btn.is-active:hover, body.glas-linse .p-tile.is-current:hover,
-  body.glas-linse .btn-mint:focus-visible, body.glas-linse .save-btn:focus-visible,
-  body.glas-linse .seg-btn.is-active:focus-visible,
-  body.glas-linse .p-tile.is-current:focus-visible {
-    background-color: var(--mint);
-    box-shadow: inset 0 1.5px 0 var(--glas-kante),
-                inset 0 0 0 1px var(--glas-ring),
-                0 16px 34px -22px var(--mint-glow);
-    border-radius: 999px;
-  }
-  body.glas-linse .save-btn:hover, body.glas-linse .save-btn:focus-visible {
-    background-color: color-mix(in srgb, var(--mint) 88%, white);
-  }
-  /* „999px" würde der Browser bei der halben Höhe kappen – der Übergang
-     wäre nach 2 % der Strecke vorbei und sähe aus wie ein Umschnappen.
-     22px liegen nah genug an der Kapsel und fließen ganz. */
-  body.glas-linse .btn-mint:hover, body.glas-linse .save-btn:hover,
-  body.glas-linse .seg-btn.is-active:hover, body.glas-linse .p-tile.is-current:hover,
-  body.glas-linse .btn-mint:focus-visible, body.glas-linse .save-btn:focus-visible,
-  body.glas-linse .seg-btn.is-active:focus-visible,
-  body.glas-linse .p-tile.is-current:focus-visible { border-radius: 22px; }
-}
-
-/* Auf Berührungsgeräten gibt es kein Darüberfahren – dort zählt der Druck:
-   Das Element sinkt kurz ein und kommt an derselben Feder zurück. */
-@media (hover: none), (pointer: coarse) {
-  .disc, .row, .menu-row, .theme-card, .chip, .sortier-btn, .p-tile,
-  .profile-btn, .icon-btn, .btn, .seg-btn {
-    transition: transform var(--feder-kurz) var(--feder), color .18s ease;
-  }
-  .disc:active, .row:active, .menu-row:active, .theme-card:active,
-  .chip:active, .sortier-btn:active, .p-tile:active, .profile-btn:active,
-  .icon-btn:active, .btn:active, .seg-btn:active { transform: scale(.98); }
-}
-
-/* ---------------- Nachtrag: der Abschnittskopf ----------------
-   Ein <summary> kann den Glaskörper nicht tragen: Der müsste als erstes
-   Kind im <details> hängen, und dort gilt das erste Kind als Inhalt, der
-   zugeklappt verschwindet – die Zeile stünde dann leer da (genau das war
-   der leere Glasbalken bei „Alle Werte"). Der Abschnittskopf bekommt
-   deshalb seinen eigenen, einfachen Hover. Er steht hier ganz am Ende,
-   weil er den allgemeinen Glasregeln widersprechen muss. */
-body.glas-linse .klapp > summary { --glas: 0; }
-body.glas-linse .klapp > summary:hover,
-body.glas-linse .klapp > summary:focus-visible {
-  background-color: color-mix(in srgb, var(--text) 7%, transparent);
-  box-shadow: inset 0 0 0 1px var(--line-soft);
-  border-radius: var(--r-karte);
-  border-color: transparent;
 }

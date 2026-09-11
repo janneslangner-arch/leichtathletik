@@ -125,18 +125,21 @@ aus 60 Strichen und zwei unterbrochene Bögen. Die Lagen drehen
 unterschiedlich schnell und teils gegenläufig; in der Mitte steht ruhig,
 worauf gewartet wird – beim Profilwechsel „Profil wechseln", darunter der
 Name. Alle Koordinaten stammen aus einem Skript, damit die Punkte exakt auf
-dem Kreis sitzen. Der Ring kommt klein und unscharf herein und wächst in 0,8 s auf
-Normalmaß; ist der Abgleich fertig, wächst er auf das Fünfeinhalbfache,
-wird unscharf und verschwimmt mit der Seite darunter. Er bleibt mindestens
-eine Sekunde stehen, damit er nicht aufblitzt – insgesamt rund 2,1 s.
+dem Kreis sitzen. Die Anzeige ist einfach da, ohne Auftritt; nur der äußere
+Bogen dreht sich, einmal in 14 Sekunden – ein Ladebild ohne jede Regung
+sieht eingefroren aus. Ist der Abgleich fertig, wächst sie auf das
+Fünfeinhalbfache, wird unscharf und verschwimmt mit der Seite darunter. Sie
+bleibt mindestens eine Sekunde stehen, damit sie nicht aufblitzt –
+insgesamt rund 2,1 s.
 Unter dem Ring steht beim Wechseln groß **Moin _Name_**: der Gruß in der
 Textfarbe, der Name in der Farbe des Profils.
 
-Damit beides nebeneinander funktioniert, läuft der Auftritt als Animation
-**ohne** `fill-mode` – sonst hielte sie den Endzustand fest und der Abgang
-(ein `transition`) käme nicht mehr durch. Über der Eingabe steht danach „Hallo
-<Name>“. Jedes Profil hat eigene Werte; beim Umbenennen wandern sie mit,
-zusammen mit den Einstellungen (Wertung, Farbe, Muster).
+Der Auftritt war früher eine eigene Animation und musste deshalb **ohne**
+`fill-mode` laufen – sonst hielt sie den Endzustand fest und der Abgang (ein
+`transition`) kam nicht mehr durch. Seit die Anzeige einfach da ist, gibt es
+nur noch den Abgang und damit auch das Problem nicht mehr. Über der Eingabe
+steht danach „Hallo <Name>“. Jedes Profil hat eigene Werte; beim Umbenennen
+wandern sie mit, zusammen mit den Einstellungen (Wertung, Farbe, Muster).
 
 Die Kacheln stehen **alphabetisch** und tragen die Farbe des jeweiligen
 Profils – so erkennt man sich schon am Farbfleck. Der Grund dahinter ist
@@ -355,8 +358,7 @@ tatsächlich steht.
 Vorher lag auf jeder Fläche ein Glanzverlauf und darunter ein Schatten. Das
 sieht auf Anhieb teuer aus und nach dem dritten Blick nach Baukasten – beides
 ist raus. Tiefe gibt es nur noch, wo wirklich etwas über der Seite liegt:
-Vollbild, Dialog, Meldung. Ein **Schimmer** läuft schräg über den
-Speichern-Knopf, wenn man ihn berührt: kein Dauerglanz, ein Lebenszeichen.
+Vollbild, Dialog, Meldung.
 
 Die Überschrift trägt die Seite: groß, eng gesetzt (`letter-spacing: -.04em`),
 mit einem Punkt am Ende. Auf der Punkteseite steht die Summe in derselben
@@ -365,106 +367,75 @@ Design, deshalb fällt er auf.
 
 ## Glas unter dem Zeiger
 
-Am Rechner liegt unter dem Zeiger **ein einziger Glaskörper** – nicht auf
-jeder Fläche einer. Er wandert von Kachel zu Kachel, verformt sich dabei
-und zieht sich in Fahrtrichtung in die Länge, so wie ein Tropfen es täte.
-Das ist der ganze Unterschied zu einem gewöhnlichen Hover-Effekt: Dort
-verlischt etwas hier und geht dort neu an; hier bewegt sich ein
-Gegenstand.
+Am Rechner wird die Fläche unter dem Zeiger **zu Glas**: Was hinter ihr
+liegt, wird weichgezeichnet und etwas kräftiger in der Farbe, an der
+Oberkante sitzt eine Lichtkante, innen ein weicher Schein. Sie bewegt
+sich dabei nicht. Den Unterschied macht das Material, nicht die Bewegung.
 
-**Wo er liegt.** Die Linse hängt im Behälter der Fläche – im Kachelraster,
-in der Liste, in der Kopfzeile –, und zwar als dessen erstes Kind. Damit
-malt sie über den Grund des Behälters (sonst verschwände sie hinter einer
-Karte), aber unter den Flächen selbst: Die tragen alle
-`position: relative` und kommen im Dokument nach ihr, werden also über
-sie gezeichnet. **Die Schrift bleibt dadurch scharf und ungetrübt** – der
-Weichzeichner sieht nur, was hinter dem Glas liegt, nie den Text darauf.
-Die berührte Fläche selbst wird durchsichtig und gibt nur noch Schrift
-und Kontur her.
+Vorher wanderte hier ein einziger Glaskörper von Kachel zu Kachel, an
+einer gerechneten Feder, mit Dehnung in Fahrtrichtung und einem
+Lichtfleck, der dem Zeiger nachlief. Das war 268 Zeilen Skript, lief in
+jedem Bild und war beim fünften Mal nur noch Unruhe. **Das Aussehen ist
+geblieben, die Bewegung ist raus** – übrig ist reines CSS ohne eine
+einzige Zeile JavaScript.
 
-**Wie er sich bewegt.** Nicht mit CSS-Übergängen. Die fangen bei jedem
-neuen Ziel von vorn an – fährt man schnell über mehrere Kacheln, sieht
-man genau das, ein Stocken bei jedem Wechsel. Stattdessen rechnet das
-Skript in jedem Bild eine gedämpfte Feder (ω₀ ≈ 13, ζ ≈ 0,66, dieselbe
-wie in der CSS) für fünf Größen zugleich: x, y, Breite, Höhe und Radius.
-Eine Feder lässt sich jederzeit unterbrechen und umlenken, ohne neu zu
-beginnen – deshalb bleibt die Bewegung auch bei hastigen Zeigern
-zusammenhängend. Für einen langen Weg braucht sie genauso lange wie für
-einen kurzen, sie wird nur schneller.
+**Der Schein liegt auf einer eigenen Ebene.** `::before` mit
+`z-index: -1`, das Elternteil bekommt `isolation: isolate`. Ohne das
+malt die helle Schicht über die Schrift, und die Beschriftung auf den
+Profilknöpfen wird blass – das war einmal ein echter Fehler und steht
+deshalb heute in `glastest.js`.
 
-**Die Dehnung** hängt allein an der Geschwindigkeit und steht außerhalb
-der Feder: quer zur Fahrt schrumpft der Körper um knapp die Hälfte
-dessen, was er in Fahrtrichtung zulegt. Sobald er steht, ist sie von
-selbst wieder weg.
+**Mit der Tabulatortaste** gibt es dasselbe: Alle dreizehn Flächen
+antworten auf `:focus-visible` genauso wie auf `:hover`, sonst wäre die
+Tastaturbedienung die stille Ausnahme.
 
-**Die Lücke zwischen zwei Kacheln** hätte das Ganze fast zunichtegemacht:
-Wer zügig hinüberfährt, ist einen Moment lang auf keiner von beiden
-Flächen. Ohne Gnadenfrist gäbe die Linse dort auf und finge am Ziel neu
-an – aus dem Wandern würde ein Sprung. Sie wartet deshalb 150 ms, ob
-gleich etwas Neues kommt. Innerhalb desselben Behälters wird gewandert,
-beim Wechsel der Gruppe an Ort und Stelle auf- und abgeblendet.
-
-**Die Form** entscheidet die CSS, ausrechnen kann sie nur der Browser:
-Jede Fläche sagt über `--glas-rund`, was sie sein will – `999px` heißt
-„so rund es geht" (Kapsel), `24px` macht eine weiche Fliese. Die Linse
-liest das aus und setzt für die Kapsel die halbe kürzere Seite ein. Das
-ist wichtig, weil `border-radius: 999px` vom Browser ohnehin dort gekappt
-wird: Als Ziel eines Übergangs wäre die Verwandlung nach 2 % der Strecke
-vorbei – die Ecke schnappte in 20 ms um, während alles andere noch liefe.
-
-**Licht und Kante.** Der helle Fleck sitzt beim Zeiger, nicht in der
-Mitte. Weil die Linse dem Zeiger nachläuft, wandert er von selbst über
-die Fläche – dafür braucht es keine zweite Feder. Aus seiner Lage folgen
-`--neig-x/--neig-y` und daraus die Richtung des inneren Scheins: Die dem
-Licht zugewandte Kante hellt auf, die abgewandte bekommt den Schatten.
-
-**Auch das Auf- und Abblenden** rechnet das Skript selbst statt es der
-CSS zu überlassen: Als Übergang hing es daran, dass der Browser überhaupt
-Bilder zeichnet – bei Tastaturbedienung läuft aber keine Schleife, und
-dann blieb die Deckung mitten im Verlauf stehen. Jetzt hat alles dieselbe
-Uhr: Ankommen in 0,2 s, Verlassen in 0,34 s.
-
-**Gedrückt** sinkt die Linse auf 97,5 % und federt zurück; die Fläche
-darunter bewegt sich nicht. **Mit der Tabulatortaste** wandert sie
-genauso mit, dann sitzt das Licht mittig statt beim Zeiger.
-
-**Wo es sie nicht gibt:** auf Berührungsgeräten (dort zählt der
-Druckpunkt), im schmalen Fenster, bei `prefers-reduced-motion` – und über
+**Wo es das nicht gibt:** auf Berührungsgeräten (dort zählt der
+Druckpunkt), im schmalen Fenster, bei „weniger Bewegung" – und über
 farbigen Knöpfen (Speichern, aktiver Umschalter, aktuelles Profil). Die
-sind undurchsichtig, dahinter wäre Glas nur unsichtbar; dort zieht die
-Linse sich zurück und der Knopf behält seinen eigenen Auftritt.
+sind undurchsichtig, dahinter wäre Glas nur unsichtbar; sie behalten
+ihre eigene Farbe.
 
-**Ohne Skript** bleibt alles beim Alten: Dann fehlt `body.glas-linse`,
-und die reine CSS-Fassung greift, in der jede Fläche für sich zu Glas
-wird. Dasselbe gilt bei „weniger Bewegung".
+Ein `<summary>` bleibt außen vor: Abschnittsköpfe haben ihren eigenen,
+einfachen Hover. Warum, steht unten bei „Der Druckpunkt".
 
 ### Wo man die Stärke einstellt
 
-Alles in `assets/app.js`, oben in `richteGlasEin()`:
-
-| Was | Marke |
-| --- | --- |
-| Schwung und Überschwingen | `OMEGA` (Eigenfrequenz), `ZETA` (Dämpfung, unter 1 schwingt über) |
-| Wie weit die Linse über die Fläche hinauswächst | `HEBEN` |
-| Wie tief sie beim Klicken einsinkt | `DRUCK` |
-| Wie stark sie sich unterwegs dehnt | `DEHNUNG` |
-| Gnadenfrist über der Lücke | die 150 ms in `uebernehmen` |
-
-In `assets/styles.css`, im Block `.glaslinse`:
+Alles in `assets/styles.css`, im Block „Glas unter dem Zeiger":
 
 | Was | Wo |
 | --- | --- |
 | Weichzeichnung und Sättigung | `blur(18px) saturate(150%)` |
 | Tönung des Glases | `color-mix(in srgb, var(--surface) 34%, transparent)` |
-| Größe des Lichtflecks | die `240px` im `radial-gradient` |
-| Helligkeit, Kante, Ring, Schein | die `--glas-*`-Marken (in `app.js` je Modus gesetzt) |
-| Auf- und Abblenden | die beiden Zeiten in `takt` (0,2 s hin, 0,34 s zurück) |
-| Form je Fläche | `--glas-rund` an der jeweiligen Fläche |
+| Größe des Scheins | die `220px` im `radial-gradient` |
+| Helligkeit und Kante | die `--glas-*`-Marken (in `app.js` je Modus gesetzt) |
+| Wie schnell es kommt und geht | `--weg` in `:root` |
 | Ab wann es das gibt | `(min-width: 1000px) and (orientation: landscape) and (hover: hover) and (pointer: fine)` |
 
-Die Feder für den gleitenden Knopf im Umschalter (`--feder` in der CSS)
-ist dieselbe Rechnung, nur als Kurve vorausberechnet – siehe
-`werkzeug/feder.py`.
+## Nur zwei Zeiten
+
+Nach dem Aufräumen gibt es keine Federkurve mehr, sondern zwei Marken in
+`:root`, und die reichen für alles:
+
+```css
+--weg:      .14s cubic-bezier(.2, .6, .3, 1);   /* Farbe, Kante, Druckpunkt */
+--weg-lang: .22s cubic-bezier(.2, .6, .3, 1);   /* etwas, das den Ort wechselt */
+```
+
+Die Kurve startet zügig und läuft weich aus, ohne über das Ziel
+hinauszuschießen. Kein Überschwingen heißt: nichts wippt nach, wenn man
+schnell hintereinander tippt.
+
+**Bewegen darf sich nur noch, was seinen Ort wirklich wechselt** – der
+Balken in der Menüleiste, der gleitende Knopf im Umschalter, die Leiste
+beim Ausfahren. Alles andere wechselt nur die Farbe.
+
+Rausgeflogen sind dabei: der Schimmer über dem Speichern-Knopf, das
+Einfliegen jeder Ansicht beim Wechsel, das Licht, das in der Leiste dem
+Zeiger folgte, die nacheinander eintrudelnden Beschriftungen, das
+Stauchen des gleitenden Knopfes und vier der fünf Drehungen im
+Ladebild – dort dreht sich jetzt ein Ring in 14 Sekunden, damit man
+sieht, dass noch etwas passiert. Die Warnung beim Löschen blendet nur
+noch auf, statt hereinzurutschen.
 
 ## Zwei Formen, eine Regel
 
@@ -502,9 +473,9 @@ Weiß oder weiß auf Schwarz und sonst nichts**:
   also erhalten. Auch das Warnrot fällt weg: „fehlt" erkennt man an der
   Kontur, nicht an der Farbe.
 * **Kein Muster, kein Verlauf.** Der Hintergrund ist eine ruhige Fläche.
-* **Kein Glas.** Der wandernde Körper bleibt aus, es gibt keinen Schimmer,
-  und der gleitende Knopf im Umschalter streckt sich nicht. Die Formen
-  sind dieselben wie überall – nüchtern heißt hier farblos, nicht eckig.
+* **Kein Glanz.** Der gleitende Knopf im Umschalter trägt hier keinen
+  Schatten. Die Formen sind dieselben wie überall – nüchtern heißt hier
+  farblos, nicht eckig.
 * **Hell, dunkel oder automatisch** kann der Lehrer wählen; der Schalter
   steht unter *Darstellung* und gilt für beide Rollen. Alles andere am
   Aussehen bleibt der Schüleransicht vorbehalten.
@@ -552,12 +523,15 @@ an seine Stelle; ohne Datenbank bleibt die Ecke leer.
 
 ## Der Druckpunkt
 
-Alles, was man anfassen kann, sinkt beim Drücken kurz ein und kommt an der
-Feder zurück – in **jeder** Ansicht, auf jedem Gerät. Vorher gab es das nur
-dort, wo der Glaskörper wandert (Rechner) oder wo getippt wird (Handy); im
-schmalen Fenster am Rechner passierte gar nichts. Wo die Linse arbeitet,
-übernimmt sie den Druck; sonst bewegt sich die Fläche selbst. Bei „weniger
-Bewegung" wird sie stattdessen kurz heller.
+Alles, was man anfassen kann, sinkt beim Drücken kurz auf 96,5 % ein und
+kommt zurück – in **jeder** Ansicht, auf jedem Gerät, in 0,14 s. Vorher gab
+es das nur dort, wo der Zeiger war oder wo getippt wurde; im schmalen
+Fenster am Rechner passierte gar nichts. Bei „weniger Bewegung" wird die
+Fläche stattdessen kurz heller.
+
+Seit dem Aufräumen ist das die **einzige Bewegung, die auf eine Handlung
+antwortet**. Genau deshalb darf sie bleiben: Sie sagt „angekommen", und
+ohne sie weiß man auf dem Handy nicht, ob der Finger getroffen hat.
 
 Zwei Dinge, die dabei stumm dazwischenfunkten:
 
@@ -570,12 +544,13 @@ Zwei Dinge, die dabei stumm dazwischenfunkten:
   rechteckig, auch über runden Flächen. `-webkit-tap-highlight-color:
   transparent` schaltet ihn ab, die Rückmeldung macht die App selbst.
 
-Und noch eine Stelle, an der die Form gewann: Ein `<summary>` kann den
-Glaskörper **nicht** tragen. Der müsste als erstes Kind im `<details>`
-hängen, und dort gilt das erste Kind als Inhalt, der zugeklappt
-verschwindet – die Zeile stand dann leer da, nur der Glasbalken blieb
-übrig. Abschnittsköpfe haben deshalb ihren eigenen, einfachen Hover, und
-die Linse hängt sich nie in eine Liste, eine Tabelle oder ein `<details>`.
+Und noch eine Stelle, an der die Form gewann: Solange hier ein Glaskörper
+von Kachel zu Kachel wanderte, konnte ein `<summary>` ihn **nicht** tragen.
+Er hing als erstes Kind im `<details>`, und dort gilt das erste Kind als
+Inhalt, der zugeklappt verschwindet – bei „Alle Werte" stand die Zeile
+dann leer da, nur der Glasbalken blieb übrig. Der Körper ist inzwischen
+ganz weg; Abschnittsköpfe behalten trotzdem ihren eigenen, einfachen
+Hover, weil sie eine Zeile sind und keine Kachel.
 
 ## Kann dieser Wert stimmen?
 
@@ -627,7 +602,7 @@ aus, legt sie sich darüber – ob per Zeiger oder per Knopf. Vorher rutschte
 die halbe Seite zur Seite, sobald man das Menü öffnete, und das sah aus,
 als sei etwas verrutscht. Auch das Ausfahren selbst ist ruhiger geworden:
 Eine Schublade wippt nicht, also zieht sie jetzt an einer ruhigen Kurve
-auf statt an der überschwingenden Feder.
+auf statt an einer überschwingenden Kurve.
 
 Ab **1000 px im Querformat** (iPad quer, Rechner) wandert die Leiste an den
 linken Rand: 72 px schmal, nur Symbole. Ein Knopf oben klappt sie auf 212 px
@@ -644,20 +619,21 @@ festhalten will, klappt sie mit dem Knopf auf; dann rückt der Inhalt mit.
 Auf dem iPad gilt das ausdrücklich nicht: Safari hält den Hover-Zustand
 nach einer Berührung fest, die Leiste hinge nach jedem Tippen offen.
 
-Drei Sachen machen die Bewegung aus:
+Zwei Sachen machen sie aus:
 
 - **Glas.** Die Fläche ist durchscheinend, was darunter liegt, wird
   weichgezeichnet (`backdrop-filter`). Wo der Browser das nicht kann, bleibt
   sie schlicht deckend – deshalb steht die volle Farbe zuerst und die halbe
   nur in einem `@supports`.
-- **Licht unter dem Zeiger.** Ein weicher Schein folgt der Maus. Das Skript
-  meldet nur die Höhe (`--maus-y`), gezeichnet wird in CSS; gedrosselt auf
-  ein Bild pro Frame.
 - **Ein Balken, der wandert.** Statt an jedem Reiter einen, der an- und
-  ausgeht, gibt es einen einzigen, der zum aktiven Reiter gleitet – mit
-  einem Hauch Überschwingen (`cubic-bezier(.34, 1.32, .38, 1)`). Beim
-  Umschalten der Ansicht und beim Drehen steht er sofort richtig, statt
-  durch die halbe Leiste zu fliegen.
+  ausgeht, gibt es einen einzigen, der zum aktiven Reiter gleitet – an
+  `--weg-lang`, also ohne Nachwippen. Beim Umschalten der Ansicht und beim
+  Drehen steht er sofort richtig (`ohne-schwung`), statt durch die halbe
+  Leiste zu fliegen.
+
+  Ein weiches Licht, das in der Leiste dem Zeiger nachlief, gab es auch
+  einmal. Es hing an einer Messung in jedem Bild und fiel beim Aufräumen
+  mit weg.
 
 Ob die Leiste links steht, entscheidet **allein die CSS-Abfrage**. Das
 Skript kennt nur „auf" oder „zu" und setzt eine Klasse am `body` – so gibt
